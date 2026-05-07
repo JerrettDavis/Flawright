@@ -1,9 +1,7 @@
-using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Capturing;
-using FlaUI.Core.Definitions;
-using FlaUI.Core.Input;
-using FlaUI.UIA3;
-using JerrettDavis.Flawright.Input;
+using JerrettDavis.Flawright.Backends;
+using JerrettDavis.Flawright.Locator;
+using JerrettDavis.Flawright.Page;
+using JerrettDavis.Flawright.Selectors;
 
 namespace JerrettDavis.Flawright;
 
@@ -12,6 +10,11 @@ namespace JerrettDavis.Flawright;
 /// Obtain instances via <see cref="IFlawrightBrowser.NewPageAsync"/> or
 /// <see cref="IFlawrightBrowser.GetAllPagesAsync"/>.
 /// </summary>
+/// <remarks>
+/// Wave D.2 rewrite: all methods delegate to <see cref="FlawrightLocator"/> via
+/// <see cref="Locator(string)"/>.  The page accepts an <see cref="IConditionTranslator"/>
+/// so tests can inject a <c>FakeConditionTranslator</c> without any FlaUI dependency.
+/// </remarks>
 /// <example>
 /// <code>
 /// var page = await fw.Browser.NewPageAsync();
@@ -20,230 +23,202 @@ namespace JerrettDavis.Flawright;
 /// var title = await page.TitleAsync();
 /// </code>
 /// </example>
-public sealed class FlawrightPage : IFlawrightPage
+internal sealed class FlawrightPage : IFlawrightPage
 {
-    private readonly Window _window;
-    private readonly UIA3Automation _automation;
-    private readonly FlawrightOptions _options;
+    private readonly IElementBackend _windowBackend;
+    private readonly IInputBackend _input;
+    private readonly IConditionTranslator _translator;
+    private readonly Lazy<IFlawrightMouse> _mouse;
+    private readonly Lazy<IFlawrightKeyboard> _keyboard;
 
-    internal FlawrightPage(Window window, UIA3Automation automation, FlawrightOptions options)
+    internal FlawrightPage(
+        IElementBackend windowBackend,
+        IInputBackend input,
+        FlawrightOptions options,
+        IConditionTranslator translator)
     {
-        _window = window;
-        _automation = automation;
-        _options = options;
+        _windowBackend = windowBackend;
+        _input = input;
+        Options = options;
+        _translator = translator;
+        _mouse = new Lazy<IFlawrightMouse>(() => new FlawrightMouse(input));
+        _keyboard = new Lazy<IFlawrightKeyboard>(() => new FlawrightKeyboard(input));
     }
 
-    // ── IFlawrightPage ────────────────────────────────────────────────────────
+    // ── IFlawrightPage: Identity ──────────────────────────────────────────────
+
+    /// <inheritdoc/>
+    public FlawrightOptions Options { get; }
 
     /// <inheritdoc/>
     public Task<string> TitleAsync(CancellationToken ct = default)
-        => Task.Run(() => _window.Title ?? string.Empty, ct);
+        => Task.FromResult(_windowBackend.Name ?? string.Empty);
+
+    /// <inheritdoc/>
+    public Task BringToFrontAsync(CancellationToken ct = default)
+    {
+        // UIA has no direct "bring to front" API; focus the root element instead.
+        _windowBackend.Focus();
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task WaitForTimeoutAsync(double milliseconds, CancellationToken ct = default)
+        => Task.Delay(TimeSpan.FromMilliseconds(milliseconds), ct);
+
+    // ── IFlawrightPage: Sub-APIs ──────────────────────────────────────────────
+
+    /// <inheritdoc/>
+    public IFlawrightMouse Mouse => _mouse.Value;
+
+    /// <inheritdoc/>
+    public IFlawrightKeyboard Keyboard => _keyboard.Value;
+
+    // ── IFlawrightPage: Locator factory ───────────────────────────────────────
 
     /// <inheritdoc/>
     public IFlawrightLocator Locator(string selector)
     {
         ArgumentException.ThrowIfNullOrEmpty(selector);
-        return new FlawrightLocator(selector, _window, _automation, _options);
-    }
-
-    /// <inheritdoc/>
-    public async Task ClickAsync(
-        string selector,
-        TimeSpan? timeout = null,
-        CancellationToken ct = default)
-    {
-        var element = await WaitForSelectorAsync(selector, timeout, ct).ConfigureAwait(false);
-        await element.ClickAsync(ct).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task FillAsync(
-        string selector,
-        string text,
-        TimeSpan? timeout = null,
-        CancellationToken ct = default)
-    {
-        var element = await WaitForSelectorAsync(selector, timeout, ct).ConfigureAwait(false);
-        await element.FillAsync(text, ct).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Focuses the element, then types each character via
-    /// <see cref="Keyboard.Type(string)"/>.  This simulates realistic
-    /// key-by-key input, which is useful for controls that react to key events.
-    /// Use <see cref="FillAsync"/> for fast value-setting via ValuePattern.
-    /// </remarks>
-    public async Task TypeAsync(
-        string selector,
-        string text,
-        TimeSpan? timeout = null,
-        CancellationToken ct = default)
-    {
-        var element = await WaitForSelectorAsync(selector, timeout, ct).ConfigureAwait(false);
-        await element.FocusAsync(ct).ConfigureAwait(false);
-        await Task.Run(() => Keyboard.Type(text), ct).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Focuses the element then dispatches the key via <see cref="KeyParser"/>.
-    /// Supported syntax: single key names (<c>"Enter"</c>, <c>"Escape"</c>) and
-    /// modifier chords (<c>"Ctrl+S"</c>, <c>"Ctrl+Shift+Z"</c>).
-    /// </remarks>
-    public async Task PressAsync(
-        string selector,
-        string key,
-        TimeSpan? timeout = null,
-        CancellationToken ct = default)
-    {
-        var element = await WaitForSelectorAsync(selector, timeout, ct).ConfigureAwait(false);
-        await element.FocusAsync(ct).ConfigureAwait(false);
-        await Task.Run(() => KeyParser.Send(key), ct).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Uses <c>TogglePattern</c> to set the element to the <c>On</c> state.
-    /// If the element is already checked, no action is taken.
-    /// </remarks>
-    public async Task CheckAsync(
-        string selector,
-        TimeSpan? timeout = null,
-        CancellationToken ct = default)
-    {
-        var element = await WaitForSelectorAsync(selector, timeout, ct).ConfigureAwait(false);
-        var fe = (FlawrightElement)element;
-        await Task.Run(() =>
+        var ast = SelectorParser.Parse(selector);
+        var pipeline = _translator.Translate(ast);
+        var ctx = new LocatorContext
         {
-            var tp = fe.AutomationElement.Patterns.Toggle;
-            if (!tp.IsSupported)
-                throw new InvalidOperationException(
-                    $"Element '{selector}' does not support TogglePattern.");
-            if (tp.Pattern.ToggleState.Value != ToggleState.On)
-                tp.Pattern.Toggle();
-        }, ct).ConfigureAwait(false);
+            Root = _windowBackend,
+            Input = _input,
+            Translator = _translator,
+            Selector = selector,
+            Pipeline = pipeline,
+            Options = Options,
+        };
+        return new FlawrightLocator(ctx);
     }
+
+    /// <inheritdoc/>
+    public IFlawrightLocator GetByRole(AriaRole role, LocatorGetByRoleOptions? options = null)
+        => RootLocator().GetByRole(role, options);
+
+    /// <inheritdoc/>
+    public IFlawrightLocator GetByLabel(string text, LocatorGetByLabelOptions? options = null)
+        => RootLocator().GetByLabel(text, options);
+
+    /// <inheritdoc/>
+    public IFlawrightLocator GetByText(string text, LocatorGetByTextOptions? options = null)
+        => RootLocator().GetByText(text, options);
+
+    /// <inheritdoc/>
+    public IFlawrightLocator GetByTestId(string testId)
+        => RootLocator().GetByTestId(testId);
+
+    /// <inheritdoc/>
+    public IFlawrightLocator GetByPlaceholder(string text, LocatorGetByPlaceholderOptions? options = null)
+        => RootLocator().GetByPlaceholder(text, options);
+
+    /// <inheritdoc/>
+    public IFlawrightLocator GetByTitle(string text, LocatorGetByTitleOptions? options = null)
+        => RootLocator().GetByTitle(text, options);
+
+    // ── IFlawrightPage: Convenience action methods ────────────────────────────
+
+    /// <inheritdoc/>
+    public async Task ClickAsync(string selector, LocatorClickOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).ClickAsync(options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task DoubleClickAsync(string selector, LocatorDoubleClickOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).DoubleClickAsync(options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task FillAsync(string selector, string value, LocatorFillOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).FillAsync(value, options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task TypeAsync(string selector, string text, LocatorTypeOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).TypeAsync(text, options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task PressAsync(string selector, string key, LocatorPressOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).PressAsync(key, options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task CheckAsync(string selector, LocatorCheckOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).CheckAsync(options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task UncheckAsync(string selector, LocatorUncheckOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).UncheckAsync(options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task SetCheckedAsync(string selector, bool @checked, LocatorSetCheckedOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).SetCheckedAsync(@checked, options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task SelectOptionAsync(string selector, string value, LocatorSelectOptionOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).SelectOptionAsync(value, options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task HoverAsync(string selector, LocatorHoverOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).HoverAsync(options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task FocusAsync(string selector, CancellationToken ct = default)
+        => await Locator(selector).FocusAsync(ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task DragAndDropAsync(string source, string target, LocatorDragToOptions? options = null, CancellationToken ct = default)
+        => await Locator(source).DragToAsync(Locator(target), options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public async Task<IFlawrightElement> WaitForSelectorAsync(string selector, LocatorWaitForOptions? options = null, CancellationToken ct = default)
+    {
+        await Locator(selector).WaitForAsync(options, ct).ConfigureAwait(false);
+#pragma warning disable CS0618
+        return await Locator(selector).ElementHandleAsync(options?.Timeout, ct).ConfigureAwait(false);
+#pragma warning restore CS0618
+    }
+
+    // ── IFlawrightPage: Screenshot ────────────────────────────────────────────
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Uses <c>TogglePattern</c> to set the element to the <c>Off</c> state.
-    /// If the element is already unchecked, no action is taken.
+    /// Stub in Wave D.2. Returns an empty byte array. A real implementation
+    /// would capture the window via GDI BitBlt.
     /// </remarks>
-    public async Task UncheckAsync(
-        string selector,
-        TimeSpan? timeout = null,
-        CancellationToken ct = default)
+    public Task<byte[]> ScreenshotAsync(LocatorScreenshotOptions? options = null, CancellationToken ct = default)
     {
-        var element = await WaitForSelectorAsync(selector, timeout, ct).ConfigureAwait(false);
-        var fe = (FlawrightElement)element;
-        await Task.Run(() =>
+        if (options?.Path != null)
         {
-            var tp = fe.AutomationElement.Patterns.Toggle;
-            if (!tp.IsSupported)
-                throw new InvalidOperationException(
-                    $"Element '{selector}' does not support TogglePattern.");
-            if (tp.Pattern.ToggleState.Value != ToggleState.Off)
-                tp.Pattern.Toggle();
-        }, ct).ConfigureAwait(false);
+            System.IO.File.WriteAllBytes(options.Path, []);
+        }
+        return Task.FromResult(Array.Empty<byte>());
     }
 
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Finds child items within the container element (combobox or listbox)
-    /// matching <paramref name="value"/> by name or automation ID, then calls
-    /// <c>SelectionItemPattern.Select()</c>.
-    /// </remarks>
-    public async Task SelectOptionAsync(
-        string selector,
-        string value,
-        TimeSpan? timeout = null,
-        CancellationToken ct = default)
-    {
-        var container = await WaitForSelectorAsync(selector, timeout, ct).ConfigureAwait(false);
-        var fe = (FlawrightElement)container;
-
-        await Task.Run(() =>
-        {
-            var children = fe.AutomationElement.FindAllDescendants();
-            var target = children.FirstOrDefault(
-                c => string.Equals(c.Name, value, StringComparison.OrdinalIgnoreCase)
-                  || string.Equals(c.AutomationId, value, StringComparison.OrdinalIgnoreCase));
-
-            if (target == null)
-                throw new InvalidOperationException(
-                    $"Option '{value}' not found in '{selector}'.");
-
-            var sip = target.Patterns.SelectionItem;
-            if (!sip.IsSupported)
-                throw new InvalidOperationException(
-                    $"Option '{value}' does not support SelectionItemPattern.");
-
-            sip.Pattern.Select();
-        }, ct).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public async Task<IFlawrightElement> WaitForSelectorAsync(
-        string selector,
-        TimeSpan? timeout = null,
-        CancellationToken ct = default)
-    {
-        return await Locator(selector).FirstAsync(timeout, ct).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Uses <see cref="Capture.Element"/> from <c>FlaUI.Core.Capturing</c>,
-    /// which internally uses GDI BitBlt.  The captured bitmap is encoded as PNG
-    /// via <see cref="System.Drawing.Imaging.ImageFormat.Png"/>.
-    /// </remarks>
-    public async Task<byte[]> ScreenshotAsync(
-        string? path = null,
-        CancellationToken ct = default)
-    {
-        return await Task.Run(() =>
-        {
-            using var capture = Capture.Element(_window);
-            var bitmap = capture.Bitmap;
-
-            string? savePath = path;
-            if (savePath == null && _options.ScreenshotDirectory != null)
-            {
-                var fileName = $"screenshot-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}.png";
-                savePath = System.IO.Path.Combine(_options.ScreenshotDirectory, fileName);
-            }
-
-            if (savePath != null)
-            {
-                capture.ToFile(savePath);
-            }
-
-            using var ms = new System.IO.MemoryStream();
-            bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-            return ms.ToArray();
-        }, ct).ConfigureAwait(false);
-    }
-
-    // ── IAsyncDisposable ─────────────────────────────────────────────────────
+    // ── IAsyncDisposable ──────────────────────────────────────────────────────
 
     /// <summary>
     /// Releases the page.  The underlying window object does not require
     /// explicit disposal — the owning <see cref="FlawrightBrowser"/> manages
     /// the application lifecycle.
     /// </summary>
-    public ValueTask DisposeAsync()
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Creates a <see cref="FlawrightLocator"/> rooted at the window backend with
+    /// an empty pipeline (match-all from root). Used as the base for GetBy* methods.
+    /// </summary>
+    private FlawrightLocator RootLocator()
     {
-        // The underlying window object is managed by FlawrightBrowser.
-        // Nothing to release here; method exists for IAsyncDisposable compliance.
-        return ValueTask.CompletedTask;
+        var ctx = new LocatorContext
+        {
+            Root = _windowBackend,
+            Input = _input,
+            Translator = _translator,
+            Selector = string.Empty,
+            Pipeline = new SelectorPipeline(Array.Empty<IElementCondition>()),
+            Options = Options,
+        };
+        return new FlawrightLocator(ctx);
     }
-
-    // ── Internal ─────────────────────────────────────────────────────────────
-
-    /// <summary>Gets the underlying FlaUI window element.</summary>
-    internal Window Window => _window;
-
-    /// <summary>Gets the underlying UIA3 automation instance.</summary>
-    internal UIA3Automation Automation => _automation;
 }
