@@ -3,30 +3,41 @@ using Xunit;
 
 namespace JerrettDavis.Flawright.E2ETests;
 
-public class CalculatorTests : IDisposable
+/// <summary>
+/// E2E tests for Windows Calculator.  Uses <see cref="IAsyncLifetime"/> so
+/// that <c>DisposeAsync</c> is guaranteed to run even when a test throws.
+/// <see cref="Flawright.DisposeAsync"/> closes the process and kills it
+/// if it has not yet exited.
+/// </summary>
+public class CalculatorTests : IAsyncLifetime
 {
-    [Fact]
-    public async Task Calculator_LaunchAndFindWindow()
+    private Flawright? _fw;
+
+    public async Task InitializeAsync()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        var browser = await flawright.LaunchAsync(new LaunchOptions
+        _fw = await Flawright.LaunchAsync(new LaunchOptions
         {
             ApplicationPath = "calc.exe"
         });
-        var page = await browser.NewPageAsync();
+    }
 
+    public async Task DisposeAsync()
+    {
+        if (_fw != null)
+            await _fw.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Calculator_LaunchAndFindWindow()
+    {
+        var page = await _fw!.Browser.NewPageAsync();
         Assert.NotNull(page);
     }
 
     [Fact]
     public async Task Calculator_FindNumberButtons()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "calc.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         var buttonCount = await page.Locator("controltype:Button").CountAsync();
         Assert.True(buttonCount > 0, "Calculator should have buttons");
@@ -35,12 +46,7 @@ public class CalculatorTests : IDisposable
     [Fact]
     public async Task Calculator_ClickButton()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "calc.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         // Calculator uses automation IDs for number buttons
         var button3 = await page.Locator("#3").FirstAsync();
@@ -51,12 +57,7 @@ public class CalculatorTests : IDisposable
     [Fact]
     public async Task Calculator_Screenshot()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "calc.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         var screenshot = await page.ScreenshotAsync();
         Assert.NotNull(screenshot);
@@ -66,17 +67,8 @@ public class CalculatorTests : IDisposable
     [Fact]
     public async Task Calculator_ExpectButtonsToBeVisible()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "calc.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         await page.Locator("controltype:Button").Expect().ToBeVisibleAsync();
-    }
-
-    public void Dispose()
-    {
     }
 }
