@@ -1,0 +1,32 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- ─── Build infrastructure (applied via Directory.Build.props) ─── -->
+  <ItemGroup>
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.58" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.202" />
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50" />
+  </ItemGroup>
+
+  <!-- ─── Core library ─── -->
+  <ItemGroup>
+    <PackageVersion Include="FlaUI.Core" Version="4.0.0" />
+    <PackageVersion Include="FlaUI.UIA3" Version="4.0.0" />
+    <!-- Explicit transitive override to avoid vulnerable System.Drawing.Common 5.0.2 from FlaUI -->
+    <PackageVersion Include="System.Drawing.Common" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- ─── Testing ─── -->
+  <ItemGroup>
+    <PackageVersion Include="coverlet.collector" Version="10.0.0" />
+    <PackageVersion Include="FluentAssertions" Version="7.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+</Project>
