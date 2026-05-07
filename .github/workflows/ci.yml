@@ -80,13 +80,24 @@ jobs:
           --results-directory ./TestResults
 
       - name: Check coverage threshold
-        uses: irongut/CodeCoverageSummary@v1.3.0
-        with:
-          filename: '**/coverage.cobertura.xml'
-          thresholds: '90 95'
-          fail_below_min: true
-          format: markdown
-          output: both
+        shell: pwsh
+        run: |
+          $report = Get-ChildItem -Path . -Recurse -Filter "coverage.cobertura.xml" |
+            Where-Object { $_.FullName -match "TestResults" } |
+            Select-Object -First 1
+          if (-not $report) {
+            Write-Error "No coverage.cobertura.xml found under TestResults/"
+            exit 1
+          }
+          $xml = [xml](Get-Content $report.FullName)
+          $lineRate = [double]$xml.coverage.'line-rate'
+          $linePercent = [math]::Round($lineRate * 100, 2)
+          Write-Host "Line coverage: $linePercent%"
+          if ($linePercent -lt 90) {
+            Write-Error "Coverage $linePercent% is below the minimum threshold of 90%"
+            exit 1
+          }
+          Write-Host "Coverage gate passed: $linePercent% >= 90%"
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -190,13 +201,24 @@ jobs:
           --results-directory ./TestResults
 
       - name: Check coverage threshold
-        uses: irongut/CodeCoverageSummary@v1.3.0
-        with:
-          filename: '**/coverage.cobertura.xml'
-          thresholds: '90 95'
-          fail_below_min: true
-          format: markdown
-          output: both
+        shell: pwsh
+        run: |
+          $report = Get-ChildItem -Path . -Recurse -Filter "coverage.cobertura.xml" |
+            Where-Object { $_.FullName -match "TestResults" } |
+            Select-Object -First 1
+          if (-not $report) {
+            Write-Error "No coverage.cobertura.xml found under TestResults/"
+            exit 1
+          }
+          $xml = [xml](Get-Content $report.FullName)
+          $lineRate = [double]$xml.coverage.'line-rate'
+          $linePercent = [math]::Round($lineRate * 100, 2)
+          Write-Host "Line coverage: $linePercent%"
+          if ($linePercent -lt 90) {
+            Write-Error "Coverage $linePercent% is below the minimum threshold of 90%"
+            exit 1
+          }
+          Write-Host "Coverage gate passed: $linePercent% >= 90%"
 
       - name: Pack
         run: >
