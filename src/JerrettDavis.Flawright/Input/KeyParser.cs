@@ -60,9 +60,17 @@ internal static class KeyParser
         }
     }
 
-    // ── Private helpers ──────────────────────────────────────────────────────
+    // ── Internal helpers (also used by tests) ────────────────────────────────
 
-    private static VirtualKeyShort ParseModifier(string name)
+    /// <summary>
+    /// Resolves a modifier name ("Ctrl", "Alt", "Shift", "Win") to its
+    /// <see cref="VirtualKeyShort"/> value.  Exposed as <c>internal</c> so that
+    /// unit tests can verify the parsing logic without dispatching actual input.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="name"/> is not a recognised modifier.
+    /// </exception>
+    internal static VirtualKeyShort ParseModifier(string name)
     {
         return name.ToUpperInvariant() switch
         {
@@ -76,7 +84,15 @@ internal static class KeyParser
         };
     }
 
-    private static VirtualKeyShort ParseKey(string name)
+    /// <summary>
+    /// Resolves a key name ("Enter", "F1", "A", …) to its
+    /// <see cref="VirtualKeyShort"/> value.  Exposed as <c>internal</c> so that
+    /// unit tests can verify the parsing logic without dispatching actual input.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="name"/> is not a recognised key.
+    /// </exception>
+    internal static VirtualKeyShort ParseKey(string name)
     {
         return name.ToUpperInvariant() switch
         {
