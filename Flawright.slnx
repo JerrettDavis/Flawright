@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JerrettDavis.Flawright/JerrettDavis.Flawright.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj" />
+    <Project Path="tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj" />
+  </Folder>
+</Solution>
