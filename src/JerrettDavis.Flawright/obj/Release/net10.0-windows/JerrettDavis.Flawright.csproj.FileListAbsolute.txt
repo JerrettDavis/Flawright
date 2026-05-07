@@ -1,0 +1,13 @@
+C:\git\Flawright\src\JerrettDavis.Flawright\bin\Release\net10.0-windows\JerrettDavis.Flawright.deps.json
+C:\git\Flawright\src\JerrettDavis.Flawright\bin\Release\net10.0-windows\JerrettDavis.Flawright.dll
+C:\git\Flawright\src\JerrettDavis.Flawright\bin\Release\net10.0-windows\JerrettDavis.Flawright.pdb
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\JerrettDavis.Flawright.csproj.AssemblyReference.cache
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\JerrettDavis.Flawright.GeneratedMSBuildEditorConfig.editorconfig
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\JerrettDavis.Flawright.AssemblyInfoInputs.cache
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\JerrettDavis.Flawright.AssemblyInfo.cs
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\JerrettDavis.Flawright.csproj.CoreCompileInputs.cache
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\JerrettDavis.Flawright.sourcelink.json
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\JerrettDavis.Flawright.dll
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\refint\JerrettDavis.Flawright.dll
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\JerrettDavis.Flawright.pdb
+C:\git\Flawright\src\JerrettDavis.Flawright\obj\Release\net10.0-windows\ref\JerrettDavis.Flawright.dll
