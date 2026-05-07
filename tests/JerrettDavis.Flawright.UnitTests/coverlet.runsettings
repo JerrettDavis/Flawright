@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <!-- Exclude FlaUI I/O implementations — covered by E2E tests only -->
+          <Exclude>[*]JerrettDavis.Flawright.Backends.Uia.*,
+                   [*]JerrettDavis.Flawright.Launching.FlaUi*,
+                   [*]JerrettDavis.Flawright.Input.FlaUi*</Exclude>
+          <ExcludeByAttribute>GeneratedCodeAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>true</UseSourceLink>
+          <DeterministicReport>true</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
