@@ -1,3 +1,4 @@
+using FlaUI.Core.WindowsAPI;
 using JerrettDavis.Flawright.Input;
 using Xunit;
 
@@ -6,16 +7,17 @@ namespace JerrettDavis.Flawright.UnitTests;
 /// <summary>
 /// Tests for <see cref="KeyParser"/> chord-parsing logic.
 ///
-/// <see cref="KeyParser.Send"/> dispatches real keyboard input via the FlaUI
-/// Keyboard API, so we cannot call it in a pure unit test without a desktop
-/// session. Instead we test the guard conditions (null/empty → ArgumentException,
-/// unknown key → ArgumentException) by using <c>Record.Exception</c>.
-///
-/// Positive routing (Enter, Ctrl+S, F1, etc.) is covered in E2E tests.
+/// Tests call <see cref="KeyParser.ParseKey"/> and
+/// <see cref="KeyParser.ParseModifier"/> directly rather than
+/// <see cref="KeyParser.Send"/>, because <c>Send</c> dispatches real keyboard
+/// input via the FlaUI Keyboard API — which requires a desktop session and
+/// would cause the test host to crash on headless CI runners.
 /// </summary>
 public class KeyParserTests
 {
-    // ── Guard conditions ──────────────────────────────────────────────────────
+    // ── Guard conditions (via Send) ───────────────────────────────────────────
+    // These guard tests use only the null/empty paths which throw ArgumentException
+    // *before* any platform keyboard call is made.
 
     [Fact]
     public void Send_NullKey_ThrowsArgumentException()
@@ -27,29 +29,96 @@ public class KeyParserTests
 
     [Theory]
     [InlineData("")]
-    [InlineData("   ")]
-    public void Send_EmptyOrWhitespaceKey_ThrowsArgumentException(string key)
+    public void Send_EmptyKey_ThrowsArgumentException(string key)
     {
-        // ThrowIfNullOrEmpty treats whitespace-only strings as non-empty,
-        // but a whitespace main key will fail ParseKey lookup.
         // Empty string triggers ArgumentException from ThrowIfNullOrEmpty.
-        // Whitespace-only gets to ParseKey and fails with "Unknown key name".
         var ex = Assert.ThrowsAny<ArgumentException>(() => KeyParser.Send(key));
         Assert.NotNull(ex);
     }
 
+    // ── ParseKey — key name resolution (no keyboard dispatch) ────────────────
+
+    [Theory]
+    [InlineData("Enter", VirtualKeyShort.ENTER)]
+    [InlineData("Escape", VirtualKeyShort.ESCAPE)]
+    [InlineData("Tab", VirtualKeyShort.TAB)]
+    [InlineData("Space", VirtualKeyShort.SPACE)]
+    [InlineData("F1", VirtualKeyShort.F1)]
+    [InlineData("F12", VirtualKeyShort.F12)]
+    [InlineData("A", VirtualKeyShort.KEY_A)]
+    [InlineData("Z", VirtualKeyShort.KEY_Z)]
+    [InlineData("0", VirtualKeyShort.KEY_0)]
+    [InlineData("9", VirtualKeyShort.KEY_9)]
+    public void ParseKey_ValidSingleKey_ReturnsExpectedVirtualKey(string key, VirtualKeyShort expected)
+    {
+        var result = KeyParser.ParseKey(key);
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("F1", VirtualKeyShort.F1)]
+    [InlineData("F2", VirtualKeyShort.F2)]
+    [InlineData("F3", VirtualKeyShort.F3)]
+    [InlineData("F4", VirtualKeyShort.F4)]
+    [InlineData("F5", VirtualKeyShort.F5)]
+    [InlineData("F6", VirtualKeyShort.F6)]
+    [InlineData("F7", VirtualKeyShort.F7)]
+    [InlineData("F8", VirtualKeyShort.F8)]
+    [InlineData("F9", VirtualKeyShort.F9)]
+    [InlineData("F10", VirtualKeyShort.F10)]
+    [InlineData("F11", VirtualKeyShort.F11)]
+    [InlineData("F12", VirtualKeyShort.F12)]
+    public void ParseKey_FunctionKeys_AreAllRecognised(string key, VirtualKeyShort expected)
+    {
+        var result = KeyParser.ParseKey(key);
+        Assert.Equal(expected, result);
+    }
+
     [Theory]
     [InlineData("NotAKey")]
+    [InlineData("Save")]
+    [InlineData("ZZ")]
+    public void ParseKey_UnknownKey_ThrowsArgumentException(string key)
+    {
+        var ex = Assert.Throws<ArgumentException>(() => KeyParser.ParseKey(key));
+        Assert.Contains("Unknown key name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ── ParseModifier — modifier name resolution ──────────────────────────────
+
+    [Theory]
+    [InlineData("Ctrl", VirtualKeyShort.CONTROL)]
+    [InlineData("Control", VirtualKeyShort.CONTROL)]
+    [InlineData("Alt", VirtualKeyShort.ALT)]
+    [InlineData("Shift", VirtualKeyShort.SHIFT)]
+    [InlineData("Win", VirtualKeyShort.LWIN)]
+    [InlineData("Meta", VirtualKeyShort.LWIN)]
+    [InlineData("CTRL", VirtualKeyShort.CONTROL)]
+    [InlineData("ALT", VirtualKeyShort.ALT)]
+    public void ParseModifier_ValidModifier_ReturnsExpectedVirtualKey(string modifier, VirtualKeyShort expected)
+    {
+        var result = KeyParser.ParseModifier(modifier);
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("UnknownModifier")]
+    [InlineData("Super")]
+    [InlineData("Command")]
+    public void ParseModifier_UnknownModifier_ThrowsArgumentException(string modifier)
+    {
+        var ex = Assert.Throws<ArgumentException>(() => KeyParser.ParseModifier(modifier));
+        Assert.Contains("Unknown modifier", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ── Send — unknown key/modifier routing (throws before any platform call) ─
+
+    [Theory]
     [InlineData("Control+Save")]    // 'Save' is not a known key name
     [InlineData("Ctrl+ZZ")]         // 'ZZ' is not a single key
-    public void Send_UnknownKey_ThrowsArgumentException(string key)
+    public void Send_UnknownMainKey_ThrowsArgumentException(string key)
     {
-        // The actual keyboard dispatch would fail too (no desktop session in unit
-        // test), but ArgumentException is thrown before any platform call for
-        // unknown key names.
-        var ex = Record.Exception(() => KeyParser.Send(key));
-        // May throw ArgumentException (unknown key), COMException (no desktop),
-        // or InvalidOperationException — but NOT succeed silently.
+        var ex = Assert.ThrowsAny<ArgumentException>(() => KeyParser.Send(key));
         Assert.NotNull(ex);
     }
 
@@ -59,69 +128,5 @@ public class KeyParserTests
     {
         var ex = Assert.Throws<ArgumentException>(() => KeyParser.Send(key));
         Assert.Contains("Unknown modifier", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    // ── Chord structure (without dispatching) ─────────────────────────────────
-    // These tests verify that valid chord strings don't throw *argument* errors
-    // (parsing succeeds). They may still throw a COMException or similar from
-    // the actual keyboard dispatch if no desktop session is available, but that
-    // is not our concern here — we only care that the parsing logic is correct.
-
-    [Theory]
-    [InlineData("Enter")]
-    [InlineData("Escape")]
-    [InlineData("Tab")]
-    [InlineData("Space")]
-    [InlineData("F1")]
-    [InlineData("F12")]
-    [InlineData("A")]
-    [InlineData("Z")]
-    [InlineData("0")]
-    [InlineData("9")]
-    public void Send_ValidSingleKey_DoesNotThrowArgumentException(string key)
-    {
-        // If an ArgumentException is thrown, the key name is not recognised by
-        // the parser — that would be a bug. Other exception types (COM, UI) are
-        // expected in a headless environment.
-        var ex = Record.Exception(() => KeyParser.Send(key));
-        Assert.False(
-            ex is ArgumentException,
-            $"Key '{key}' should be parseable but got ArgumentException: {ex?.Message}");
-    }
-
-    [Theory]
-    [InlineData("Ctrl+S")]
-    [InlineData("Ctrl+Shift+T")]
-    [InlineData("Alt+F4")]
-    [InlineData("Ctrl+A")]
-    [InlineData("Ctrl+Z")]
-    [InlineData("Shift+Enter")]
-    public void Send_ValidChord_DoesNotThrowArgumentException(string key)
-    {
-        var ex = Record.Exception(() => KeyParser.Send(key));
-        Assert.False(
-            ex is ArgumentException,
-            $"Chord '{key}' should be parseable but got ArgumentException: {ex?.Message}");
-    }
-
-    [Theory]
-    [InlineData("F1")]
-    [InlineData("F2")]
-    [InlineData("F3")]
-    [InlineData("F4")]
-    [InlineData("F5")]
-    [InlineData("F6")]
-    [InlineData("F7")]
-    [InlineData("F8")]
-    [InlineData("F9")]
-    [InlineData("F10")]
-    [InlineData("F11")]
-    [InlineData("F12")]
-    public void Send_FunctionKeys_AreAllRecognised(string key)
-    {
-        var ex = Record.Exception(() => KeyParser.Send(key));
-        Assert.False(
-            ex is ArgumentException,
-            $"Function key '{key}' should be parseable but got ArgumentException: {ex?.Message}");
     }
 }
