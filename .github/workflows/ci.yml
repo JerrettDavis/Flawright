@@ -66,12 +66,14 @@ jobs:
       # GitHub-hosted windows-latest runners do not provide a full interactive
       # desktop session, so those tests are excluded here via the FullyQualifiedName
       # filter. Run them locally or on a self-hosted runner with a desktop session.
+      # E2E tests require a full desktop session — run unit tests only.
+      # Targeting the UnitTests project directly avoids the "no tests found"
+      # failure that occurs when the E2ETests assembly yields zero filter matches.
       - name: Test with coverage
         run: >
-          dotnet test Flawright.slnx
+          dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj
           --configuration Release
           --no-build
-          --filter "FullyQualifiedName!~E2ETests"
           --collect:"XPlat Code Coverage"
           --logger "trx;LogFileName=test-results.trx"
           --results-directory ./TestResults
@@ -169,13 +171,14 @@ jobs:
           --no-restore
           /p:ContinuousIntegrationBuild=true
 
-      # E2E tests require a full desktop session — excluded for the same reason as pr-checks.
+      # E2E tests require a full desktop session — run unit tests only.
+      # Running against the full solution with a FullyQualifiedName filter causes
+      # dotnet test to exit non-zero when the E2ETests assembly yields zero matches.
       - name: Test (Release)
         run: >
-          dotnet test Flawright.slnx
+          dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj
           --configuration Release
           --no-build
-          --filter "FullyQualifiedName!~E2ETests"
 
       - name: Pack
         run: >
