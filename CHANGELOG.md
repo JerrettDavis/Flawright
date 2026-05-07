@@ -5,6 +5,127 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-05-07
+
+### Added
+
+#### Backend Abstraction
+- `IElementBackend` — seam for the UI-Automation element tree; enables unit testing without a real UIA session
+- `IApplicationLauncher` — seam for launching and attaching to processes; `FlaUiApplicationLauncher` is the production implementation
+- `IInputBackend` — seam for keyboard/mouse dispatch; `FlaUiInputBackend` is the production implementation
+- `IConditionTranslator` — seam for translating parsed selector tokens to UIA property conditions
+
+#### Modern Windows App Support
+- `LaunchOptions.Aumid` — launch packaged (UWP / WinUI 3 / store) apps by Application User Model ID
+- `AttachOptions.ProcessName` — attach to a running process by basename (with or without `.exe`)
+- `AttachOptions.Index` — disambiguate among multiple instances of the same process (zero-based, ordered by PID ascending)
+
+#### Locator API — Playwright .NET Parity
+- `IFlawrightLocator.First` / `Last` / `Nth(int)` — synchronous index-based narrowing, returning `IFlawrightLocator` (replaces the removed `FirstAsync`/`NthAsync`)
+- `IFlawrightLocator.Locator(string)` — chained sub-locator for composing selectors
+- `IFlawrightLocator.GetByRole(AriaRole, LocatorGetByRoleOptions?)` — locate by ARIA role with optional name/state filters
+- `IFlawrightLocator.GetByLabel(string, LocatorGetByLabelOptions?)` — locate by accessible label (exact or contains)
+- `IFlawrightLocator.GetByText(string, LocatorGetByTextOptions?)` — locate by visible text (exact or contains)
+- `IFlawrightLocator.GetByTestId(string)` — locate by `data-testid` / AutomationId
+- `IFlawrightLocator.GetByPlaceholder(string, LocatorGetByPlaceholderOptions?)` — locate by placeholder text
+- `IFlawrightLocator.GetByTitle(string, LocatorGetByTitleOptions?)` — locate by title attribute
+- `IFlawrightLocator.Filter(LocatorFilterOptions)` — narrow a locator set with `Has`, `HasNot`, `HasText`, `HasTextRegex`, `HasNotText`, `HasNotTextRegex`, `Visible` predicates
+- `IFlawrightLocator.And(IFlawrightLocator)` — intersect two locators (AND composition)
+- `IFlawrightLocator.Or(IFlawrightLocator)` — union two locators (OR composition)
+
+#### Locator Action Surface
+- `PressAsync(string, LocatorPressOptions?)` — send a Playwright-style key chord
+- `TypeAsync(string, LocatorTypeOptions?)` — type text character-by-character
+- `PressSequentiallyAsync(string, LocatorPressSequentiallyOptions?)` — type with per-character delay
+- `CheckAsync(LocatorCheckOptions?)` / `UncheckAsync(LocatorUncheckOptions?)` / `SetCheckedAsync(bool, LocatorSetCheckedOptions?)` — checkbox control
+- `HoverAsync(LocatorHoverOptions?)` — move the cursor over the element
+- `FocusAsync()` / `BlurAsync()` — focus and blur the element
+- `DragToAsync(IFlawrightLocator, LocatorDragToOptions?)` — drag-and-drop to a target locator
+- `SelectOptionAsync(string[], LocatorSelectOptionOptions?)` — set selected items in a list control
+- `ClearAsync(LocatorClearOptions?)` — clear an editable field
+- `ScrollIntoViewIfNeededAsync()` — scroll the element into the visible viewport
+- `HighlightAsync()` — visually highlight the element for debugging
+
+#### Locator Read Surface
+- `IsVisibleAsync(CancellationToken)` / `IsHiddenAsync(CancellationToken)` — visibility checks
+- `IsEnabledAsync(CancellationToken)` / `IsDisabledAsync(CancellationToken)` — enabled-state checks
+- `IsCheckedAsync(CancellationToken)` / `IsEditableAsync(CancellationToken)` — state checks
+- `InnerTextAsync(CancellationToken)` / `TextContentAsync(CancellationToken)` — text extraction
+- `InputValueAsync(CancellationToken)` — read the current value of an input control
+- `GetAttributeAsync(string, CancellationToken)` — read a named UIA property or custom attribute
+- `BoundingBoxAsync(CancellationToken)` — get the element's bounding rectangle
+
+#### Wait API
+- `WaitForAsync(LocatorWaitForOptions?)` — poll until the element reaches a target `WaitForState` (`Visible`, `Hidden`, `Attached`, `Detached`)
+
+#### Full Assertion Surface (`FlawrightAssertions` / `FlawrightNotAssertions`)
+- `ToBeFocusedAsync` — assert the element has keyboard focus
+- `ToBeAttachedAsync` — assert the element is present in the element tree
+- `ToBeEditableAsync` — assert the element is editable
+- `ToBeEmptyAsync` — assert the element has no text content
+- `ToContainTextAsync(string/Regex, AssertionsToContainTextOptions?)` — assert text is a substring
+- `ToHaveAttributeAsync(string, string/Regex, AssertionsToHaveAttributeOptions?)` — assert a UIA attribute value
+- `ToHaveIdAsync(string/Regex, AssertionsToHaveIdOptions?)` — assert AutomationId
+- `ToHaveClassAsync(string/Regex, AssertionsToHaveClassOptions?)` — assert ClassName/class property
+- `ToHaveRoleAsync(AriaRole, AssertionsToHaveRoleOptions?)` — assert the element's ARIA role
+- `ToHaveAccessibleNameAsync(string/Regex, AssertionsToHaveAccessibleNameOptions?)` — assert accessible name
+- Regex overloads on `ToHaveTextAsync` and `ToHaveValueAsync`
+- Auto-wait `ToHaveCountAsync(int, AssertionsToHaveCountOptions?)` — polls until count matches
+- Full `.Not.*` counterpart for every assertion above via `IFlawrightNotAssertions`
+
+#### Page Assertions (`IFlawrightPageAssertions`)
+- `IFlawrightPageAssertions` interface with `ToHaveTitleAsync(string, PageAssertionsToHaveTitleOptions?)` and `ToHaveTitleAsync(Regex, PageAssertionsToHaveTitleOptions?)`
+- `FlawrightPageAssertions` concrete implementation
+- `.Not` property returning `IFlawrightPageAssertions` with negated semantics
+
+#### Static Assertions Entry Point
+- `AssertionsStatic.Expect(IFlawrightLocator)` — returns `IFlawrightAssertions` bound to the locator
+- `AssertionsStatic.Expect(IFlawrightPage)` — returns `IFlawrightPageAssertions` bound to the page
+
+#### Mouse and Keyboard Sub-APIs
+- `IFlawrightMouse` on `IFlawrightPage.Mouse` — `MoveAsync`, `ClickAsync`, `DoubleClickAsync`, `DownAsync`, `UpAsync`, `WheelAsync`
+- `IFlawrightKeyboard` on `IFlawrightPage.Keyboard` — `PressAsync`, `TypeAsync`, `DownAsync`, `UpAsync`, `InsertTextAsync`
+
+#### AriaRole Enum and Mapper
+- `AriaRole` enum with 74 values covering the full ARIA 1.2 role taxonomy
+- `AriaRoleMapper` — maps 47 roles to UIA `ControlType` values; 35 web-only roles throw `NotSupportedException` with a descriptive message (no silent fallback to `Custom`)
+
+#### Selector Grammar Extensions
+- `>>` combinator for direct child-of-locator composition
+- Substring attribute operators: `[name*=value]` (contains), `[name^=value]` (starts-with), `[name$=value]` (ends-with), `[name~=value]` (word-in-list)
+- Quote-aware tokenizer: attribute values may be single- or double-quoted
+
+#### Infrastructure
+- Unit test coverage gate at 90% line rate (enabled in CI via `irongut/CodeCoverageSummary@v1.3.0`)
+- Coverage measured by coverlet with `ExcludeByAttribute=ExcludeFromCodeCoverageAttribute`
+- All option/DTO record types annotated `[ExcludeFromCodeCoverage]` (no business logic)
+
+### Changed
+
+- `IFlawrightLocator.First` / `Last` / `Nth(int)` are now synchronous properties/methods returning `IFlawrightLocator` instead of `Task<IFlawrightElement>` — matches Playwright .NET v1.40+ API shape
+- `SelectorParser` extended with substring attribute operators and `>>` combinator; unknown prefix now throws `ArgumentException` (was silently ignored in v0.1)
+- `AriaRoleMapper` web-only roles now throw `NotSupportedException` instead of mapping to `ControlType.Custom`
+- `FlawrightBrowser.NewPageAsync` — resolves the application's root element via `IApplicationLauncher`, delegating all UIA access through the backend seam
+- `FlawrightOptions.DefaultTimeout` default lowered from 30 s to 5 s for faster test feedback
+- Internal `AutoWait` loop now propagates `OperationCanceledException` immediately (no retry on cancellation)
+- All source files use `CRLF` line endings to match `.editorconfig` and `.gitattributes` settings
+
+### Removed
+
+- `LaunchOptions.ForceAsyncio` — was never used; removed without replacement
+- `IFlawrightLocator.FirstAsync` — replaced by synchronous `First` property
+- `IFlawrightLocator.NthAsync(int)` — replaced by synchronous `Nth(int)` method
+- Parameterless `ClickAsync()` / `FillAsync()` overloads on `IFlawrightElement` and `IFlawrightLocator` (callers must supply a value/options explicitly)
+
+### Fixed
+
+- `LaunchOptions.ApplicationPath` and `Aumid` are now validated as mutually exclusive at browser-init time; setting both throws `ArgumentException`
+- `LaunchOptions.WorkingDirectory` combined with `Aumid` now throws `ArgumentException` (was silently ignored)
+- `WaitWhileMainHandleIsMissing = false` now throws `FlawrightTimeoutException` when the handle does not appear, instead of returning a null element
+- Store-app `Dispose` no longer kills the process tree (correct behaviour: the packaged app manages its own lifecycle)
+- `MA0009` (Regex without timeout) — all `new Regex(...)` calls in test files now supply `TimeSpan.FromSeconds(1)` as the third argument
+- `CA1859` (return concrete type for performance) — test helper methods now declare concrete return types
+
 ## [Unreleased]
 
 ### Added
