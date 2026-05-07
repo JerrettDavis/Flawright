@@ -3,30 +3,41 @@ using Xunit;
 
 namespace JerrettDavis.Flawright.E2ETests;
 
-public class NotepadTests : IDisposable
+/// <summary>
+/// E2E tests for Notepad.  Uses <see cref="IAsyncLifetime"/> so that
+/// <c>DisposeAsync</c> is guaranteed to run even when a test throws.
+/// <see cref="Flawright.DisposeAsync"/> closes the process and kills it
+/// if it has not yet exited.
+/// </summary>
+public class NotepadTests : IAsyncLifetime
 {
-    [Fact]
-    public async Task Notepad_LaunchAndFindWindow()
+    private Flawright? _fw;
+
+    public async Task InitializeAsync()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        var browser = await flawright.LaunchAsync(new LaunchOptions
+        _fw = await Flawright.LaunchAsync(new LaunchOptions
         {
             ApplicationPath = "notepad.exe"
         });
-        var page = await browser.NewPageAsync();
+    }
 
+    public async Task DisposeAsync()
+    {
+        if (_fw != null)
+            await _fw.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task Notepad_LaunchAndFindWindow()
+    {
+        var page = await _fw!.Browser.NewPageAsync();
         Assert.NotNull(page);
     }
 
     [Fact]
     public async Task Notepad_FindTextBox_ByControlType()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "notepad.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         var textBox = await page.Locator("controltype:Edit").FirstAsync();
         Assert.NotNull(textBox);
@@ -35,12 +46,7 @@ public class NotepadTests : IDisposable
     [Fact]
     public async Task Notepad_TypeText()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "notepad.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         await page.FillAsync("controltype:Edit", "Hello Flawright!");
         var element = await page.Locator("controltype:Edit").FirstAsync();
@@ -51,12 +57,7 @@ public class NotepadTests : IDisposable
     [Fact]
     public async Task Notepad_FindMenuBar()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "notepad.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         var menuBar = await page.Locator("controltype:MenuBar").FirstAsync();
         Assert.NotNull(menuBar);
@@ -65,12 +66,7 @@ public class NotepadTests : IDisposable
     [Fact]
     public async Task Notepad_Screenshot()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "notepad.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         var screenshot = await page.ScreenshotAsync();
         Assert.NotNull(screenshot);
@@ -80,12 +76,7 @@ public class NotepadTests : IDisposable
     [Fact]
     public async Task Notepad_ExpectToBeVisible()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "notepad.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         await page.Locator("controltype:Edit").Expect().ToBeVisibleAsync();
     }
@@ -93,12 +84,7 @@ public class NotepadTests : IDisposable
     [Fact]
     public async Task Notepad_ExpectToBeEnabled()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "notepad.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         await page.Locator("controltype:Edit").Expect().ToBeEnabledAsync();
     }
@@ -106,18 +92,18 @@ public class NotepadTests : IDisposable
     [Fact]
     public async Task Notepad_CountElements()
     {
-        await using var flawright = await Flawright.CreateAsync();
-        await using var browser = await flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "notepad.exe"
-        });
-        var page = await browser.NewPageAsync();
+        var page = await _fw!.Browser.NewPageAsync();
 
         var count = await page.Locator("controltype:Edit").CountAsync();
         Assert.Equal(1, count);
     }
 
-    public void Dispose()
+    [Fact]
+    public async Task Notepad_GetTitle_ReturnsNonEmpty()
     {
+        var page = await _fw!.Browser.NewPageAsync();
+
+        var title = await page.TitleAsync();
+        Assert.False(string.IsNullOrEmpty(title));
     }
 }
