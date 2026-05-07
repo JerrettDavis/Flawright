@@ -14,7 +14,7 @@
   <!-- ─── Core library ─── -->
   <ItemGroup>
     <PackageVersion Include="FlaUI.Core" Version="4.0.0" />
-    <PackageVersion Include="FlaUI.UIA3" Version="4.0.0" />
+    <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
     <!-- Explicit transitive override to avoid vulnerable System.Drawing.Common 5.0.2 from FlaUI -->
     <PackageVersion Include="System.Drawing.Common" Version="9.0.0" />
   </ItemGroup>
