@@ -6,12 +6,10 @@ namespace JerrettDavis.Flawright.E2ETests;
 /// <summary>
 /// E2E tests for Notepad.  Uses <see cref="IAsyncLifetime"/> so that
 /// <c>DisposeAsync</c> is guaranteed to run even when a test throws.
-/// <see cref="Flawright.DisposeAsync"/> closes the process and kills it
-/// if it has not yet exited.
 /// </summary>
 public class NotepadTests : IAsyncLifetime
 {
-    private Flawright? _fw;
+    private IFlawright? _fw;
 
     public async Task InitializeAsync()
     {
@@ -39,7 +37,9 @@ public class NotepadTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        var textBox = await page.Locator("controltype:Edit").FirstAsync();
+#pragma warning disable CS0618
+        var textBox = await page.Locator("controltype:Edit").First.ElementHandleAsync();
+#pragma warning restore CS0618
         Assert.NotNull(textBox);
     }
 
@@ -49,8 +49,7 @@ public class NotepadTests : IAsyncLifetime
         var page = await _fw!.Browser.NewPageAsync();
 
         await page.FillAsync("controltype:Edit", "Hello Flawright!");
-        var element = await page.Locator("controltype:Edit").FirstAsync();
-        var text = await element.TextAsync();
+        var text = await page.Locator("controltype:Edit").First.InputValueAsync();
         Assert.Equal("Hello Flawright!", text);
     }
 
@@ -59,7 +58,9 @@ public class NotepadTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        var menuBar = await page.Locator("controltype:MenuBar").FirstAsync();
+#pragma warning disable CS0618
+        var menuBar = await page.Locator("controltype:MenuBar").First.ElementHandleAsync();
+#pragma warning restore CS0618
         Assert.NotNull(menuBar);
     }
 
