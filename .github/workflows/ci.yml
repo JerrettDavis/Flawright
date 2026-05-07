@@ -1,79 +1,245 @@
-name: Build and Test
+name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, '**']
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+# Cancel in-progress runs on the same branch to avoid redundant work
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 jobs:
-  build:
+  pr-checks:
+    # Run on PRs and on pushes to any branch that is NOT main
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
     runs-on: windows-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
 
-    - name: Restore
-      run: dotnet restore Flawright.slnx
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}-
+            nuget-${{ runner.os }}-
 
-    - name: Build
-      run: dotnet build Flawright.slnx --configuration Release --no-restore
+      - name: Restore
+        run: dotnet restore Flawright.slnx
 
-    - name: Run Unit Tests
-      run: dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj --configuration Release --no-build --verbosity normal
+      - name: Verify formatting
+        run: >
+          dotnet format Flawright.slnx
+          --severity warn
+          --verify-no-changes
 
-  # Temporarily skip E2E tests as they require a desktop environment with UI
-  # Uncomment when WinAppDriver or similar is available on the runner
-  # e2e-test:
-  #   runs-on: windows-latest
-  #   needs: build
-  #
-  #   steps:
-  #   - name: Checkout
-  #     uses: actions/checkout@v4
-  #
-  #   - name: Setup .NET
-  #     uses: actions/setup-dotnet@v4
-  #     with:
-  #       dotnet-version: ${{ env.DOTNET_VERSION }}
-  #
-  #   - name: Restore
-  #     run: dotnet restore Flawright.slnx
-  #
-  #   - name: Build
-  #     run: dotnet build Flawright.slnx --configuration Release --no-restore
-  #
-  #   - name: Run E2E Tests
-  #     run: dotnet test tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj --configuration Release --no-build --verbosity normal --no-build
+      - name: Build (Release)
+        run: >
+          dotnet build Flawright.slnx
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
 
-  publish:
+      # E2E tests (JerrettDavis.Flawright.E2ETests) require a real desktop session
+      # with applications like calc.exe and notepad.exe that behave as UI targets.
+      # GitHub-hosted windows-latest runners do not provide a full interactive
+      # desktop session, so those tests are excluded here via the FullyQualifiedName
+      # filter. Run them locally or on a self-hosted runner with a desktop session.
+      - name: Test with coverage
+        run: >
+          dotnet test Flawright.slnx
+          --configuration Release
+          --no-build
+          --filter "FullyQualifiedName!~E2ETests"
+          --collect:"XPlat Code Coverage"
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./TestResults
+          --
+          DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+          DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[JerrettDavis.Flawright*]*"
+          DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[*Tests]*"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results
+          path: ./TestResults/**/*.trx
+
+      - name: Install ReportGenerator
+        run: dotnet tool update -g dotnet-reportgenerator-globaltool
+
+      - name: Combine coverage reports
+        shell: pwsh
+        run: |
+          $reports = (Get-ChildItem -Path . -Recurse -Filter "coverage.cobertura.xml" |
+            Where-Object { $_.FullName -match "TestResults" } |
+            Select-Object -ExpandProperty FullName) -join ";"
+          if (-not $reports) {
+            Write-Warning "No coverage reports found — skipping ReportGenerator."
+            exit 0
+          }
+          reportgenerator `
+            "-reports:$reports" `
+            "-targetdir:coverage-report" `
+            "-reporttypes:HtmlInline;Cobertura;TextSummary;Badges" `
+            "-assemblyfilters:+JerrettDavis.Flawright*;-*Tests*" `
+            "-filefilters:-**/*.Tests/*;-**/*Tests*/**"
+          $summary = Get-Content coverage-report/Summary.txt -Raw
+          "COVERAGE_SUMMARY<<EOF`n$summary`nEOF" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage-report
+
+      - name: Add coverage summary to PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          recreate: true
+          message: |
+            ## Code Coverage
+            ```
+            ${{ env.COVERAGE_SUMMARY }}
+            ```
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: windows-latest
-    needs: [build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+      packages: write
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
 
-    - name: Restore
-      run: dotnet restore Flawright.slnx
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}-
+            nuget-${{ runner.os }}-
 
-    - name: Pack
-      run: dotnet pack src/JerrettDavis.Flawright/JerrettDavis.Flawright.csproj --configuration Release --no-build -o ./artifacts
+      - name: Determine version (NBGV)
+        id: nbgv
+        uses: dotnet/nbgv@master
+        with:
+          setAllVars: true
 
-    - name: Publish to NuGet
-      run: dotnet nuget push artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Restore
+        run: dotnet restore Flawright.slnx
+
+      - name: Build (Release)
+        run: >
+          dotnet build Flawright.slnx
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      # E2E tests require a full desktop session — excluded for the same reason as pr-checks.
+      - name: Test (Release)
+        run: >
+          dotnet test Flawright.slnx
+          --configuration Release
+          --no-build
+          --filter "FullyQualifiedName!~E2ETests"
+
+      - name: Pack
+        run: >
+          dotnet pack Flawright.slnx
+          --configuration Release
+          --no-build
+          --output ./artifacts
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: ./artifacts/*.nupkg
+
+      - name: Push to NuGet.org
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if ($env:NUGET_API_KEY) {
+            Get-ChildItem ./artifacts/*.nupkg | ForEach-Object {
+              dotnet nuget push $_.FullName `
+                --api-key $env:NUGET_API_KEY `
+                --source https://api.nuget.org/v3/index.json `
+                --skip-duplicate
+            }
+          } else {
+            Write-Host "Skipping NuGet.org push: NUGET_API_KEY secret not set."
+          }
+
+      - name: Push to GitHub Packages
+        shell: pwsh
+        run: |
+          Get-ChildItem ./artifacts/*.nupkg | ForEach-Object {
+            dotnet nuget push $_.FullName `
+              --api-key ${{ secrets.GITHUB_TOKEN }} `
+              --source https://nuget.pkg.github.com/JerrettDavis/index.json `
+              --skip-duplicate
+          }
+
+      - name: Create git tag
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "v$($env:NBGV_SemVer2)"
+          $existing = git rev-parse $tag 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Tag $tag already exists — skipping."
+          } else {
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git tag $tag
+            git push origin $tag
+            Write-Host "Created and pushed tag $tag"
+          }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ env.NBGV_SemVer2 }}
+          name: Release v${{ env.NBGV_NuGetPackageVersion }}
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          generate_release_notes: true
