@@ -56,7 +56,8 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
     /// <inheritdoc/>
     public IElementBackend GetMainWindow()
     {
-        var window = _app.GetMainWindow(_automation);
+        var window = _app.GetMainWindow(_automation)
+            ?? throw new InvalidOperationException("Application main window could not be found.");
         return new UiaElementBackend(window);
     }
 
