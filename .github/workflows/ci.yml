@@ -152,13 +152,15 @@ jobs:
 
   e2e-tests:
     name: E2E Tests (Windows)
-    # Run on the same conditions as pr-checks so E2E results are visible on PRs
-    # and branch pushes. windows-latest runs as a real user (Session 1) and
-    # supports UIA + GUI apps. VirtualInputMode means no focus-steal or cursor
-    # movement is needed — the runner display quirks are irrelevant.
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
+    # Runs on every event the workflow fires for — PRs, branch pushes, and
+    # pushes to main — so post-merge E2E coverage is visible. windows-latest
+    # runs as a real user (Session 1) and supports UIA + GUI apps.
+    # VirtualInputMode means no focus-steal or cursor movement is needed —
+    # the runner display quirks are irrelevant. No `needs:` dependency: this
+    # job builds and runs independently of pr-checks/release so it works on
+    # main pushes (where pr-checks is skipped) and provides parallel signal
+    # when unit-test failures don't necessarily invalidate E2E results.
     runs-on: windows-latest
-    needs: pr-checks
     timeout-minutes: 15
     permissions:
       contents: read
