@@ -740,6 +740,11 @@ public interface IFlawrightAssertions
     Task ToBeCheckedAsync(Assertions.AssertionsToBeCheckedOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element has keyboard focus.</summary>
+    /// <remarks>
+    /// Not yet supported by the active backend.  Full support requires
+    /// <c>IElementBackend.HasKeyboardFocus</c>, planned for Wave D.
+    /// This method currently throws <see cref="NotSupportedException"/>.
+    /// </remarks>
     Task ToBeFocusedAsync(Assertions.AssertionsToBeFocusedOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is editable (supports value input and is enabled).</summary>

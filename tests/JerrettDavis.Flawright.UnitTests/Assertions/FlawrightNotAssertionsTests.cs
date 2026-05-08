@@ -146,26 +146,16 @@ public sealed class FlawrightNotAssertionsTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Not.ToBeFocusedAsync
+    // Not.ToBeFocusedAsync — not yet supported (Wave D)
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task Not_ToBeFocusedAsync_Passes_WhenNotFocused()
+    public void Not_ToBeFocusedAsync_ThrowsNotSupportedException()
     {
         var loc = Locator();
-        loc.GetAttributeAsync("focused", Arg.Any<CancellationToken>()).Returns("false");
 
-        await MakeNot(loc).ToBeFocusedAsync();
-    }
-
-    [Fact]
-    public async Task Not_ToBeFocusedAsync_Fails_WhenFocused()
-    {
-        var loc = Locator();
-        loc.GetAttributeAsync("focused", Arg.Any<CancellationToken>()).Returns("true");
-
-        await Assert.ThrowsAsync<AssertionException>(
-            () => MakeNot(loc).ToBeFocusedAsync());
+        Assert.Throws<NotSupportedException>(
+            () => { _ = MakeNot(loc).ToBeFocusedAsync(); });
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

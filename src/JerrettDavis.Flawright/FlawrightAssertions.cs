@@ -130,25 +130,12 @@ internal sealed partial class FlawrightAssertions : IFlawrightAssertions
 
     /// <inheritdoc/>
     /// <remarks>
-    /// WAVE C.1 NOTE: <c>IFlawrightLocator</c> does not yet expose a dedicated
-    /// <c>IsFocusedAsync</c> method.  This stub checks whether the element's
-    /// "focused" attribute equals "true" via <c>GetAttributeAsync</c>, which
-    /// resolves to the backend's <c>IsEnabled</c> flag only if the backend maps
-    /// "focused" explicitly.  Full implementation requires
-    /// <c>IElementBackend.HasKeyboardFocus</c> (flagged for Wave D).
+    /// Not yet supported by the active backend.  Full implementation requires
+    /// <c>IElementBackend.HasKeyboardFocus</c>, flagged for Wave D backend support.
     /// </remarks>
     public Task ToBeFocusedAsync(AssertionsToBeFocusedOptions? options = null, CancellationToken ct = default)
-        => AssertAsync(
-            async tok =>
-            {
-                // WAVE C.1 wires this: IFlawrightLocator.IsFocusedAsync(CancellationToken)
-                // For now, fall back to the "focused" attribute convention.
-                var attr = await _locator.GetAttributeAsync("focused", tok).ConfigureAwait(false);
-                return string.Equals(attr, "true", StringComparison.OrdinalIgnoreCase);
-            },
-            ResolveTimeout(options?.Timeout),
-            Pos("to be focused"),
-            ct);
+        => throw new NotSupportedException(
+            "ToBeFocusedAsync is not yet supported by the active backend; track Wave D backend support.");
 
     /// <inheritdoc/>
     public Task ToBeEditableAsync(AssertionsToBeEditableOptions? options = null, CancellationToken ct = default)

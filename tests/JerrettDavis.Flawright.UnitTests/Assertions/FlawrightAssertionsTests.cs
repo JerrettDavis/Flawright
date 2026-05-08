@@ -164,35 +164,25 @@ public sealed class FlawrightAssertionsTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // ToBeFocusedAsync
+    // ToBeFocusedAsync — not yet supported (Wave D)
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task ToBeFocusedAsync_Passes_WhenFocusedAttributeIsTrue()
+    public void ToBeFocusedAsync_ThrowsNotSupportedException()
     {
         var loc = Locator();
-        loc.GetAttributeAsync("focused", Arg.Any<CancellationToken>()).Returns("true");
 
-        await Make(loc).ToBeFocusedAsync();
+        Assert.Throws<NotSupportedException>(
+            () => { _ = Make(loc).ToBeFocusedAsync(); });
     }
 
     [Fact]
-    public async Task ToBeFocusedAsync_Fails_WhenFocusedAttributeIsFalse()
+    public void ToBeFocusedAsync_Negated_ThrowsNotSupportedException()
     {
         var loc = Locator();
-        loc.GetAttributeAsync("focused", Arg.Any<CancellationToken>()).Returns("false");
 
-        await Assert.ThrowsAsync<AssertionException>(
-            () => Make(loc).ToBeFocusedAsync());
-    }
-
-    [Fact]
-    public async Task ToBeFocusedAsync_CaseInsensitive_AcceptsUppercase()
-    {
-        var loc = Locator();
-        loc.GetAttributeAsync("focused", Arg.Any<CancellationToken>()).Returns("TRUE");
-
-        await Make(loc).ToBeFocusedAsync();
+        Assert.Throws<NotSupportedException>(
+            () => { _ = Make(loc, negated: true).ToBeFocusedAsync(); });
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
