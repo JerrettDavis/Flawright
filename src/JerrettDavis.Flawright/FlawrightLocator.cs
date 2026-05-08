@@ -167,20 +167,14 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         ArgumentNullException.ThrowIfNull(text);
         // Labels in UIA are expressed as the Name property of a nearby label control
         // or the Name of the target element itself. We match by Name (exact or contains).
-        var selector = (options?.Exact == true)
-            ? $"[name={QuoteSelector(text)}]"
-            : $"[name*={QuoteSelector(text)}]";
-        return CreateChild(selector);
+        return CreateChild(BuildNameSelector(text, options?.Exact == true));
     }
 
     /// <inheritdoc/>
     public IFlawrightLocator GetByText(string text, LocatorGetByTextOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(text);
-        var selector = (options?.Exact == true)
-            ? $"[name={QuoteSelector(text)}]"
-            : $"[name*={QuoteSelector(text)}]";
-        return CreateChild(selector);
+        return CreateChild(BuildNameSelector(text, options?.Exact == true));
     }
 
     /// <inheritdoc/>
@@ -195,10 +189,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     {
         ArgumentNullException.ThrowIfNull(text);
         // Placeholder text in desktop UIA typically appears as the Name when no value is set.
-        var selector = (options?.Exact == true)
-            ? $"[name={QuoteSelector(text)}]"
-            : $"[name*={QuoteSelector(text)}]";
-        return CreateChild(selector);
+        return CreateChild(BuildNameSelector(text, options?.Exact == true));
     }
 
     /// <inheritdoc/>
@@ -206,10 +197,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     {
         ArgumentNullException.ThrowIfNull(text);
         // Title maps to Name in UIA.
-        var selector = (options?.Exact == true)
-            ? $"[name={QuoteSelector(text)}]"
-            : $"[name*={QuoteSelector(text)}]";
-        return CreateChild(selector);
+        return CreateChild(BuildNameSelector(text, options?.Exact == true));
     }
 
     // ── IFlawrightLocator: Async resolution ───────────────────────────────────
@@ -328,12 +316,8 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     }
 
     /// <inheritdoc/>
-    public async Task PressSequentiallyAsync(string text, LocatorPressSequentiallyOptions? options = null, CancellationToken ct = default)
-    {
-        var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        backend.Focus();
-        _ctx.Input.KeyboardType(text);
-    }
+    public Task PressSequentiallyAsync(string text, LocatorPressSequentiallyOptions? options = null, CancellationToken ct = default)
+        => TypeAsync(text, options is null ? null : new LocatorTypeOptions { Delay = options.Delay, NoWaitAfter = options.NoWaitAfter, Timeout = options.Timeout }, ct);
 
     /// <inheritdoc/>
     public async Task PressAsync(string key, LocatorPressOptions? options = null, CancellationToken ct = default)
@@ -1017,6 +1001,18 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var escaped = value.Replace("\\", "\\\\").Replace("\"", "\\\"");
         return $"\"{escaped}\"";
     }
+
+    /// <summary>
+    /// Builds a <c>[name=...]</c> or <c>[name*=...]</c> selector for the given text,
+    /// depending on whether an exact match is required.
+    /// </summary>
+    /// <param name="text">The name text to match.</param>
+    /// <param name="exact">
+    /// <see langword="true"/> for an exact equality match (<c>[name=...]</c>);
+    /// <see langword="false"/> for a substring/contains match (<c>[name*=...]</c>).
+    /// </param>
+    private static string BuildNameSelector(string text, bool exact)
+        => exact ? $"[name={QuoteSelector(text)}]" : $"[name*={QuoteSelector(text)}]";
 
     private static string BuildRoleSelector(string controlTypeName)
     {
