@@ -61,28 +61,21 @@ public interface IFlawrightBrowser : IAsyncDisposable
         CancellationToken ct = default);
 
     /// <summary>
-    /// Closes the application gracefully. If a "save changes?" dialog appears,
-    /// the discard-changes button is clicked automatically (handling both
-    /// "Don't Save" and "Don't save" variants for cross-OS compatibility).
-    /// Falls back to a process kill if the app does not exit within
-    /// <paramref name="timeout"/>.
+    /// Closes the application using the <see cref="FlawrightOptions.CloseBehavior"/>
+    /// configured when the browser was created. Falls back to a process kill if
+    /// the behavior returns <see langword="false"/> or if the app does not exit
+    /// within <paramref name="timeout"/>.
     /// </summary>
-    /// <param name="discardUnsavedChanges">
-    ///   When true (the default), automatically clicks "Don't Save" / "Don't save"
-    ///   on any save-changes dialog that appears. When false, the method does not
-    ///   interact with dialogs — you can drive the dialog yourself first, or
-    ///   accept that the dispose force-kill will handle it.
-    /// </param>
     /// <param name="timeout">
-    ///   How long to wait for clean exit before falling back to a process kill.
-    ///   Defaults to 5 seconds.
+    ///   How long to allow the close behavior to run before falling back to a
+    ///   process kill. Defaults to 5 seconds when <see langword="null"/>.
     /// </param>
     /// <returns>
-    ///   True if the application exited gracefully (either because no dialog appeared,
-    ///   or the discard button was clicked successfully). False if the method had to
-    ///   fall back to a process kill.
+    ///   <see langword="true"/> if the application exited gracefully (the
+    ///   configured behavior returned <see langword="true"/>).
+    ///   <see langword="false"/> if the method had to fall back to a process kill.
     /// </returns>
-    Task<bool> CloseAsync(bool discardUnsavedChanges = true, TimeSpan? timeout = null);
+    Task<bool> CloseAsync(TimeSpan? timeout = null);
 }
 
 /// <summary>

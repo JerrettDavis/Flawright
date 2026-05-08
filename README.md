@@ -42,11 +42,16 @@ Launch Notepad, type some text, and assert it landed. The correct selector depen
 
 ```csharp
 using JerrettDavis.Flawright;
+using JerrettDavis.Flawright.CloseBehaviors;
 
-await using var fw = await Flawright.LaunchAsync(new LaunchOptions
-{
-    ApplicationPath = "notepad.exe"   // auto-redirected to AUMID on Windows 11
-});
+// Configure how the app closes — Notepad shows a save-changes dialog,
+// so opt into dialog-dismissing close behavior.
+await using var fw = await Flawright.LaunchAsync(
+    new LaunchOptions { ApplicationPath = "notepad.exe" },
+    new FlawrightOptions
+    {
+        CloseBehavior = new DismissDialogCloseBehavior() // defaults handle Win10 + Win11 Notepad
+    });
 
 var page = await fw.Browser.NewPageAsync();
 
@@ -56,7 +61,7 @@ await page.Locator("#RichEditBox").Expect().ToBeVisibleAsync();
 
 byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
 
-// Gracefully close — dismisses the "save changes?" dialog if it appears
+// Runs the configured behavior — transparent, no hidden magic
 await fw.Browser.CloseAsync();
 ```
 
@@ -64,11 +69,14 @@ await fw.Browser.CloseAsync();
 
 ```csharp
 using JerrettDavis.Flawright;
+using JerrettDavis.Flawright.CloseBehaviors;
 
-await using var fw = await Flawright.LaunchAsync(new LaunchOptions
-{
-    ApplicationPath = "notepad.exe"
-});
+await using var fw = await Flawright.LaunchAsync(
+    new LaunchOptions { ApplicationPath = "notepad.exe" },
+    new FlawrightOptions
+    {
+        CloseBehavior = new DismissDialogCloseBehavior() // defaults handle Win10 + Win11 Notepad
+    });
 
 var page = await fw.Browser.NewPageAsync();
 
@@ -78,7 +86,6 @@ await page.Locator("class:Edit").Expect().ToBeVisibleAsync();
 
 byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
 
-// Gracefully close — dismisses the "save changes?" dialog if it appears
 await fw.Browser.CloseAsync();
 ```
 
@@ -317,6 +324,64 @@ var pages = await fw.Browser.GetAllPagesAsync();
 
 // Wait for a dialog/window to appear by title substring
 var saveDialog = await fw.Browser.WaitForPageAsync("Save As");
+```
+
+### App close behavior
+
+`IFlawrightBrowser.CloseAsync()` delegates to an `ICloseBehavior` configured on `FlawrightOptions`. Four built-in behaviors ship out of the box:
+
+| Behavior | What it does |
+|---|---|
+| `WindowMessageCloseBehavior` | Sends WM_CLOSE and waits for exit. **Default.** |
+| `DismissDialogCloseBehavior` | Sends WM_CLOSE, then polls for a named button (e.g. "Don't Save") and clicks it. |
+| `KillCloseBehavior` | Force-kills the process tree immediately. |
+| `CompositeCloseBehavior` | Runs behaviors in sequence; stops at the first that succeeds. |
+
+Configure at launch time:
+
+```csharp
+using JerrettDavis.Flawright.CloseBehaviors;
+
+// Notepad shows a save-changes dialog — use the dialog-dismissing behavior.
+var options = new FlawrightOptions
+{
+    CloseBehavior = new DismissDialogCloseBehavior() // handles Win10 + Win11 Notepad by default
+};
+
+await using var fw = await Flawright.LaunchAsync(
+    new LaunchOptions { ApplicationPath = "notepad.exe" },
+    options);
+
+// ... test work ...
+
+await fw.Browser.CloseAsync(); // transparent: runs the configured behavior
+```
+
+Implement `ICloseBehavior` for any app-specific logic:
+
+```csharp
+// Example: close via File > Quit menu rather than WM_CLOSE
+public sealed class QuitMenuCloseBehavior : ICloseBehavior
+{
+    public async Task<bool> CloseAsync(ICloseContext context)
+    {
+        var page = await context.Browser.NewPageAsync();
+        await page.ClickAsync("name:File");
+        await page.ClickAsync("name:Quit");
+        return await context.WaitForExitAsync(context.Timeout);
+    }
+}
+```
+
+Use `CompositeCloseBehavior` to chain behaviors — for example, try graceful close first, fall back to kill:
+
+```csharp
+var options = new FlawrightOptions
+{
+    CloseBehavior = new CompositeCloseBehavior(
+        new DismissDialogCloseBehavior(),
+        new KillCloseBehavior())
+};
 ```
 
 ## Differences from Playwright (web)

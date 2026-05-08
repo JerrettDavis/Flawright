@@ -1,8 +1,10 @@
+using JerrettDavis.Flawright.CloseBehaviors;
+
 namespace JerrettDavis.Flawright;
 
 /// <summary>
 /// Global configuration options for Flawright, controlling timeouts, retry
-/// intervals, and screenshot output.
+/// intervals, screenshot output, and close behavior.
 /// </summary>
 /// <example>
 /// <code>
@@ -10,7 +12,8 @@ namespace JerrettDavis.Flawright;
 /// {
 ///     DefaultTimeout      = TimeSpan.FromSeconds(10),
 ///     DefaultRetryInterval = TimeSpan.FromMilliseconds(50),
-///     ScreenshotDirectory  = @"C:\TestScreenshots"
+///     ScreenshotDirectory  = @"C:\TestScreenshots",
+///     CloseBehavior        = new DismissDialogCloseBehavior()
 /// };
 /// await using var fw = await Flawright.LaunchAsync(
 ///     new LaunchOptions { ApplicationPath = "notepad.exe" },
@@ -37,4 +40,13 @@ public sealed record FlawrightOptions
     /// working directory is used.
     /// </summary>
     public string? ScreenshotDirectory { get; init; }
+
+    /// <summary>
+    /// Strategy for closing the launched application. Defaults to
+    /// <see cref="WindowMessageCloseBehavior"/> — sends WM_CLOSE and waits
+    /// for exit. Override to handle modal dialogs (e.g.
+    /// <see cref="DismissDialogCloseBehavior"/>) or force-kill
+    /// (<see cref="KillCloseBehavior"/>).
+    /// </summary>
+    public ICloseBehavior CloseBehavior { get; init; } = new WindowMessageCloseBehavior();
 }

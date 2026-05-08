@@ -97,11 +97,14 @@ public class ClassicNotepadTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        // Win10 notepad.exe — classic Win32, no alias redirect
-        _fw = await Flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = @"C:\Windows\System32\notepad.exe"
-        });
+        // Win10 notepad.exe — classic Win32, no alias redirect.
+        // Configure DismissDialogCloseBehavior to handle the "save changes?" dialog.
+        _fw = await Flawright.LaunchAsync(
+            new LaunchOptions { ApplicationPath = @"C:\Windows\System32\notepad.exe" },
+            new FlawrightOptions
+            {
+                CloseBehavior = new DismissDialogCloseBehavior() // handles Win10 + Win11 Notepad
+            });
     }
 
     [Fact]
@@ -135,7 +138,8 @@ public class ClassicNotepadTests : IAsyncLifetime
     {
         if (_fw != null)
         {
-            // Gracefully close — dismisses the "save changes?" dialog if it appears
+            // Runs the configured DismissDialogCloseBehavior — dismisses the
+            // "save changes?" dialog if it appears, then waits for exit.
             await _fw.Browser.CloseAsync();
             await _fw.DisposeAsync();
         }

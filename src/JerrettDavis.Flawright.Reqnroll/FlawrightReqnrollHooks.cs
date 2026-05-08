@@ -108,7 +108,9 @@ public sealed class FlawrightReqnrollHooks
         try
         {
             var fw = _container.Resolve<IFlawright>();
-            // Gracefully close — dismisses the "save changes?" dialog if it appears
+            // Runs the CloseBehavior configured in FlawrightReqnrollOptions.FlawrightOptions.
+            // Default is WindowMessageCloseBehavior; configure DismissDialogCloseBehavior
+            // for apps that show a save-changes dialog on exit.
             await fw.Browser.CloseAsync().ConfigureAwait(false);
             await fw.DisposeAsync().ConfigureAwait(false);
         }

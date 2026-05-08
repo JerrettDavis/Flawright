@@ -4,6 +4,7 @@
 // README.md and /docs/*.md.  They are NEVER invoked at runtime.
 // If any method body fails to compile, the README API is broken — fix it.
 
+using JerrettDavis.Flawright.CloseBehaviors;
 using JerrettDavis.Flawright.Locator;
 using Xunit;
 
@@ -66,6 +67,73 @@ internal static class ReadmeQuickstartCompileCheck
                 DefaultRetryInterval = TimeSpan.FromMilliseconds(50),
                 ScreenshotDirectory = @"C:\TestOutput"
             });
+    }
+
+    // ── README: App close behavior ────────────────────────────────────────────
+
+    public static async Task ReadmeCloseBehavior_DismissDialog()
+    {
+        // Configure how the app closes — Notepad shows a save-changes dialog,
+        // so opt into dialog-dismissing close behavior.
+        var options = new FlawrightOptions
+        {
+            CloseBehavior = new DismissDialogCloseBehavior() // defaults handle Win10 + Win11 Notepad
+        };
+
+        await using var fw = await Flawright.LaunchAsync(
+            new LaunchOptions { ApplicationPath = "notepad.exe" },
+            options);
+
+        var page = await fw.Browser.NewPageAsync();
+
+        // ... test work ...
+
+        await fw.Browser.CloseAsync(); // runs the configured behavior — transparent
+    }
+
+    public static async Task ReadmeCloseBehavior_Custom()
+    {
+        // Custom button name — for an app whose discard button is "Abandon"
+        var options = new FlawrightOptions
+        {
+            CloseBehavior = new DismissDialogCloseBehavior("Abandon")
+        };
+
+        await using var fw = await Flawright.LaunchAsync(
+            new LaunchOptions { ApplicationPath = "notepad.exe" },
+            options);
+
+        await fw.Browser.CloseAsync();
+    }
+
+    public static async Task ReadmeCloseBehavior_Kill()
+    {
+        var options = new FlawrightOptions
+        {
+            CloseBehavior = new KillCloseBehavior()
+        };
+
+        await using var fw = await Flawright.LaunchAsync(
+            new LaunchOptions { ApplicationPath = "notepad.exe" },
+            options);
+
+        await fw.Browser.CloseAsync();
+    }
+
+    public static async Task ReadmeCloseBehavior_Composite()
+    {
+        var options = new FlawrightOptions
+        {
+            CloseBehavior = new CompositeCloseBehavior(
+                new DismissDialogCloseBehavior(),
+                new KillCloseBehavior())
+        };
+
+        await using var fw = await Flawright.LaunchAsync(
+            new LaunchOptions { ApplicationPath = "notepad.exe" },
+            options);
+
+        await fw.Browser.CloseAsync();
     }
 
     // ── README: Browser API ───────────────────────────────────────────────────

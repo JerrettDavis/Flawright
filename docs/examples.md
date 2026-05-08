@@ -61,10 +61,14 @@ Launches Notepad, types a multi-line document, takes a screenshot, and verifies 
 [Fact]
 public async Task Notepad_TypeAndVerify()
 {
-    await using var fw = await Flawright.LaunchAsync(new LaunchOptions
-    {
-        ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
-    });
+    // Configure DismissDialogCloseBehavior so CloseAsync handles the
+    // "save changes?" dialog that Notepad shows when exiting with unsaved content.
+    await using var fw = await Flawright.LaunchAsync(
+        new LaunchOptions { ApplicationPath = "notepad.exe" },
+        new FlawrightOptions
+        {
+            CloseBehavior = new DismissDialogCloseBehavior() // handles Win10 + Win11 Notepad
+        });
     var page = await fw.Browser.NewPageAsync();
 
     const string content = "Line 1\nLine 2\nLine 3";
@@ -81,17 +85,19 @@ public async Task Notepad_TypeAndVerify()
     byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad-test.png");
     Assert.True(png.Length > 0);
 
-    // Gracefully close — dismisses the "save changes?" dialog if it appears
+    // Runs the configured DismissDialogCloseBehavior — dismisses the dialog, then exits.
     await fw.Browser.CloseAsync();
 }
 
 [Fact]
 public async Task Notepad_MenuBarIsPresent()
 {
-    await using var fw = await Flawright.LaunchAsync(new LaunchOptions
-    {
-        ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
-    });
+    await using var fw = await Flawright.LaunchAsync(
+        new LaunchOptions { ApplicationPath = "notepad.exe" },
+        new FlawrightOptions
+        {
+            CloseBehavior = new DismissDialogCloseBehavior()
+        });
     var page = await fw.Browser.NewPageAsync();
 
     await page.Locator("controltype:MenuBar").Expect().ToBeVisibleAsync();
@@ -157,10 +163,12 @@ After clicking a menu item that opens a dialog, wait for the dialog window by ti
 [Fact]
 public async Task Notepad_SaveAsDialog_Opens()
 {
-    await using var fw = await Flawright.LaunchAsync(new LaunchOptions
-    {
-        ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
-    });
+    await using var fw = await Flawright.LaunchAsync(
+        new LaunchOptions { ApplicationPath = "notepad.exe" },
+        new FlawrightOptions
+        {
+            CloseBehavior = new DismissDialogCloseBehavior()
+        });
     var page = await fw.Browser.NewPageAsync();
 
     // Open the Save As dialog via keyboard shortcut
@@ -181,10 +189,12 @@ Use `TypeAsync` for realistic key-by-key input (useful for controls with key han
 [Fact]
 public async Task Notepad_KeyboardInput()
 {
-    await using var fw = await Flawright.LaunchAsync(new LaunchOptions
-    {
-        ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
-    });
+    await using var fw = await Flawright.LaunchAsync(
+        new LaunchOptions { ApplicationPath = "notepad.exe" },
+        new FlawrightOptions
+        {
+            CloseBehavior = new DismissDialogCloseBehavior()
+        });
     var page = await fw.Browser.NewPageAsync();
 
     // Win11 Notepad (WinUI3): "#RichEditBox"; classic Win10: "class:Edit"
@@ -200,7 +210,7 @@ public async Task Notepad_KeyboardInput()
     // Select all and copy with a chord
     await page.PressAsync("#RichEditBox", "Ctrl+A");
 
-    // Gracefully close — dismisses the "save changes?" dialog if it appears
+    // Runs the configured DismissDialogCloseBehavior — dismisses the dialog, then exits.
     await fw.Browser.CloseAsync();
 }
 ```

@@ -1,4 +1,5 @@
 using JerrettDavis.Flawright.Backends;
+using JerrettDavis.Flawright.CloseBehaviors;
 using JerrettDavis.Flawright.Internals;
 
 namespace JerrettDavis.Flawright;
@@ -27,10 +28,6 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     private IApplicationHandle? _app;
     private bool _disposed;
     private bool _closeAlreadyHandled;
-
-    // Button names for the "save changes?" discard button, in priority order.
-    // Win10 classic Notepad uses "Don't Save"; Win11 packaged Notepad uses "Don't save".
-    internal static readonly string[] DiscardButtonNames = ["Don't Save", "Don't save"];
 
     internal FlawrightBrowser(
         IApplicationLauncher launcher,
@@ -99,7 +96,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public async Task<bool> CloseAsync(bool discardUnsavedChanges = true, TimeSpan? timeout = null)
+    public async Task<bool> CloseAsync(TimeSpan? timeout = null)
     {
         // Idempotent: calling twice is a no-op after the first call succeeds.
         if (_closeAlreadyHandled)
@@ -111,39 +108,12 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
             return true;
 
         var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(5);
+        var context = new CloseContext(_app, this, _input, effectiveTimeout, CancellationToken.None);
 
-#pragma warning disable CA1031 // Best-effort close; caller must not receive exceptions from UIA teardown
-        try { _app.Close(); }
-        catch (Exception) { /* best-effort: window may already be gone */ }
-#pragma warning restore CA1031
+        var graceful = await _opts.CloseBehavior.CloseAsync(context).ConfigureAwait(false);
 
-        if (discardUnsavedChanges)
-        {
-            // Poll for up to 2 seconds (100 ms intervals) for a "save changes?" dialog.
-            // The dialog is identified by having a direct button child whose Name is
-            // one of the known discard-button names (cross-OS: "Don't Save" / "Don't save").
-            var dialogPollEnd = DateTime.UtcNow.AddSeconds(2);
-            while (DateTime.UtcNow < dialogPollEnd && !_app.HasExited)
-            {
-                var discardButton = FindDiscardButton(_app);
-                if (discardButton != null)
-                {
-#pragma warning disable CA1031
-                    try { discardButton.Click(); }
-                    catch (Exception) { /* best-effort */ }
-#pragma warning restore CA1031
-                    break;
-                }
-                await Task.Delay(100).ConfigureAwait(false);
-            }
-        }
-
-        // Wait the remainder of the caller-supplied timeout for the process to exit.
-        var exitPollEnd = DateTime.UtcNow.Add(effectiveTimeout);
-        while (DateTime.UtcNow < exitPollEnd && !_app.HasExited)
-            await Task.Delay(100).ConfigureAwait(false);
-
-        if (!_app.HasExited && !_app.IsStoreApp)
+        // Safety net: if the behavior returned false (app still running), force-kill.
+        if (!graceful && !_app.HasExited && !_app.IsStoreApp)
         {
 #pragma warning disable CA1031
             try { _app.KillProcessTree(); }
@@ -152,7 +122,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
             return false;
         }
 
-        return true;
+        return graceful;
     }
 
     // ── IAsyncDisposable ──────────────────────────────────────────────────────
@@ -165,8 +135,10 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     /// When <see cref="CloseAsync"/> has already been called, this method only
     /// releases handles — it does not re-run the close/kill loop.  This preserves
     /// backward-compatible behavior: callers who rely on <c>await using</c> without
-    /// calling <see cref="CloseAsync"/> first will still see force-kill after 2 s;
-    /// callers who call <c>CloseAsync()</c> first get graceful dialog-dismiss teardown.
+    /// calling <see cref="CloseAsync"/> first will still see force-kill after 2 s.
+    /// DisposeAsync does NOT invoke the configured <see cref="FlawrightOptions.CloseBehavior"/>
+    /// — it is a force-kill safety net. Call <see cref="CloseAsync"/> first for
+    /// graceful, behavior-driven teardown.
     /// </remarks>
     public async ValueTask DisposeAsync()
     {
@@ -181,9 +153,10 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
         // Only run close/kill if CloseAsync has not already handled teardown.
         if (!_closeAlreadyHandled)
         {
-            // Backward-compatible path: close signal + 2 s wait + force kill.
-            // discardUnsavedChanges is intentionally false here — dialog-dismiss
-            // is opt-in via explicit CloseAsync() call.
+            // Backward-compatible dispose path: close signal + 2 s wait + force kill.
+            // DisposeAsync deliberately does NOT invoke the configured CloseBehavior —
+            // it is a "force-kill safety net", not a graceful close. Callers who want
+            // graceful dialog-handling should call CloseAsync() explicitly first.
 #pragma warning disable CA1031
             try { _app.Close(); }
             catch (Exception) { /* best-effort: window may already be gone */ }
@@ -213,29 +186,6 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Searches the application's top-level windows for a button whose Name
-    /// matches one of the known discard-changes button names
-    /// ("Don't Save" on Win10, "Don't save" on Win11).
-    /// Returns the first matching button backend, or <see langword="null"/> if none is found.
-    /// </summary>
-    private static IElementBackend? FindDiscardButton(IApplicationHandle app)
-    {
-        foreach (var name in DiscardButtonNames)
-        {
-#pragma warning disable CA1031
-            IElementBackend? button;
-            try { button = app.FindButtonByName(name); }
-            catch (Exception) { button = null; }
-#pragma warning restore CA1031
-
-            if (button != null)
-                return button;
-        }
-
-        return null;
-    }
 
     /// <summary>
     /// Initialises the application handle on first use.  Idempotent — subsequent

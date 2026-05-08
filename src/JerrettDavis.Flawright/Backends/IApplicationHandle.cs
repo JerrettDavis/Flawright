@@ -45,8 +45,9 @@ internal interface IApplicationHandle : IDisposable
     /// <see langword="null"/> if no such button exists.
     /// </summary>
     /// <remarks>
-    /// Used by <see cref="FlawrightBrowser.CloseAsync"/> to locate the discard-changes
-    /// button on a "save changes?" dialog without introducing new backend abstractions.
+    /// Used by <see cref="CloseBehaviors.ICloseContext.FindButtonAsync"/> (via
+    /// <see cref="CloseBehaviors.CloseContext"/>) to locate dialog buttons without
+    /// introducing new backend abstractions.
     /// </remarks>
     /// <param name="buttonName">The exact UIA Name of the button to find.</param>
     IElementBackend? FindButtonByName(string buttonName);
