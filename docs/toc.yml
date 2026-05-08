@@ -1,36 +1,33 @@
-- name: Home
-  href: index.md
-
-- name: Getting Started
-  href: getting-started.md
-
-- name: Selectors
-  href: selectors.md
-
-- name: Auto-waiting
-  href: auto-waiting.md
-
-- name: Assertions
-  href: assertions.md
-
-- name: Examples
-  href: examples.md
-
-- name: BDD with Reqnroll
-  href: bdd.md
-
-- name: Per-app guides
-  href: guides/index.md
+- name: Documentation
+  topicHref: index.md
+  items:
+    - name: Overview
+      href: index.md
+    - name: Getting Started
+      href: getting-started.md
+    - name: Core Concepts
+      items:
+        - name: Selectors
+          href: selectors.md
+        - name: Auto-waiting
+          href: auto-waiting.md
+        - name: Assertions
+          href: assertions.md
+    - name: Advanced
+      items:
+        - name: Examples
+          href: examples.md
+        - name: BDD with Reqnroll
+          href: bdd.md
+        - name: Versioning
+          href: versioning.md
+        - name: Performance
+          href: performance.md
+        - name: Troubleshooting
+          href: troubleshooting.md
+- name: Per-app Guides
+  href: guides/toc.yml
   topicHref: guides/index.md
-
-- name: Versioning & Stability
-  href: versioning.md
-
-- name: Performance
-  href: performance.md
-
-- name: Troubleshooting
-  href: troubleshooting.md
-
 - name: API Reference
-  href: api/
+  href: api/toc.yml
+  topicHref: api/JerrettDavis.Flawright.yml
