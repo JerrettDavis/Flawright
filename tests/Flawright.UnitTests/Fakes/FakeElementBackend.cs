@@ -186,6 +186,25 @@ internal sealed class FakeElementBackend : IElementBackend
         return found != null;
     }
 
+    // ── IElementBackend: Screenshot ───────────────────────────────────────────
+
+    /// <summary>
+    /// Returns <see cref="ScreenshotBytes"/> if non-<see langword="null"/>;
+    /// otherwise returns a minimal 1×1 white PNG so that unit-test assertions
+    /// on <c>screenshot.Length &gt; 0</c> pass without requiring a real window.
+    /// </summary>
+    public byte[] CaptureScreenshot() => ScreenshotBytes ?? FakeOnePxPng;
+
+    /// <summary>
+    /// Configurable screenshot bytes returned by <see cref="CaptureScreenshot"/>.
+    /// <see langword="null"/> (the default) causes a 1×1 white PNG to be returned.
+    /// </summary>
+    public byte[]? ScreenshotBytes { get; set; }
+
+    // Minimal valid 1×1 white PNG (67 bytes).
+    private static readonly byte[] FakeOnePxPng = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==");
+
     // ── IElementBackend: Tree traversal ───────────────────────────────────────
 
     /// <inheritdoc/>

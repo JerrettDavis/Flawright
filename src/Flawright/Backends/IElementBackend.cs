@@ -131,4 +131,16 @@ public interface IElementBackend
     /// <param name="condition">The condition to evaluate.</param>
     /// <returns>The first match, or <see langword="null"/> if none.</returns>
     IElementBackend? FindFirst(IElementCondition condition);
+
+    // ── Screenshot ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Captures a PNG screenshot of this element's window.
+    /// </summary>
+    /// <returns>
+    /// A byte array containing the PNG image data, or an empty array when
+    /// the element has no associated window handle (e.g. off-screen or
+    /// zero-size bounding rectangle).
+    /// </returns>
+    byte[] CaptureScreenshot();
 }

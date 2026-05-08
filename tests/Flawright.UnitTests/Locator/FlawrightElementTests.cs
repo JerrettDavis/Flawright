@@ -772,5 +772,6 @@ public sealed class FlawrightElementTests
         public System.Collections.Generic.IEnumerable<IElementBackend> FindAll(IElementCondition condition)
             => System.Linq.Enumerable.Empty<IElementBackend>();
         public IElementBackend? FindFirst(IElementCondition condition) => null;
+        public byte[] CaptureScreenshot() => Array.Empty<byte>();
     }
 }

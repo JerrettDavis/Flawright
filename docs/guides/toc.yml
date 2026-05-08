@@ -7,6 +7,9 @@
 - name: Win11 Calculator
   href: win11-calculator.md
 
+- name: CI / E2E Test Setup
+  href: ci-e2e-setup.md
+
 - name: Classic Win32
   href: classic-win32.md
 

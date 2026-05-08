@@ -182,15 +182,19 @@ internal sealed class FlawrightPage : IFlawrightPage
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Stub in Wave D.2. Returns an empty byte array. A real implementation
-    /// would capture the window via GDI BitBlt.
+    /// Captures the window using <c>PrintWindow</c> with <c>PW_RENDERFULLCONTENT</c>
+    /// so that DirectComposition / WinUI content is included.  This approach works on
+    /// Windows Server CI runners where a plain GDI <c>BitBlt</c> from the screen
+    /// returns a blank bitmap because the desktop session is not composited.
     /// </remarks>
     public async Task<byte[]> ScreenshotAsync(LocatorScreenshotOptions? options = null, CancellationToken ct = default)
     {
-        // Wave D.2 stub: Wave D will replace with real screenshot capture via GDI BitBlt.
+        var bytes = _windowBackend.CaptureScreenshot();
+
         if (options?.Path != null)
-            await System.IO.File.WriteAllBytesAsync(options.Path, [], ct).ConfigureAwait(false);
-        return Array.Empty<byte>();
+            await System.IO.File.WriteAllBytesAsync(options.Path, bytes, ct).ConfigureAwait(false);
+
+        return bytes;
     }
 
     /// <inheritdoc/>

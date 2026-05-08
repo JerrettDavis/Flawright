@@ -18,6 +18,13 @@ internal sealed class FakeApplicationLauncher : IApplicationLauncher
     /// </summary>
     public FakeApplicationHandle Handle { get; set; } = new();
 
+    /// <summary>
+    /// When non-<see langword="null"/>, <see cref="Launch"/> throws this exception
+    /// instead of returning <see cref="Handle"/>.  Use to simulate the broker-stub-exits
+    /// scenario where <see cref="FlawrightLaunchException"/> is thrown.
+    /// </summary>
+    public Exception? ThrowOnLaunch { get; set; }
+
     // ── Call recording ────────────────────────────────────────────────────────
 
     /// <summary>All recorded <see cref="Launch"/> calls, in order.</summary>
@@ -43,6 +50,10 @@ internal sealed class FakeApplicationLauncher : IApplicationLauncher
     {
         ArgumentNullException.ThrowIfNull(opts);
         _launchCalls.Add(opts);
+
+        if (ThrowOnLaunch != null)
+            throw ThrowOnLaunch;
+
         return Task.FromResult<IApplicationHandle>(Handle);
     }
 

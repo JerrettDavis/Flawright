@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using FlaUI.Core;
 using FlaUI.UIA3;
@@ -14,8 +15,14 @@ namespace Flawright.Backends.Uia;
 [ExcludeFromCodeCoverage(Justification = "FlaUI I/O; covered by E2E tests only.")]
 internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
 {
+    // Milliseconds to wait after launch before checking whether the process
+    // already exited without ever showing a main window.  This is long enough
+    // to catch broker/stub exits (~200 ms on Windows 11) but short enough not
+    // to meaningfully delay real application startup.
+    private const int BrokerExitCheckMs = 400;
+
     /// <inheritdoc/>
-    public Task<IApplicationHandle> Launch(LaunchOptions opts, CancellationToken ct = default)
+    public async Task<IApplicationHandle> Launch(LaunchOptions opts, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(opts);
 
@@ -30,10 +37,10 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
         if (target.Kind == LaunchKind.Aumid)
         {
             var aliasArgs = opts.Arguments == null ? "" : string.Join(' ', opts.Arguments);
-            return LaunchStoreApp(target.Value, aliasArgs, ct);
+            return await LaunchStoreApp(target.Value, aliasArgs, ct).ConfigureAwait(false);
         }
 
-        var psi = new System.Diagnostics.ProcessStartInfo(opts.ApplicationPath!)
+        var psi = new ProcessStartInfo(opts.ApplicationPath!)
         {
             Arguments = string.Join(" ", opts.Arguments ?? [])
         };
@@ -41,8 +48,42 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
         if (opts.WorkingDirectory != null)
             psi.WorkingDirectory = opts.WorkingDirectory;
 
+        var sw = Stopwatch.StartNew();
         var app = Application.AttachOrLaunch(psi);
-        return Task.FromResult<IApplicationHandle>(new FlaUiApplicationHandle(app, new UIA3Automation()));
+
+        // Detect the broker-stub-exits scenario: if the launched process exits
+        // almost immediately without producing a main window, it is almost
+        // certainly an App Execution Alias stub for a UWP package that is not
+        // installed on this machine.  Throw a clear, actionable
+        // FlawrightLaunchException before the cryptic FlaUI
+        // "Process with an Id of N is not running" surfaces from
+        // WaitWhileMainHandleIsMissing.
+        bool exited;
+        try
+        {
+            await Task.Delay(BrokerExitCheckMs, ct).ConfigureAwait(false);
+            exited = app.HasExited;
+        }
+#pragma warning disable CA1031 // If the exit check itself fails, don't mask it with a secondary error
+        catch (Exception checkEx)
+        {
+            throw new FlawrightLaunchException(
+                opts.ApplicationPath!,
+                opts.ApplicationPath!,
+                (int)sw.ElapsedMilliseconds,
+                checkEx);
+        }
+#pragma warning restore CA1031
+
+        if (exited)
+        {
+            throw new FlawrightLaunchException(
+                opts.ApplicationPath!,
+                opts.ApplicationPath!,
+                (int)sw.ElapsedMilliseconds);
+        }
+
+        return new FlaUiApplicationHandle(app, new UIA3Automation());
     }
 
     /// <inheritdoc/>

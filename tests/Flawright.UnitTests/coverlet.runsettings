@@ -5,10 +5,14 @@
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <!-- Exclude FlaUI I/O implementations — covered by E2E tests only -->
+          <!-- Exclude FlaUI I/O implementations — covered by E2E tests only.
+               Also exclude the test assembly itself so that coverage line-rate
+               reflects only the production Flawright library. -->
           <Exclude>[*]Flawright.Backends.Uia.*,
                    [*]Flawright.Launching.FlaUi*,
-                   [*]Flawright.Input.FlaUi*</Exclude>
+                   [*]Flawright.Input.FlaUi*,
+                   [Flawright.UnitTests]*,
+                   [JerrettDavis.Flawright.UnitTests]*</Exclude>
           <ExcludeByAttribute>GeneratedCodeAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
           <SingleHit>false</SingleHit>
           <UseSourceLink>true</UseSourceLink>

@@ -66,7 +66,7 @@ public sealed class DismissDialogCloseBehavior : ICloseBehavior
             await Task.Delay(100).ConfigureAwait(false);
         }
 
-        dialogDismissed:
+    dialogDismissed:
         return await context.WaitForExitAsync(context.Timeout).ConfigureAwait(false);
     }
 }

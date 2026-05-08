@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 
@@ -225,6 +227,125 @@ internal sealed class UiaElementBackend : IElementBackend
         return true;
     }
 
+    // ── Screenshot ────────────────────────────────────────────────────────────
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Captures the element's window using <c>PrintWindow</c> (Win32 P/Invoke)
+    /// with <c>PW_RENDERFULLCONTENT</c> (flag 2), which renders the window into
+    /// an off-screen GDI bitmap.  This approach works on Windows Server/CI runners
+    /// where GDI <c>BitBlt</c> from screen would capture a blank window because the
+    /// session desktop is not composited.  Falls back to an empty byte array when
+    /// the native window handle is zero or the bounding rectangle is empty.
+    /// </remarks>
+    public byte[] CaptureScreenshot()
+    {
+        // Retrieve the native HWND from the UIA element's NativeWindowHandle property.
+        IntPtr hwnd = IntPtr.Zero;
+#pragma warning disable CA1031 // Tolerate UIA property read failures
+        try
+        {
+            if (_element.Properties.NativeWindowHandle.TryGetValue(out var rawHandle))
+                hwnd = new IntPtr(rawHandle);
+        }
+        catch
+        {
+            // Property not available on this element — hwnd stays Zero.
+        }
+#pragma warning restore CA1031
+
+        // If we didn't get a window handle from the element itself, try the
+        // bounding rectangle as a fallback signal (zero rect = off-screen element).
+        if (hwnd == IntPtr.Zero)
+        {
+            var rect = BoundingRectangle;
+            if (rect.Width <= 0 || rect.Height <= 0)
+                return Array.Empty<byte>();
+
+            // Walk the ancestor chain to find a top-level HWND that encloses
+            // this element's bounding rectangle.
+            hwnd = FindNearestHwnd(_element);
+        }
+
+        if (hwnd == IntPtr.Zero)
+            return Array.Empty<byte>();
+
+        return CaptureHwnd(hwnd);
+    }
+
+    /// <summary>
+    /// Renders the window referenced by <paramref name="hwnd"/> into an off-screen
+    /// bitmap using <c>PrintWindow</c> with <c>PW_RENDERFULLCONTENT</c> (0x2), then
+    /// encodes the bitmap as PNG and returns the bytes.
+    /// </summary>
+    private static byte[] CaptureHwnd(IntPtr hwnd)
+    {
+        // Query the window client-area dimensions.
+        if (!NativeMethods.GetClientRect(hwnd, out var clientRect))
+            return Array.Empty<byte>();
+
+        int width = clientRect.Right - clientRect.Left;
+        int height = clientRect.Bottom - clientRect.Top;
+
+        if (width <= 0 || height <= 0)
+            return Array.Empty<byte>();
+
+#pragma warning disable CA1031 // Any GDI failure should produce empty bytes, not crash the test runner
+        try
+        {
+            using var bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            using var g = Graphics.FromImage(bmp);
+            IntPtr hdc = g.GetHdc();
+            try
+            {
+                // PW_RENDERFULLCONTENT = 0x2  — renders DirectComposition / WinUI content.
+                // PW_CLIENTONLY         = 0x1  — captures client area only (no title bar).
+                // Combining both (0x3) captures the full client area including layered surfaces.
+                const uint PW_CLIENTONLY_AND_RENDERFULL = 0x3;
+                NativeMethods.PrintWindow(hwnd, hdc, PW_CLIENTONLY_AND_RENDERFULL);
+            }
+            finally
+            {
+                g.ReleaseHdc(hdc);
+            }
+
+            using var ms = new System.IO.MemoryStream();
+            bmp.Save(ms, ImageFormat.Png);
+            return ms.ToArray();
+        }
+        catch
+        {
+            return Array.Empty<byte>();
+        }
+#pragma warning restore CA1031
+    }
+
+    /// <summary>
+    /// Walks the UIA ancestor chain looking for an element that reports a non-zero
+    /// <c>NativeWindowHandle</c>.  Returns <see cref="IntPtr.Zero"/> when none is found.
+    /// </summary>
+    private static IntPtr FindNearestHwnd(FlaUI.Core.AutomationElements.AutomationElement element)
+    {
+#pragma warning disable CA1031
+        try
+        {
+            var current = element;
+            for (var depth = 0; depth < 20 && current != null; depth++)
+            {
+                if (current.Properties.NativeWindowHandle.TryGetValue(out var h) && h != 0)
+                    return new IntPtr(h);
+                current = current.Parent;
+            }
+        }
+        catch
+        {
+            // UIA ancestor walk may fail (e.g. element destroyed during traversal).
+        }
+#pragma warning restore CA1031
+
+        return IntPtr.Zero;
+    }
+
     // ── Tree traversal ────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
@@ -261,4 +382,30 @@ internal sealed class UiaElementBackend : IElementBackend
         var raw = _element.FindFirstDescendant(uiaCondition.NativeCondition);
         return raw == null ? null : new UiaElementBackend(raw);
     }
+}
+
+/// <summary>
+/// Win32 P/Invoke declarations used by <see cref="UiaElementBackend.CaptureScreenshot"/>.
+/// </summary>
+[ExcludeFromCodeCoverage(Justification = "P/Invoke wrappers; exercised only by E2E tests.")]
+internal static class NativeMethods
+{
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("user32.dll", SetLastError = false)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
+
+    [DllImport("user32.dll", SetLastError = false)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
 }

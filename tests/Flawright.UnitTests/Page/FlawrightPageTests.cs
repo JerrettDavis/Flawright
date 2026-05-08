@@ -372,22 +372,51 @@ public sealed class FlawrightPageTests
     }
 
     [Fact]
-    public async Task ScreenshotAsync_ReturnsEmptyArray()
+    public async Task ScreenshotAsync_ReturnsBytesFromBackend()
     {
+        // FakeElementBackend.CaptureScreenshot returns a minimal 1×1 PNG by default,
+        // so the result must be non-null and non-empty.
         var page = MakePage();
         var bytes = await page.ScreenshotAsync();
+        Assert.NotNull(bytes);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public async Task ScreenshotAsync_ReturnsConfiguredBytes_WhenBackendOverridden()
+    {
+        var customBytes = new byte[] { 1, 2, 3, 4, 5 };
+        var root = new FakeElementBackend(name: "TestWindow") { ScreenshotBytes = customBytes };
+        var page = MakePage(root: root);
+
+        var bytes = await page.ScreenshotAsync();
+
+        Assert.Equal(customBytes, bytes);
+    }
+
+    [Fact]
+    public async Task ScreenshotAsync_ReturnsEmptyArray_WhenBackendReturnsEmpty()
+    {
+        var root = new FakeElementBackend(name: "TestWindow") { ScreenshotBytes = Array.Empty<byte>() };
+        var page = MakePage(root: root);
+
+        var bytes = await page.ScreenshotAsync();
+
         Assert.Empty(bytes);
     }
 
     [Fact]
-    public async Task ScreenshotAsync_CreatesEmptyFileWhenPathSet()
+    public async Task ScreenshotAsync_WritesFileToDisk_WhenPathSet()
     {
-        var page = MakePage();
+        var customBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 }; // PNG magic bytes
+        var root = new FakeElementBackend(name: "TestWindow") { ScreenshotBytes = customBytes };
+        var page = MakePage(root: root);
         var path = System.IO.Path.GetTempFileName();
         try
         {
             await page.ScreenshotAsync(new LocatorScreenshotOptions { Path = path });
             Assert.True(System.IO.File.Exists(path));
+            Assert.Equal(customBytes, await System.IO.File.ReadAllBytesAsync(path));
         }
         finally
         {

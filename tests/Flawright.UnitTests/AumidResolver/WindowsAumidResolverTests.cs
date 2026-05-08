@@ -18,7 +18,7 @@ public sealed class WindowsAumidResolverTests
 
     [Theory]
     [InlineData("notepad.exe", "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App")]
-    [InlineData("calc.exe",    "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App")]
+    [InlineData("calc.exe", "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App")]
     [InlineData("mspaint.exe", "Microsoft.Paint_8wekyb3d8bbwe!App")]
     public void Resolve_AliasStubInWindowsApps_ReturnsAumid(string alias, string expectedAumid)
     {
@@ -56,7 +56,7 @@ public sealed class WindowsAumidResolverTests
     // ─── Tier 2: Registry / installed-package fallback ───────────────────────
 
     [Theory]
-    [InlineData("calc.exe",    "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App")]
+    [InlineData("calc.exe", "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App")]
     [InlineData("notepad.exe", "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App")]
     [InlineData("mspaint.exe", "Microsoft.Paint_8wekyb3d8bbwe!App")]
     public void Resolve_NoAliasStub_PackageInstalled_ReturnsAumid(string alias, string expectedAumid)

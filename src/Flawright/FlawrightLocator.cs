@@ -1058,4 +1058,5 @@ file sealed class PointElementBackend : IElementBackend
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
     public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);
     public IElementBackend? FindFirst(IElementCondition condition) => _inner.FindFirst(condition);
+    public byte[] CaptureScreenshot() => _inner.CaptureScreenshot();
 }
