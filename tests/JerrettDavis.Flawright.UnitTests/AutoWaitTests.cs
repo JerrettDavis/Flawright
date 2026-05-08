@@ -1,3 +1,4 @@
+using JerrettDavis.Flawright.Internals;
 using Xunit;
 
 namespace JerrettDavis.Flawright.UnitTests;
