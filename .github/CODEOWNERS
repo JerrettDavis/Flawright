@@ -1,0 +1,21 @@
+# Code Owners for Flawright
+# These users will be automatically requested for review
+
+# Global owners
+* @JerrettDavis
+
+# Workflows and CI/CD
+/.github/ @JerrettDavis
+
+# Documentation
+/docs/ @JerrettDavis
+*.md @JerrettDavis
+
+# Library source
+/src/JerrettDavis.Flawright/ @JerrettDavis
+
+# Tests
+/tests/ @JerrettDavis
+
+# Samples
+/samples/ @JerrettDavis
