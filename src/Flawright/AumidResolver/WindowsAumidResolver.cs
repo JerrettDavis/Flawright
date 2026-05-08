@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Flawright.Internals;
 using Microsoft.Win32;
 
@@ -68,6 +69,7 @@ public sealed class WindowsAumidResolver : IAumidResolver
     /// Initialises the resolver with production defaults (real file system and
     /// registry).
     /// </summary>
+    [ExcludeFromCodeCoverage(Justification = "Production constructor; real-system behavior is exercised by E2E tests, not unit tests.")]
     public WindowsAumidResolver() { }
 
     /// <summary>
@@ -162,6 +164,7 @@ public sealed class WindowsAumidResolver : IAumidResolver
     /// then match keys that start with <c>&lt;PackageName&gt;_</c> and end with
     /// <c>__&lt;PublisherId&gt;</c>.
     /// </remarks>
+    [ExcludeFromCodeCoverage(Justification = "Walks the real HKCU registry; covered by E2E tests, not unit tests. The unit-testable seam is the _packageFamilyInstalled delegate parameter on the internal constructor.")]
     private static bool IsPackageFamilyInstalled(string packageFamilyName)
     {
 #pragma warning disable CA1031 // Tolerant registry probe — never throw from a resolver
