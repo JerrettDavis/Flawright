@@ -81,6 +81,24 @@ internal static class AppExecutionAliasResolver
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Microsoft", "WindowsApps");
 
+        // Fast path: if the bare filename (or the filename portion of a path) is a
+        // known alias, check whether the alias stub exists in the WindowsApps directory.
+        // This handles the common case where PATH resolves "notepad.exe" to
+        // C:\Windows\System32\notepad.exe before the WindowsApps alias — on Windows 11
+        // the System32 stub also redirects to the packaged app, so the AUMID resolution
+        // still applies as long as the WindowsApps alias exists on this system.
+        var basename = Path.GetFileName(applicationPath);
+        if (KnownAliases.TryGetValue(basename, out var knownAumid))
+        {
+            var aliasPath = Path.Combine(windowsAppsDir, basename);
+            if (fileExists(aliasPath))
+            {
+                aumid = knownAumid;
+                return true;
+            }
+        }
+
+        // Slower path: resolve to a full path and check if it's within WindowsApps.
         var resolvedPath = ResolveOnPath(applicationPath, fileExists);
         if (resolvedPath == null)
             return false;
@@ -89,8 +107,8 @@ internal static class AppExecutionAliasResolver
         if (!resolvedPath.StartsWith(windowsAppsDir, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        var basename = Path.GetFileName(resolvedPath);
-        if (!KnownAliases.TryGetValue(basename, out var knownAumid))
+        basename = Path.GetFileName(resolvedPath);
+        if (!KnownAliases.TryGetValue(basename, out knownAumid))
             return false;   // Unknown alias — fall through; don't guess.
 
         aumid = knownAumid;
