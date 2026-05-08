@@ -17,7 +17,7 @@ namespace JerrettDavis.Flawright;
 ///     options);
 /// </code>
 /// </example>
-public sealed class FlawrightOptions
+public sealed record FlawrightOptions
 {
     /// <summary>
     /// How long auto-waiting locator operations will poll before throwing
