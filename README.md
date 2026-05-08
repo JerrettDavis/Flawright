@@ -36,25 +36,43 @@ dotnet add package Flawright
 
 ## Quickstart
 
-Launch Notepad, type some text, and assert it landed:
+Launch Notepad, type some text, and assert it landed. The correct selector depends on which Notepad your system ships — pick the block that matches:
+
+**Windows 11 Notepad** (WinUI3 packaged app — default on Win11):
 
 ```csharp
 using JerrettDavis.Flawright;
 
 await using var fw = await Flawright.LaunchAsync(new LaunchOptions
 {
-    ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
+    ApplicationPath = "notepad.exe"   // auto-redirected to AUMID on Windows 11
 });
 
 var page = await fw.Browser.NewPageAsync();
 
-// Fill the editor — use the AutomationId of the editor control
+// Win11: editor AutomationId is "RichEditBox"
 await page.FillAsync("#RichEditBox", "Hello from Flawright!");
-
-// Assert the text is present
 await page.Locator("#RichEditBox").Expect().ToBeVisibleAsync();
 
-// Take a screenshot — returns PNG bytes; also saves to file if path is given
+byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
+```
+
+**Classic Windows 10 Notepad** (Win32 — also present on some Win11 installs):
+
+```csharp
+using JerrettDavis.Flawright;
+
+await using var fw = await Flawright.LaunchAsync(new LaunchOptions
+{
+    ApplicationPath = "notepad.exe"
+});
+
+var page = await fw.Browser.NewPageAsync();
+
+// Win10 classic: Win32 ClassName is "Edit" — use class: selector
+await page.FillAsync("class:Edit", "Hello from Flawright!");
+await page.Locator("class:Edit").Expect().ToBeVisibleAsync();
+
 byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
 ```
 
@@ -63,7 +81,7 @@ byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
 > Different Windows versions ship different Notepad implementations:
 >
 > - **Windows 11 Notepad** (WinUI3, packaged app): editor `AutomationId` is `RichEditBox` — use `#RichEditBox`.
-> - **Classic Windows 10 Notepad** (Win32): editor `ControlType` is `Edit` — use `controltype:Edit`.
+> - **Classic Windows 10 Notepad** (Win32): editor Win32 ClassName is `Edit` — use `class:Edit`. Note that UIA promotes this multi-line edit to `ControlType.Document`, so `controltype:Edit` does **not** match it; `class:Edit` (Win32 class) or `controltype:Document` (UIA type) both work.
 >
 > When in doubt, inspect the live UI tree with [Accessibility Insights for Windows](https://accessibilityinsights.io/) or [FlaUI Inspect](https://github.com/FlaUI/FlaUI/wiki/Tools#flauiinspect) to find the right selector for your system.
 >
@@ -93,12 +111,12 @@ Selectors are strings with an optional `prefix:` followed by a value. Without a 
 | `automationid:` | AutomationId (explicit form) | `"automationid:btn_save"` |
 | `class:` or `[class=...]` | ClassName | `"class:Button"` |
 | `role:` or `[role=...]` | UIA ControlType | `"role:Button"` |
-| `controltype:` | UIA ControlType (alias for `role:`) | `"controltype:Edit"` |
+| `controltype:` | UIA ControlType (alias for `role:`) | `"controltype:Button"` |
 | `[name=...]` | UIA Name (attribute syntax) | `"[name=OK]"` |
 
 **Supported control type values** for `controltype:` / `role:`: `button`, `checkbox`, `combobox`, `dropdown`, `edit`, `textbox`, `input`, `list`, `listitem`, `menu`, `menubar`, `menuitem`, `radiobutton`, `tab`, `tabitem`, `text`, `label`, `window`, `group`, `image`, `link`, `hyperlink`, `progressbar`, `scrollbar`, `slider`, `spinner`, `statusbar`, `table`, `toolbar`, `tooltip`, `tree`, `treeitem`, `separator`, `pane`, `document`, `header`, `headeritem`.
 
-Any unrecognized value maps to `ControlType.Custom`.
+Any unrecognized value throws `ArgumentException` with a message listing the valid options.
 
 ## API Overview
 
@@ -143,6 +161,8 @@ var dialog = await fw.Browser.WaitForPageAsync("Save As", timeout: TimeSpan.From
 ### `IFlawrightPage` — a window
 
 Corresponds to a top-level window. The primary surface for interacting with the application.
+
+> Examples below use `controltype:Edit` as a stand-in for "an editable text control". For a real app, pick the selector that matches your target — see the Quickstart above for the Win10/Win11 Notepad differences.
 
 ```csharp
 // Click a button by name
@@ -351,11 +371,13 @@ dotnet add package Flawright.Reqnroll
 
 ```gherkin
 @launch:notepad.exe
-Scenario: Type and verify text in Notepad
+Scenario: Type and verify text in Notepad (Windows 11)
     Given I have the application in focus
     When I fill "[name=\"Text editor\"]" with "Hello from Flawright!"
     Then "[name=\"Text editor\"]" should contain "Hello"
 ```
+
+> The `name:"Text editor"` selector matches the Win11 packaged Notepad, where the UIA Name property of the editor is "Text editor". On classic Win10 Notepad the textarea has no UIA Name — use `class:Edit` instead (e.g. `When I fill "class:Edit" with "Hello from Flawright!"`).
 
 See [docs/bdd.md](docs/bdd.md) for the full step reference, tag forms, and DI patterns.
 
