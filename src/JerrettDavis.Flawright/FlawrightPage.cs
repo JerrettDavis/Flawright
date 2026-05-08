@@ -184,13 +184,12 @@ internal sealed class FlawrightPage : IFlawrightPage
     /// Stub in Wave D.2. Returns an empty byte array. A real implementation
     /// would capture the window via GDI BitBlt.
     /// </remarks>
-    public Task<byte[]> ScreenshotAsync(LocatorScreenshotOptions? options = null, CancellationToken ct = default)
+    public async Task<byte[]> ScreenshotAsync(LocatorScreenshotOptions? options = null, CancellationToken ct = default)
     {
+        // Wave D.2 stub: Wave D will replace with real screenshot capture via GDI BitBlt.
         if (options?.Path != null)
-        {
-            System.IO.File.WriteAllBytes(options.Path, []);
-        }
-        return Task.FromResult(Array.Empty<byte>());
+            await System.IO.File.WriteAllBytesAsync(options.Path, [], ct).ConfigureAwait(false);
+        return Array.Empty<byte>();
     }
 
     /// <inheritdoc/>

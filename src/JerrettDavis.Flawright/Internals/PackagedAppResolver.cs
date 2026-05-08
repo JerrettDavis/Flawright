@@ -78,48 +78,14 @@ internal static class PackagedAppResolver
         var interval = pollInterval ?? TimeSpan.FromMilliseconds(100);
         var snapshot = processSnapshotProvider ?? DefaultSnapshot;
         var deadline = DateTime.UtcNow + timeout;
-
-        // The package install directory path looks like:
-        //   C:\Program Files\WindowsApps\<PackageName>_<Version>_<Arch>__<PublisherId>\...
-        //
-        // The PackageFamilyName (PFN) is "<PackageName>_<PublisherId>" — note the single
-        // underscore between name and publisher in the PFN, but a DOUBLE underscore before
-        // the publisher in the directory name.  We must match on both halves of the PFN
-        // rather than on the PFN string directly.
-        //
-        // Strategy: split PFN on the LAST underscore to get (packageName, publisherId),
-        // then require both:
-        //   path contains  \WindowsApps\<packageName>_        (starts of dir name)
-        //   path contains  __<publisherId>\  OR  __<publisherId>  (end of dir name)
-        var lastUnderscore = packageFamilyName.LastIndexOf('_');
-        string packageNameMarker;
-        string publisherMarker;
-
-        if (lastUnderscore > 0)
-        {
-            var pkgName = packageFamilyName[..lastUnderscore];
-            var publisherId = packageFamilyName[(lastUnderscore + 1)..];
-            packageNameMarker = $"\\WindowsApps\\{pkgName}_";
-            publisherMarker = $"__{publisherId}";
-        }
-        else
-        {
-            // No underscore — treat the whole PFN as a package-name prefix.
-            packageNameMarker = $"\\WindowsApps\\{packageFamilyName}_";
-            publisherMarker = string.Empty;
-        }
+        var (packageNameMarker, publisherMarker) = BuildMarkers(packageFamilyName);
 
         while (DateTime.UtcNow < deadline)
         {
             foreach (var (pid, path) in snapshot())
             {
-                if (path != null &&
-                    path.Contains(packageNameMarker, StringComparison.OrdinalIgnoreCase) &&
-                    (publisherMarker.Length == 0 ||
-                     path.Contains(publisherMarker, StringComparison.OrdinalIgnoreCase)))
-                {
+                if (MatchesMarkers(path, packageNameMarker, publisherMarker))
                     return pid;
-                }
             }
 
             Thread.Sleep(interval);
@@ -128,7 +94,89 @@ internal static class PackagedAppResolver
         return 0;
     }
 
+    /// <summary>
+    /// Polls asynchronously for a running process whose main module path is under the
+    /// WindowsApps directory of the given PackageFamilyName.
+    /// Uses <see cref="Task.Delay(TimeSpan, CancellationToken)"/> between polls so the
+    /// calling thread is never blocked.
+    /// </summary>
+    /// <param name="packageFamilyName">
+    /// The PackageFamilyName portion of the AUMID (everything before <c>!</c>).
+    /// </param>
+    /// <param name="timeout">
+    /// Maximum time to wait before giving up and returning <c>0</c>.
+    /// </param>
+    /// <param name="pollInterval">
+    /// Time between each enumeration pass.  Defaults to 100 ms.
+    /// </param>
+    /// <param name="processSnapshotProvider">
+    /// Optional injectable snapshot provider for testability.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>
+    /// The PID of the first matching process found within <paramref name="timeout"/>,
+    /// or <c>0</c> if no match was found before the deadline.
+    /// </returns>
+    public static async Task<int> WaitForPackagedAppProcessAsync(
+        string packageFamilyName,
+        TimeSpan timeout,
+        TimeSpan? pollInterval = null,
+        Func<IEnumerable<(int Pid, string? MainModulePath)>>? processSnapshotProvider = null,
+        CancellationToken ct = default)
+    {
+        var interval = pollInterval ?? TimeSpan.FromMilliseconds(100);
+        var snapshot = processSnapshotProvider ?? DefaultSnapshot;
+        var deadline = DateTime.UtcNow + timeout;
+        var (packageNameMarker, publisherMarker) = BuildMarkers(packageFamilyName);
+
+        while (DateTime.UtcNow < deadline)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            foreach (var (pid, path) in snapshot())
+            {
+                if (MatchesMarkers(path, packageNameMarker, publisherMarker))
+                    return pid;
+            }
+
+            await Task.Delay(interval, ct).ConfigureAwait(false);
+        }
+
+        return 0;
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds the path markers used to identify a packaged app process from its PFN.
+    /// </summary>
+    private static (string PackageNameMarker, string PublisherMarker) BuildMarkers(string packageFamilyName)
+    {
+        // The package install directory path looks like:
+        //   C:\Program Files\WindowsApps\<PackageName>_<Version>_<Arch>__<PublisherId>\...
+        //
+        // The PackageFamilyName (PFN) is "<PackageName>_<PublisherId>" — note the single
+        // underscore between name and publisher in the PFN, but a DOUBLE underscore before
+        // the publisher in the directory name.  We must match on both halves of the PFN
+        // rather than on the PFN string directly.
+        var lastUnderscore = packageFamilyName.LastIndexOf('_');
+
+        if (lastUnderscore > 0)
+        {
+            var pkgName = packageFamilyName[..lastUnderscore];
+            var publisherId = packageFamilyName[(lastUnderscore + 1)..];
+            return ($"\\WindowsApps\\{pkgName}_", $"__{publisherId}");
+        }
+
+        // No underscore — treat the whole PFN as a package-name prefix.
+        return ($"\\WindowsApps\\{packageFamilyName}_", string.Empty);
+    }
+
+    private static bool MatchesMarkers(string? path, string packageNameMarker, string publisherMarker)
+        => path != null &&
+           path.Contains(packageNameMarker, StringComparison.OrdinalIgnoreCase) &&
+           (publisherMarker.Length == 0 ||
+            path.Contains(publisherMarker, StringComparison.OrdinalIgnoreCase));
 
     private static IEnumerable<(int Pid, string? MainModulePath)> DefaultSnapshot()
     {

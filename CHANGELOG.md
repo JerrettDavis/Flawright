@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.14] - 2026-05-07
+
+### Changed
+- Application launching is now fully async end-to-end. `IApplicationLauncher.{Launch,LaunchStoreApp,Attach,AttachByName}` (internal) return `Task<IApplicationHandle>`. The chain `FlawrightBrowser.EnsureInitializedAsync` → `LaunchApp` → `LaunchStoreApp` → `WaitForPackagedAppProcess` no longer blocks the calling thread for up to 5 seconds during packaged-app launch; the entire blocking section now runs inside a single `Task.Run` and the process-poll loop uses `await Task.Delay`.
+- `FlawrightLocator.Filter(LocatorFilterOptions { Has, HasNot })` now properly awaits the inner-locator count instead of using `GetAwaiter().GetResult()`. Removes a latent deadlock risk for external `IFlawrightLocator` implementations.
+
+### Fixed
+- `ScreenshotAsync` now uses `File.WriteAllBytesAsync` and properly observes the cancellation token (the method is still a stub for the file payload — Wave D will add real screenshot capture).
+
+### Cosmetic
+- Removed pointless `await Task.CompletedTask` tail-awaits in several locator action methods (`TypeAsync`, `PressSequentiallyAsync`, `PressAsync`, `FocusAsync`, `BlurAsync`, `DragToAsync`).
+
 ## [0.2.12] - 2026-05-07
 
 ### Fixed

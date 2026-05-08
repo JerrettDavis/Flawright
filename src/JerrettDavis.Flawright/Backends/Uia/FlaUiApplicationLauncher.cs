@@ -14,7 +14,7 @@ namespace JerrettDavis.Flawright.Backends.Uia;
 internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
 {
     /// <inheritdoc/>
-    public IApplicationHandle Launch(LaunchOptions opts)
+    public Task<IApplicationHandle> Launch(LaunchOptions opts, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(opts);
 
@@ -24,7 +24,7 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
         if (AppExecutionAliasResolver.TryResolve(opts.ApplicationPath!, out var aumid))
         {
             var aliasArgs = opts.Arguments == null ? "" : string.Join(' ', opts.Arguments);
-            return LaunchStoreApp(aumid, aliasArgs);
+            return LaunchStoreApp(aumid, aliasArgs, ct);
         }
 
         var psi = new System.Diagnostics.ProcessStartInfo(opts.ApplicationPath!)
@@ -36,11 +36,11 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
             psi.WorkingDirectory = opts.WorkingDirectory;
 
         var app = Application.AttachOrLaunch(psi);
-        return new FlaUiApplicationHandle(app, new UIA3Automation());
+        return Task.FromResult<IApplicationHandle>(new FlaUiApplicationHandle(app, new UIA3Automation()));
     }
 
     /// <inheritdoc/>
-    public IApplicationHandle LaunchStoreApp(string aumid, string args)
+    public async Task<IApplicationHandle> LaunchStoreApp(string aumid, string args, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(aumid);
         var app = Application.LaunchStoreApp(aumid, args);
@@ -51,10 +51,11 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
         // process (e.g. Notepad.exe).  Calling WaitWhileMainHandleIsMissing on the
         // stale PID then throws "Process with an Id of N is not running".
         //
-        // Fix: poll briefly for a process whose main module path is under the
+        // Fix: poll asynchronously for a process whose main module path is under the
         // package install directory and re-Attach FlaUI's tracking to that live PID.
         var pfn = PackagedAppResolver.GetPackageFamilyName(aumid);
-        var realPid = PackagedAppResolver.WaitForPackagedAppProcess(pfn, TimeSpan.FromSeconds(5));
+        var realPid = await PackagedAppResolver.WaitForPackagedAppProcessAsync(
+            pfn, TimeSpan.FromSeconds(5), ct: ct).ConfigureAwait(false);
 
         if (realPid != 0 && realPid != app.ProcessId)
         {
@@ -76,14 +77,14 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
     }
 
     /// <inheritdoc/>
-    public IApplicationHandle Attach(int pid)
+    public Task<IApplicationHandle> Attach(int pid, CancellationToken ct = default)
     {
         var app = Application.Attach(pid);
-        return new FlaUiApplicationHandle(app, new UIA3Automation());
+        return Task.FromResult<IApplicationHandle>(new FlaUiApplicationHandle(app, new UIA3Automation()));
     }
 
     /// <inheritdoc/>
-    public IApplicationHandle AttachByName(string exeBaseName, int index)
+    public Task<IApplicationHandle> AttachByName(string exeBaseName, int index, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(exeBaseName);
 
@@ -101,6 +102,6 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
                 $"Process '{exeBaseName}' has {processes.Length} instance(s); index {index} is out of range.");
 
         var app = Application.Attach(processes[index].Id);
-        return new FlaUiApplicationHandle(app, new UIA3Automation());
+        return Task.FromResult<IApplicationHandle>(new FlaUiApplicationHandle(app, new UIA3Automation()));
     }
 }

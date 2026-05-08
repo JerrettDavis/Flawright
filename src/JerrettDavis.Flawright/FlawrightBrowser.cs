@@ -156,8 +156,8 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
             return;
 
         _app = _launchOptions != null
-            ? LaunchApp(_launchOptions)
-            : AttachApp(_attachOptions!);
+            ? await LaunchAppAsync(_launchOptions, ct).ConfigureAwait(false)
+            : await AttachAppAsync(_attachOptions!, ct).ConfigureAwait(false);
 
         var startupTimeout = _launchOptions?.StartupTimeout ?? TimeSpan.FromSeconds(30);
 
@@ -171,7 +171,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
                 $"Application main window did not appear within {startupTimeout}.");
     }
 
-    private IApplicationHandle LaunchApp(LaunchOptions lo)
+    private async Task<IApplicationHandle> LaunchAppAsync(LaunchOptions lo, CancellationToken ct)
     {
         var hasPath = !string.IsNullOrWhiteSpace(lo.ApplicationPath);
         var hasAumid = !string.IsNullOrWhiteSpace(lo.Aumid);
@@ -189,11 +189,11 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
         var args = lo.Arguments == null ? "" : string.Join(' ', lo.Arguments);
 
         return hasAumid
-            ? _launcher.LaunchStoreApp(lo.Aumid!, args)
-            : _launcher.Launch(lo);
+            ? await _launcher.LaunchStoreApp(lo.Aumid!, args, ct).ConfigureAwait(false)
+            : await _launcher.Launch(lo, ct).ConfigureAwait(false);
     }
 
-    private IApplicationHandle AttachApp(AttachOptions ao)
+    private async Task<IApplicationHandle> AttachAppAsync(AttachOptions ao, CancellationToken ct)
     {
         var hasPid = ao.ProcessId.HasValue;
         var hasName = !string.IsNullOrWhiteSpace(ao.ProcessName);
@@ -204,8 +204,8 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
                 nameof(ao));
 
         return hasPid
-            ? _launcher.Attach(ao.ProcessId!.Value)
-            : _launcher.AttachByName(StripExeSuffix(ao.ProcessName!), ao.Index);
+            ? await _launcher.Attach(ao.ProcessId!.Value, ct).ConfigureAwait(false)
+            : await _launcher.AttachByName(StripExeSuffix(ao.ProcessName!), ao.Index, ct).ConfigureAwait(false);
     }
 
     private static string StripExeSuffix(string name)

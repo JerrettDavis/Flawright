@@ -28,7 +28,7 @@ internal sealed class FakeApplicationLauncher : IApplicationLauncher
     public IReadOnlyList<(string Aumid, string Args)> LaunchStoreAppCalls => _launchStoreAppCalls.AsReadOnly();
     private readonly List<(string Aumid, string Args)> _launchStoreAppCalls = [];
 
-    /// <summary>All recorded <see cref="Attach(int)"/> calls, in order.</summary>
+    /// <summary>All recorded <see cref="Attach(int, CancellationToken)"/> calls, in order.</summary>
     public IReadOnlyList<int> AttachByPidCalls => _attachByPidCalls.AsReadOnly();
     private readonly List<int> _attachByPidCalls = [];
 
@@ -39,33 +39,33 @@ internal sealed class FakeApplicationLauncher : IApplicationLauncher
     // ── IApplicationLauncher ──────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public IApplicationHandle Launch(LaunchOptions opts)
+    public Task<IApplicationHandle> Launch(LaunchOptions opts, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(opts);
         _launchCalls.Add(opts);
-        return Handle;
+        return Task.FromResult<IApplicationHandle>(Handle);
     }
 
     /// <inheritdoc/>
-    public IApplicationHandle LaunchStoreApp(string aumid, string args)
+    public Task<IApplicationHandle> LaunchStoreApp(string aumid, string args, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(aumid);
         _launchStoreAppCalls.Add((aumid, args));
-        return Handle;
+        return Task.FromResult<IApplicationHandle>(Handle);
     }
 
     /// <inheritdoc/>
-    public IApplicationHandle Attach(int pid)
+    public Task<IApplicationHandle> Attach(int pid, CancellationToken ct = default)
     {
         _attachByPidCalls.Add(pid);
-        return Handle;
+        return Task.FromResult<IApplicationHandle>(Handle);
     }
 
     /// <inheritdoc/>
-    public IApplicationHandle AttachByName(string exeBaseName, int index)
+    public Task<IApplicationHandle> AttachByName(string exeBaseName, int index, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(exeBaseName);
         _attachByNameCalls.Add((exeBaseName, index));
-        return Handle;
+        return Task.FromResult<IApplicationHandle>(Handle);
     }
 }

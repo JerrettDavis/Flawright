@@ -215,18 +215,18 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     // ── IFlawrightLocator: Async resolution ───────────────────────────────────
 
     /// <inheritdoc/>
-    public Task<int> CountAsync(CancellationToken ct = default)
+    public async Task<int> CountAsync(CancellationToken ct = default)
     {
         // Per Playwright spec: CountAsync never auto-waits — returns 0 immediately.
         try
         {
-            var results = RunPipeline();
-            var filtered = ApplyFilters(results);
-            return Task.FromResult(filtered.Count);
+            var results = await RunPipelineAsync().ConfigureAwait(false);
+            var filtered = await ApplyFilters(results).ConfigureAwait(false);
+            return filtered.Count;
         }
         catch (Exception)
         {
-            return Task.FromResult(0);
+            return 0;
         }
     }
 
@@ -237,12 +237,12 @@ internal sealed class FlawrightLocator : IFlawrightLocator
 
         // Auto-wait for at least one element.
         await AutoWait.UntilAsync(
-            _ =>
+            async _ =>
             {
-                var results = RunPipeline();
-                var filtered = ApplyFilters(results);
-                if (filtered.Count == 0) return Task.FromResult<IReadOnlyList<IElementBackend>?>(null);
-                return Task.FromResult<IReadOnlyList<IElementBackend>?>(filtered);
+                var results = await RunPipelineAsync().ConfigureAwait(false);
+                var filtered = await ApplyFilters(results).ConfigureAwait(false);
+                if (filtered.Count == 0) return null;
+                return (IReadOnlyList<IElementBackend>?)filtered;
             },
             _ctx.Selector,
             to,
@@ -250,16 +250,16 @@ internal sealed class FlawrightLocator : IFlawrightLocator
             ct).ConfigureAwait(false);
 
         // Now return all (re-query to get the current snapshot).
-        var all = RunPipeline();
-        var allFiltered = ApplyFilters(all);
+        var all = await RunPipelineAsync().ConfigureAwait(false);
+        var allFiltered = await ApplyFilters(all).ConfigureAwait(false);
         return allFiltered.Select(b => (IFlawrightElement)new FlawrightElement(b, _ctx.Input)).ToList().AsReadOnly();
     }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<string>> AllInnerTextsAsync(CancellationToken ct = default)
     {
-        var backends = RunPipeline();
-        var filtered = ApplyFilters(backends);
+        var backends = await RunPipelineAsync().ConfigureAwait(false);
+        var filtered = await ApplyFilters(backends).ConfigureAwait(false);
 
         var texts = new List<string>(filtered.Count);
         foreach (var b in filtered)
@@ -273,8 +273,8 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     /// <inheritdoc/>
     public async Task<IReadOnlyList<string>> AllTextContentsAsync(CancellationToken ct = default)
     {
-        var backends = RunPipeline();
-        var filtered = ApplyFilters(backends);
+        var backends = await RunPipelineAsync().ConfigureAwait(false);
+        var filtered = await ApplyFilters(backends).ConfigureAwait(false);
 
         var texts = new List<string>(filtered.Count);
         foreach (var b in filtered)
@@ -325,7 +325,6 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
         backend.Focus();
         _ctx.Input.KeyboardType(text);
-        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -334,7 +333,6 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
         backend.Focus();
         _ctx.Input.KeyboardType(text);
-        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -345,7 +343,6 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         // Parse the key and dispatch via the input backend.
         var vk = KeyParser.ParseKey(key.Split('+')[^1].Trim());
         _ctx.Input.KeyboardTap(vk);
-        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -426,7 +423,6 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     {
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
         backend.Focus();
-        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -436,7 +432,6 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         // We resolve to ensure the element exists, then do nothing further.
         // Wave D can wire this to a proper blur mechanism if available.
         _ = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
-        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -477,8 +472,6 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         _ctx.Input.MouseDown(MouseButton.Left);
         _ctx.Input.MouseMove(tgtX, tgtY, steps: 10);
         _ctx.Input.MouseUp(MouseButton.Left);
-
-        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -490,15 +483,12 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     }
 
     /// <inheritdoc/>
-    public Task<byte[]> ScreenshotAsync(LocatorScreenshotOptions? options = null, CancellationToken ct = default)
+    public async Task<byte[]> ScreenshotAsync(LocatorScreenshotOptions? options = null, CancellationToken ct = default)
     {
-        // Wave C stub: Wave D will add IElementBackend.Capture().
-        // Return empty byte array; if a Path is specified, create an empty file as a placeholder.
+        // Wave C stub: Wave D will add real screenshot capture via IElementBackend.Capture().
         if (options?.Path != null)
-        {
-            System.IO.File.WriteAllBytes(options.Path, []);
-        }
-        return Task.FromResult(Array.Empty<byte>());
+            await System.IO.File.WriteAllBytesAsync(options.Path, [], ct).ConfigureAwait(false);
+        return Array.Empty<byte>();
     }
 
     /// <inheritdoc/>
@@ -625,17 +615,17 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         return state switch
         {
             WaitForState.Visible => AutoWait.UntilTrueAsync(
-                _ =>
+                async _ =>
                 {
                     try
                     {
-                        var backends = RunPipeline();
-                        var filtered = ApplyFilters(backends);
-                        if (filtered.Count == 0) return Task.FromResult(false);
+                        var backends = await RunPipelineAsync().ConfigureAwait(false);
+                        var filtered = await ApplyFilters(backends).ConfigureAwait(false);
+                        if (filtered.Count == 0) return false;
                         var picked = PickIndex(filtered);
-                        return Task.FromResult(picked != null && !picked.IsOffscreen);
+                        return picked != null && !picked.IsOffscreen;
                     }
-                    catch (Exception) { return Task.FromResult(false); }
+                    catch (Exception) { return false; }
                 },
                 $"Waiting for '{_ctx.Selector}' to be visible",
                 timeout,
@@ -643,17 +633,17 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                 ct),
 
             WaitForState.Hidden => AutoWait.UntilTrueAsync(
-                _ =>
+                async _ =>
                 {
                     try
                     {
-                        var backends = RunPipeline();
-                        var filtered = ApplyFilters(backends);
-                        if (filtered.Count == 0) return Task.FromResult(true);
+                        var backends = await RunPipelineAsync().ConfigureAwait(false);
+                        var filtered = await ApplyFilters(backends).ConfigureAwait(false);
+                        if (filtered.Count == 0) return true;
                         var picked = PickIndex(filtered);
-                        return Task.FromResult(picked == null || picked.IsOffscreen);
+                        return picked == null || picked.IsOffscreen;
                     }
-                    catch (Exception) { return Task.FromResult(true); }
+                    catch (Exception) { return true; }
                 },
                 $"Waiting for '{_ctx.Selector}' to be hidden",
                 timeout,
@@ -661,15 +651,15 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                 ct),
 
             WaitForState.Attached => AutoWait.UntilTrueAsync(
-                _ =>
+                async _ =>
                 {
                     try
                     {
-                        var backends = RunPipeline();
-                        var filtered = ApplyFilters(backends);
-                        return Task.FromResult(filtered.Count > 0 && PickIndex(filtered) != null);
+                        var backends = await RunPipelineAsync().ConfigureAwait(false);
+                        var filtered = await ApplyFilters(backends).ConfigureAwait(false);
+                        return filtered.Count > 0 && PickIndex(filtered) != null;
                     }
-                    catch (Exception) { return Task.FromResult(false); }
+                    catch (Exception) { return false; }
                 },
                 $"Waiting for '{_ctx.Selector}' to be attached",
                 timeout,
@@ -677,15 +667,15 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                 ct),
 
             WaitForState.Detached => AutoWait.UntilTrueAsync(
-                _ =>
+                async _ =>
                 {
                     try
                     {
-                        var backends = RunPipeline();
-                        var filtered = ApplyFilters(backends);
-                        return Task.FromResult(filtered.Count == 0 || PickIndex(filtered) == null);
+                        var backends = await RunPipelineAsync().ConfigureAwait(false);
+                        var filtered = await ApplyFilters(backends).ConfigureAwait(false);
+                        return filtered.Count == 0 || PickIndex(filtered) == null;
                     }
-                    catch (Exception) { return Task.FromResult(true); }
+                    catch (Exception) { return true; }
                 },
                 $"Waiting for '{_ctx.Selector}' to be detached",
                 timeout,
@@ -714,15 +704,15 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     // ── Internal helpers (for FlawrightAssertions / FlawrightPage) ────────────
 
     /// <summary>
-    /// Tries to find the first matching element synchronously without auto-wait.
+    /// Tries to find the first matching element without auto-wait.
     /// Returns <see langword="null"/> if nothing matches.  Used by assertions.
     /// </summary>
-    internal IFlawrightElement? TryFindFirst()
+    internal async Task<IFlawrightElement?> TryFindFirstAsync()
     {
         try
         {
-            var backends = RunPipeline();
-            var filtered = ApplyFilters(backends);
+            var backends = await RunPipelineAsync().ConfigureAwait(false);
+            var filtered = await ApplyFilters(backends).ConfigureAwait(false);
             var picked = PickIndex(filtered);
             return picked != null ? new FlawrightElement(picked, _ctx.Input) : null;
         }
@@ -743,18 +733,17 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var to = ResolveTimeout(timeout);
 
         return await AutoWait.UntilAsync<IElementBackend>(
-            _ =>
+            async _ =>
             {
                 try
                 {
-                    var backends = RunPipeline();
-                    var filtered = ApplyFilters(backends);
-                    var picked = PickIndex(filtered);
-                    return Task.FromResult<IElementBackend?>(picked);
+                    var backends = await RunPipelineAsync().ConfigureAwait(false);
+                    var filtered = await ApplyFilters(backends).ConfigureAwait(false);
+                    return PickIndex(filtered);
                 }
                 catch (Exception)
                 {
-                    return Task.FromResult<IElementBackend?>(null);
+                    return null;
                 }
             },
             _ctx.Selector,
@@ -790,24 +779,27 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     /// <summary>
     /// Executes the selector pipeline against <see cref="LocatorContext.Root"/>,
     /// applying AND / OR composition if configured.
+    /// The base pipeline run is synchronous; AND/OR filter application is async
+    /// (to support external <see cref="IFlawrightLocator"/> <c>Has</c>/<c>HasNot</c>
+    /// filters without blocking).
     /// </summary>
-    private List<IElementBackend> RunPipeline()
+    private async Task<List<IElementBackend>> RunPipelineAsync()
     {
         var results = ExecutePipeline(_ctx.Root, _ctx.Pipeline);
 
         // AND composition: intersect with the other locator's results.
         if (_ctx.AndWith is FlawrightLocator andLocator)
         {
-            var andResults = andLocator.RunPipeline();
-            var andFiltered = andLocator.ApplyFilters(andResults);
+            var andResults = await andLocator.RunPipelineAsync().ConfigureAwait(false);
+            var andFiltered = await andLocator.ApplyFilters(andResults).ConfigureAwait(false);
             results = results.Where(r => andFiltered.Any(a => ReferenceEquals(a, r))).ToList();
         }
 
         // OR composition: union with the other locator's results.
         if (_ctx.OrWith is FlawrightLocator orLocator)
         {
-            var orResults = orLocator.RunPipeline();
-            var orFiltered = orLocator.ApplyFilters(orResults);
+            var orResults = await orLocator.RunPipelineAsync().ConfigureAwait(false);
+            var orFiltered = await orLocator.ApplyFilters(orResults).ConfigureAwait(false);
             // Union: add items from orFiltered not already in results.
             foreach (var item in orFiltered)
             {
@@ -818,6 +810,12 @@ internal sealed class FlawrightLocator : IFlawrightLocator
 
         return results;
     }
+
+    /// <summary>
+    /// Synchronous pipeline execution (no AND/OR filter application).
+    /// Used as the entry point before the async <see cref="ApplyFilters"/> call.
+    /// </summary>
+    private List<IElementBackend> RunPipeline() => ExecutePipeline(_ctx.Root, _ctx.Pipeline);
 
     /// <summary>
     /// Executes a pipeline by iterating steps: at each step, search descendants
@@ -842,8 +840,11 @@ internal sealed class FlawrightLocator : IFlawrightLocator
 
     /// <summary>
     /// Applies all accumulated <see cref="LocatorFilterOptions"/> to a candidate set.
+    /// For <c>Has</c>/<c>HasNot</c> filters involving an external <see cref="IFlawrightLocator"/>
+    /// (non-<see cref="FlawrightLocator"/> implementation), the inner count is awaited
+    /// properly instead of using <c>GetAwaiter().GetResult()</c>.
     /// </summary>
-    private List<IElementBackend> ApplyFilters(List<IElementBackend> candidates)
+    private async Task<List<IElementBackend>> ApplyFilters(List<IElementBackend> candidates)
     {
         var result = new List<IElementBackend>(candidates);
 
@@ -888,45 +889,70 @@ internal sealed class FlawrightLocator : IFlawrightLocator
             // Has(innerLocator) filter
             if (filter.Has is FlawrightLocator hasLocator)
             {
-                result = result.Where(b =>
+                var hasMatchResults = new List<IElementBackend>(result.Count);
+                foreach (var b in result)
                 {
                     // Create a scoped locator rooted at this element and count results.
                     var scopedCtx = hasLocator._ctx with { Root = b };
                     var scoped = new FlawrightLocator(scopedCtx);
-                    var scopedResults = scoped.RunPipeline();
-                    var scopedFiltered = scoped.ApplyFilters(scopedResults);
-                    return scopedFiltered.Count > 0;
-                }).ToList();
+                    var scopedResults = await scoped.RunPipelineAsync().ConfigureAwait(false);
+                    var scopedFiltered = await scoped.ApplyFilters(scopedResults).ConfigureAwait(false);
+                    if (scopedFiltered.Count > 0) hasMatchResults.Add(b);
+                }
+                result = hasMatchResults;
             }
             else if (filter.Has != null)
             {
-                // Non-FlawrightLocator: use CountAsync (sync wrapper)
-                result = result.Where(b =>
+                // Non-FlawrightLocator: CountAsync is fast (no auto-wait), so we
+                // evaluate it up front for each candidate via a captured task result
+                // rather than blocking with GetAwaiter().GetResult().
+                var hasResults = new List<IElementBackend>(result.Count);
+                foreach (var b in result)
                 {
-                    try { return filter.Has.CountAsync().GetAwaiter().GetResult() > 0; }
-                    catch { return false; }
-                }).ToList();
+                    try
+                    {
+                        var count = await filter.Has.CountAsync().ConfigureAwait(false);
+                        if (count > 0) hasResults.Add(b);
+                    }
+                    catch
+                    {
+                        // Exclude element if inner locator evaluation fails.
+                    }
+                }
+                result = hasResults;
             }
 
             // HasNot(innerLocator) filter
             if (filter.HasNot is FlawrightLocator hasNotLocator)
             {
-                result = result.Where(b =>
+                var hasNotMatchResults = new List<IElementBackend>(result.Count);
+                foreach (var b in result)
                 {
                     var scopedCtx = hasNotLocator._ctx with { Root = b };
                     var scoped = new FlawrightLocator(scopedCtx);
-                    var scopedResults = scoped.RunPipeline();
-                    var scopedFiltered = scoped.ApplyFilters(scopedResults);
-                    return scopedFiltered.Count == 0;
-                }).ToList();
+                    var scopedResults = await scoped.RunPipelineAsync().ConfigureAwait(false);
+                    var scopedFiltered = await scoped.ApplyFilters(scopedResults).ConfigureAwait(false);
+                    if (scopedFiltered.Count == 0) hasNotMatchResults.Add(b);
+                }
+                result = hasNotMatchResults;
             }
             else if (filter.HasNot != null)
             {
-                result = result.Where(b =>
+                var hasNotResults = new List<IElementBackend>(result.Count);
+                foreach (var b in result)
                 {
-                    try { return filter.HasNot.CountAsync().GetAwaiter().GetResult() == 0; }
-                    catch { return true; }
-                }).ToList();
+                    try
+                    {
+                        var count = await filter.HasNot.CountAsync().ConfigureAwait(false);
+                        if (count == 0) hasNotResults.Add(b);
+                    }
+                    catch
+                    {
+                        // Include element if inner locator evaluation fails.
+                        hasNotResults.Add(b);
+                    }
+                }
+                result = hasNotResults;
             }
         }
 
