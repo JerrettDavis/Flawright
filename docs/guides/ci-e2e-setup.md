@@ -1,74 +1,171 @@
 # Running Flawright E2E Tests in CI
 
-This guide covers how to run Flawright E2E tests reliably on GitHub Actions `windows-latest` runners and explains the UWP app availability constraints you will encounter.
+## The recommended pattern: ship a deterministic test target
 
-## The problem: UWP apps are not pre-installed on CI runners
+The most reliable way to run E2E tests in CI is to **ship your own WPF (or WinForms) test application with the repo** and target it exclusively for the bulk of your test suite.
 
-GitHub Actions `windows-latest` (Windows Server 2025 / 10.0.26100) does **not** ship UWP / Store packaged apps such as Calculator, Notepad (Store version), or Paint by default.
+This eliminates every source of environment-driven flake:
 
-Concretely:
-- `Get-AppxPackage Microsoft.WindowsCalculator` returns nothing.
-- `C:\Windows\System32\calc.exe` exists but is a broker stub that activates the UWP package via `IApplicationActivationManager`. When the package is absent the stub launches and exits immediately (~200 ms) without producing a main window.
-- Flawright detects this scenario and throws `FlawrightLaunchException` with an actionable message rather than the cryptic `System.Exception: Process with an Id of N is not running` that FlaUI surfaces internally.
+- No dependency on UWP / Store apps that may not be installed on the runner.
+- No `winget install` steps that can fail, hang, or return 0 while not actually registering the package.
+- Fully deterministic behaviour on every machine — developer laptop, Windows Server 2025 runner, and Windows 11 Pro alike.
 
-Classic Win32 Notepad (`C:\Windows\System32\notepad.exe`) **is** present as a real executable and does not require an extra install step.
+Flawright itself ships a controlled WPF test target at `tests/Flawright.E2ETests.TestApp/` and exercises it via `TestAppTests`. The pattern is documented below.
 
-## Installing UWP apps before running E2E tests
+### Step 1: Create the test app project
 
-Add a `winget install` step immediately before your E2E test step. Example for Calculator:
+Add a minimal WPF app to your repo under `tests/YourProject.E2ETests.TestApp/`:
+
+```xml
+<!-- YourProject.E2ETests.TestApp.csproj -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <OutputType>WinExe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>
+```
+
+Expose every Flawright action surface you want to test via controls with deterministic `AutomationProperties.AutomationId` values:
+
+```xml
+<!-- MainWindow.xaml (excerpt) -->
+<Button x:Name="btnClick"
+        Content="Click Me"
+        AutomationProperties.AutomationId="btnClick"
+        AutomationProperties.Name="Click Me"
+        Click="BtnClick_Click" />
+
+<TextBlock x:Name="lblOutput"
+           AutomationProperties.AutomationId="lblOutput"
+           Text="" />
+```
+
+### Step 2: Wire up deployment in the E2E test project
+
+Add a `ProjectReference` and a custom target that copies the test app output alongside the test binaries:
+
+```xml
+<!-- YourProject.E2ETests.csproj -->
+<ItemGroup>
+  <ProjectReference Include="..\YourProject.E2ETests.TestApp\YourProject.E2ETests.TestApp.csproj">
+    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+  </ProjectReference>
+</ItemGroup>
+
+<Target Name="CopyTestAppOutput" AfterTargets="Build">
+  <ItemGroup>
+    <TestAppOutput Include="..\YourProject.E2ETests.TestApp\bin\$(Configuration)\net10.0-windows\**\*.*" />
+  </ItemGroup>
+  <Copy SourceFiles="@(TestAppOutput)"
+        DestinationFolder="$(OutputPath)TestApp\%(RecursiveDir)"
+        SkipUnchangedFiles="true" />
+</Target>
+```
+
+### Step 3: Resolve the path in tests
+
+```csharp
+private static readonly string TestAppPath =
+    Path.Combine(AppContext.BaseDirectory, "TestApp", "YourProject.E2ETests.TestApp.exe");
+```
+
+### Step 4: CI workflow
 
 ```yaml
-- name: Install UWP Calculator (windows-latest does not ship it)
-  shell: pwsh
-  run: |
-    Write-Host "Installing Microsoft.WindowsCalculator via winget..."
-    winget install --id Microsoft.WindowsCalculator --silent `
-      --accept-source-agreements --accept-package-agreements `
-      --disable-interactivity
-    if ($LASTEXITCODE -ne 0) {
-      Write-Error "winget install failed with exit code $LASTEXITCODE"
-      exit 1
-    }
-    # Verify the install registered. AUMID resolver looks in HKCU; if that's
-    # empty after install, the package may need explicit user-context registration.
-    $pkg = Get-AppxPackage Microsoft.WindowsCalculator
-    if (-not $pkg) {
-      Write-Error "Microsoft.WindowsCalculator did not register for the current user after winget install."
-      exit 1
-    }
-    Write-Host "Installed: $($pkg.PackageFullName) at $($pkg.InstallLocation)"
+- name: Build test app
+  run: >
+    dotnet build tests/YourProject.E2ETests.TestApp/YourProject.E2ETests.TestApp.csproj
+    --configuration Release
+    --no-restore
+    /p:ContinuousIntegrationBuild=true
+
+- name: Build E2E
+  run: >
+    dotnet build tests/YourProject.E2ETests/YourProject.E2ETests.csproj
+    --configuration Release
+    --no-restore
+    /p:ContinuousIntegrationBuild=true
 
 - name: Run E2E tests
-  run: dotnet test tests/YourProject.E2ETests/YourProject.E2ETests.csproj ...
+  run: >
+    dotnet test tests/YourProject.E2ETests/YourProject.E2ETests.csproj
+    --configuration Release
+    --no-build
+    --logger "trx;LogFileName=e2e-results.trx"
+    --results-directory ./TestResults
 ```
 
-`--disable-interactivity` prevents winget from rendering progress bars or prompting in a non-TTY session, which can hang the runner.
+No `winget install` step. No package availability check. Tests that target the test app always run.
 
-The verification step (`Get-AppxPackage`) catches the uncommon case where winget exits 0 but the package is not yet registered for the current user context (can happen on some runner configurations).
+---
 
-## Other UWP apps
+## Opt-in system-app tests with `RequiresAppFact`
 
-For apps other than Calculator, find the winget package ID with:
+For tests that genuinely need a system application (to validate Notepad-specific selectors, Calculator-specific UI, etc.) use `RequiresAppFactAttribute`. It extends `[Fact]` and skips the test at runtime — with a specific, human-readable reason — when the prerequisite is not met.
 
-```powershell
-winget search <app-name>
+```csharp
+// Skip when Calculator's AppX package is not installed:
+[RequiresAppFact(Aumid = "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App")]
+public async Task Calculator_ClickButton()
+{
+    var fw = await Flawright.LaunchAsync(
+        new LaunchOptions { ApplicationPath = "calc.exe" },
+        new FlawrightOptions { InputMode = new VirtualInputMode() });
+    // ...
+}
+
+// Skip when notepad.exe is not a real executable (or its AppX stub's package is absent):
+[RequiresAppFact(ExePath = "notepad.exe")]
+public async Task Notepad_TypeText()
+{
+    // ...
+}
 ```
 
-Common apps and their IDs:
+When the prerequisite is absent the test runner reports:
 
-| App | winget ID |
-|-----|-----------|
-| Calculator | `Microsoft.WindowsCalculator` |
-| Paint | `Microsoft.Paint` |
-| Notepad (Store version) | `Microsoft.WindowsNotepad` |
+```
+Skipped: AppX package for AUMID 'Microsoft.WindowsCalculator_8wekyb3d8bbwe!App' is
+not installed on this machine. Install it with: winget install <package-id> (or
+Add-AppxPackage). The test will run automatically once the package is available.
+```
 
-> **Note:** Classic Win32 Notepad (`C:\Windows\System32\notepad.exe`) is already present on CI runners — no install step needed for Notepad-based tests.
+This is "most visible": the TRX and console output name the exact app, explain why it was skipped, and state how to fix it. No vague "environment check failed" messages.
 
-## Understanding FlawrightLaunchException
+For parameterised tests use `RequiresAppTheoryAttribute` (mirrors `[Theory]`).
 
-When you pass `ApplicationPath = "calc.exe"` on a machine where Calculator is not installed, Flawright's `WindowsAumidResolver` maps the path to the Calculator AUMID via the known-alias table. The AUMID launch path then polls for a real Calculator process. If the broker stub exits before a real packaged-app process appears, Flawright throws `FlawrightLaunchException`.
+### How `RequiresAppFact` checks prerequisites
 
-The exception message looks like:
+| Property | Check |
+|----------|-------|
+| `Aumid` | Walks `HKCU\...\AppModel\Repository\Packages` for a key matching the PackageFamilyName extracted from the AUMID. |
+| `ExePath` | Searches PATH; if the resolved path is inside `WindowsApps` (an AppExecutionAlias stub), additionally verifies the backing AppX package via the same registry walk. |
+
+The logic is shared with `WindowsAumidResolver.IsPackageAumidInstalled` — a single registry-walk implementation in the production code.
+
+---
+
+## Why relying on system apps in CI is a flake source
+
+`windows-latest` (Windows Server 2025 / 10.0.26100) is a **server SKU**.  Server SKUs do not ship UWP inbox apps:
+
+- `Get-AppxPackage Microsoft.WindowsCalculator` returns nothing.
+- `C:\Windows\System32\calc.exe` is a broker stub; when Calculator's AppX package is absent it launches and exits immediately (~200 ms) producing no window.
+- `winget install Microsoft.WindowsCalculator` on Server 2025 consistently fails to find the package ID — the winget source index downloads but the Calculator package is not available for Server SKUs.
+
+Attempting to work around this (different package IDs, `--source` flags, `Add-AppxPackage` with a sideload URL) is whack-a-mole: each workaround has its own failure mode, and the symptom changes across runner image updates.
+
+**The correct answer is not a better `winget` invocation — it is a test target that is not a system app.**
+
+---
+
+## Understanding `FlawrightLaunchException`
+
+When `ApplicationPath = "calc.exe"` is used on a machine where Calculator's AppX package is absent, Flawright maps the path to the Calculator AUMID via its known-alias table.  The AUMID launch path polls for a real Calculator process.  If the broker stub exits before a packaged-app process appears, Flawright throws `FlawrightLaunchException`:
 
 ```
 Application 'calc.exe' launched but exited within 250ms with no main window.
@@ -76,14 +173,14 @@ This typically means the executable is an App Execution Alias stub for an
 uninstalled UWP package on this machine.
 
 To resolve:
-- Install the target package on this machine (e.g. for Calculator:
-  'winget install Microsoft.WindowsCalculator --silent').
+- Install the target package on this machine.
 - Or pass an explicit AUMID via LaunchOptions.Aumid.
-- Or supply a custom IAumidResolver via LaunchOptions.AumidResolver
-  for non-default app mappings.
+- Or supply a custom IAumidResolver via LaunchOptions.AumidResolver.
 ```
 
-If you see this in CI, add the appropriate `winget install` step as shown above.
+With `RequiresAppFact`, this exception is never reached — the test skips before `InitializeAsync` is called.
+
+---
 
 ## Related docs
 

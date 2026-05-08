@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Flawright.E2ETests.TestApp</RootNamespace>
+    <AssemblyName>Flawright.E2ETests.TestApp</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultApplicationDefinition>true</EnableDefaultApplicationDefinition>
+    <!-- Test apps don't need XML docs. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Suppress CS1591 (missing XML doc): not required for a test helper binary. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+</Project>

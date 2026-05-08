@@ -136,6 +136,24 @@ public sealed class WindowsAumidResolver : IAumidResolver
     // ── Internals ─────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Returns <see langword="true"/> when a package with the given AUMID
+    /// (or PackageFamilyName) appears to be installed for the current user.
+    /// </summary>
+    /// <param name="aumid">
+    /// Full AUMID (e.g. <c>Microsoft.WindowsCalculator_8wekyb3d8bbwe!App</c>)
+    /// or a PackageFamilyName (e.g. <c>Microsoft.WindowsCalculator_8wekyb3d8bbwe</c>).
+    /// </param>
+    /// <remarks>
+    /// Exposed as <c>internal</c> so <c>Flawright.E2ETests.RequiresAppFactAttribute</c>
+    /// can reuse the same registry-walk logic without duplication.
+    /// </remarks>
+    internal static bool IsPackageAumidInstalled(string aumid)
+    {
+        var pfn = GetPackageFamilyName(aumid);
+        return IsPackageFamilyInstalled(pfn);
+    }
+
+    /// <summary>
     /// Extracts the PackageFamilyName from an AUMID (the portion before <c>!</c>).
     /// </summary>
     private static string GetPackageFamilyName(string aumid)

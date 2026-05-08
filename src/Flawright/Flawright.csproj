@@ -24,6 +24,9 @@
   <ItemGroup>
     <!-- Expose internals (SelectorParser, KeyParser, AutoWait) to the unit test project -->
     <InternalsVisibleTo Include="Flawright.UnitTests" />
+    <!-- Expose internals to the E2E test project so RequiresAppFact can reuse
+         AppExecutionAliasResolver and WindowsAumidResolver.IsPackageFamilyInstalled. -->
+    <InternalsVisibleTo Include="Flawright.E2ETests" />
   </ItemGroup>
 
   <ItemGroup>

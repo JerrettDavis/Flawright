@@ -1,0 +1,116 @@
+<Window x:Class="Flawright.E2ETests.TestApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Flawright Test App"
+        AutomationProperties.AutomationId="MainWindow"
+        AutomationProperties.Name="Flawright Test App"
+        Width="480"
+        Height="600"
+        ResizeMode="CanResize">
+
+    <StackPanel Margin="16" VerticalAlignment="Top">
+
+        <!-- ── Click ─────────────────────────────────────────────────────────── -->
+        <Button x:Name="btnClick"
+                Content="Click Me"
+                AutomationProperties.AutomationId="btnClick"
+                AutomationProperties.Name="Click Me"
+                Height="32"
+                Margin="0,0,0,8"
+                Click="BtnClick_Click" />
+
+        <!-- ── Double-click ───────────────────────────────────────────────────── -->
+        <Button x:Name="btnDoubleClick"
+                Content="Double Click"
+                AutomationProperties.AutomationId="btnDoubleClick"
+                AutomationProperties.Name="Double Click"
+                Height="32"
+                Margin="0,0,0,8"
+                MouseDoubleClick="BtnDoubleClick_MouseDoubleClick" />
+
+        <!-- ── FillAsync target ───────────────────────────────────────────────── -->
+        <TextBox x:Name="txtFill"
+                 AutomationProperties.AutomationId="txtFill"
+                 AutomationProperties.Name="txtFill"
+                 Height="28"
+                 Margin="0,0,0,8" />
+
+        <!-- ── TypeAsync target ───────────────────────────────────────────────── -->
+        <TextBox x:Name="txtType"
+                 AutomationProperties.AutomationId="txtType"
+                 AutomationProperties.Name="txtType"
+                 Height="28"
+                 Margin="0,0,0,8" />
+
+        <!-- ── CheckAsync / UncheckAsync ─────────────────────────────────────── -->
+        <CheckBox x:Name="chkToggle"
+                  Content="Toggle me"
+                  AutomationProperties.AutomationId="chkToggle"
+                  AutomationProperties.Name="Toggle me"
+                  Margin="0,0,0,8" />
+
+        <!-- ── SelectOptionAsync ──────────────────────────────────────────────── -->
+        <ComboBox x:Name="cmbSelect"
+                  AutomationProperties.AutomationId="cmbSelect"
+                  AutomationProperties.Name="cmbSelect"
+                  Height="28"
+                  Margin="0,0,0,8">
+            <ComboBoxItem Content="Option A" AutomationProperties.Name="Option A" />
+            <ComboBoxItem Content="Option B" AutomationProperties.Name="Option B" />
+            <ComboBoxItem Content="Option C" AutomationProperties.Name="Option C" />
+        </ComboBox>
+
+        <!-- ── Filter (ListBox) ──────────────────────────────────────────────── -->
+        <ListBox x:Name="lstFilter"
+                 AutomationProperties.AutomationId="lstFilter"
+                 AutomationProperties.Name="lstFilter"
+                 Height="80"
+                 Margin="0,0,0,8">
+            <ListBoxItem Content="Apple"     AutomationProperties.Name="Apple" />
+            <ListBoxItem Content="Banana"    AutomationProperties.Name="Banana" />
+            <ListBoxItem Content="Cherry"    AutomationProperties.Name="Cherry" />
+            <ListBoxItem Content="Apple Pie" AutomationProperties.Name="Apple Pie" />
+        </ListBox>
+
+        <!-- ── RadioButtons ──────────────────────────────────────────────────── -->
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <RadioButton x:Name="radio1"
+                         Content="Radio 1"
+                         GroupName="TestRadios"
+                         AutomationProperties.AutomationId="radio1"
+                         AutomationProperties.Name="Radio 1"
+                         Margin="0,0,16,0" />
+            <RadioButton x:Name="radio2"
+                         Content="Radio 2"
+                         GroupName="TestRadios"
+                         AutomationProperties.AutomationId="radio2"
+                         AutomationProperties.Name="Radio 2" />
+        </StackPanel>
+
+        <!-- ── Output label ──────────────────────────────────────────────────── -->
+        <TextBlock x:Name="lblOutput"
+                   AutomationProperties.AutomationId="lblOutput"
+                   AutomationProperties.Name="lblOutput"
+                   Text=""
+                   Height="24"
+                   Margin="0,0,0,8" />
+
+        <!-- ── Show Dialog ───────────────────────────────────────────────────── -->
+        <Button x:Name="btnShowDialog"
+                Content="Show Dialog"
+                AutomationProperties.AutomationId="btnShowDialog"
+                AutomationProperties.Name="Show Dialog"
+                Height="32"
+                Margin="0,0,0,8"
+                Click="BtnShowDialog_Click" />
+
+        <!-- ── Exit ──────────────────────────────────────────────────────────── -->
+        <Button x:Name="btnExit"
+                Content="Exit"
+                AutomationProperties.AutomationId="btnExit"
+                AutomationProperties.Name="Exit"
+                Height="32"
+                Click="BtnExit_Click" />
+
+    </StackPanel>
+</Window>

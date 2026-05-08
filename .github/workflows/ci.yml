@@ -188,6 +188,18 @@ jobs:
       - name: Restore
         run: dotnet restore tests/Flawright.E2ETests/Flawright.E2ETests.csproj
 
+      # Build the WPF test app explicitly so CI output makes it clear that the
+      # deterministic test target was compiled successfully before the test run.
+      # (The ProjectReference in Flawright.E2ETests.csproj also builds it, but
+      # making it a named step means failures are immediately visible in the
+      # GitHub Actions summary rather than buried inside "Build E2E".)
+      - name: Build test app
+        run: >
+          dotnet build tests/Flawright.E2ETests.TestApp/Flawright.E2ETests.TestApp.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
       - name: Build E2E
         run: >
           dotnet build tests/Flawright.E2ETests/Flawright.E2ETests.csproj
@@ -195,26 +207,9 @@ jobs:
           --no-restore
           /p:ContinuousIntegrationBuild=true
 
-      - name: Install UWP Calculator (windows-latest does not ship it)
-        shell: pwsh
-        run: |
-          Write-Host "Installing Microsoft.WindowsCalculator via winget..."
-          winget install --id Microsoft.WindowsCalculator --silent `
-            --accept-source-agreements --accept-package-agreements `
-            --disable-interactivity
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "winget install failed with exit code $LASTEXITCODE"
-            exit 1
-          }
-          # Verify the install registered. AUMID resolver looks in HKCU; if that's
-          # empty after install, the package may need explicit user-context registration.
-          $pkg = Get-AppxPackage Microsoft.WindowsCalculator
-          if (-not $pkg) {
-            Write-Error "Microsoft.WindowsCalculator did not register for the current user after winget install."
-            exit 1
-          }
-          Write-Host "Installed: $($pkg.PackageFullName) at $($pkg.InstallLocation)"
-
+      # System-app tests (SystemNotepadTests, SystemCalculatorTests) are opt-in:
+      # they emit a visible skip reason when the required app is not installed.
+      # No winget step needed — if the app is absent the test skips, not fails.
       - name: Run E2E tests
         run: >
           dotnet test tests/Flawright.E2ETests/Flawright.E2ETests.csproj

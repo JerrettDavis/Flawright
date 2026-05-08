@@ -25,4 +25,31 @@
     <ProjectReference Include="..\..\src\Flawright\Flawright.csproj" />
   </ItemGroup>
 
+  <!--
+    Build the WPF test app and copy its output to $(OutputPath)TestApp\
+    so TestAppTests can resolve it via AppContext.BaseDirectory + "TestApp\Flawright.E2ETests.TestApp.exe".
+
+    ReferenceOutputAssembly=false: the test app is an executable, not a
+    library — we do not want it on the reference path.
+
+    The custom target (CopyTestAppOutput) runs after Build and copies every
+    file produced by the TestApp build into $(OutputPath)TestApp\.
+    SkipUnchangedFiles=true keeps incremental builds fast.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Flawright.E2ETests.TestApp\Flawright.E2ETests.TestApp.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Target Name="CopyTestAppOutput" AfterTargets="Build">
+    <ItemGroup>
+      <TestAppOutput Include="..\Flawright.E2ETests.TestApp\bin\$(Configuration)\net10.0-windows\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(TestAppOutput)"
+          DestinationFolder="$(OutputPath)TestApp\%(RecursiveDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>

@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Flawright.E2ETests/Flawright.E2ETests.csproj" />
+    <Project Path="tests/Flawright.E2ETests.TestApp/Flawright.E2ETests.TestApp.csproj" />
     <Project Path="tests/Flawright.UnitTests/Flawright.UnitTests.csproj" />
   </Folder>
   <Folder Name="/samples/">
