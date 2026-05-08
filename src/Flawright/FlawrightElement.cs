@@ -38,10 +38,12 @@ file sealed class SinglePointBackend : IElementBackend
     public bool TrySetValue(string text) => _inner.TrySetValue(text);
     public string? TryGetValue() => _inner.TryGetValue();
     public string? TryGetDocumentText() => _inner.TryGetDocumentText();
+    public bool TrySelect() => _inner.TrySelect();
     public bool TryToggleOn() => _inner.TryToggleOn();
     public bool TryToggleOff() => _inner.TryToggleOff();
     public bool? GetToggleState() => _inner.GetToggleState();
     public bool TryScrollIntoView() => _inner.TryScrollIntoView();
+    public bool TryExpand() => _inner.TryExpand();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
     public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);
     public IElementBackend? FindFirst(IElementCondition condition) => _inner.FindFirst(condition);
@@ -346,12 +348,16 @@ internal sealed class FlawrightElement : IFlawrightElement
         if (_backend.GetToggleState() == true)
             return Task.CompletedTask;  // already checked — no-op
 
-        if (!_backend.TryToggleOn())
-            throw new InvalidOperationException(
-                "Element does not support toggle.  " +
-                "Ensure the element implements TogglePattern.");
+        // Try TogglePattern first (CheckBox), fall back to SelectionItemPattern (RadioButton).
+        if (_backend.TryToggleOn())
+            return Task.CompletedTask;
 
-        return Task.CompletedTask;
+        if (_backend.TrySelect())
+            return Task.CompletedTask;
+
+        throw new InvalidOperationException(
+            "Element does not support check/select.  " +
+            "Ensure the element implements TogglePattern (CheckBox) or SelectionItemPattern (RadioButton).");
     }
 
     /// <inheritdoc/>
@@ -360,12 +366,15 @@ internal sealed class FlawrightElement : IFlawrightElement
         if (_backend.GetToggleState() == false)
             return Task.CompletedTask;  // already unchecked — no-op
 
-        if (!_backend.TryToggleOff())
-            throw new InvalidOperationException(
-                "Element does not support toggle.  " +
-                "Ensure the element implements TogglePattern.");
+        // TogglePattern is the only way to uncheck. SelectionItemPattern (RadioButton) has
+        // no "deselect" operation — a radio button can only be unchecked by selecting another.
+        if (_backend.TryToggleOff())
+            return Task.CompletedTask;
 
-        return Task.CompletedTask;
+        throw new InvalidOperationException(
+            "Element does not support uncheck.  " +
+            "Ensure the element implements TogglePattern.  " +
+            "Note: RadioButton (SelectionItemPattern) cannot be explicitly unchecked — select another radio button instead.");
     }
 
     /// <inheritdoc/>
@@ -375,6 +384,11 @@ internal sealed class FlawrightElement : IFlawrightElement
     /// <inheritdoc/>
     public Task SelectOptionAsync(string value, LocatorSelectOptionOptions? options = null, CancellationToken ct = default)
     {
+        // Expand the container first so virtualised items (e.g. WPF ComboBox items
+        // that are not yet in the UIA tree) become accessible.  This is a no-op for
+        // elements that do not implement ExpandCollapsePattern (e.g. ListBox).
+        _backend.TryExpand();
+
         if (!_backend.TrySelectItem(value))
             throw new InvalidOperationException(
                 $"Could not find or select item '{value}'.  " +

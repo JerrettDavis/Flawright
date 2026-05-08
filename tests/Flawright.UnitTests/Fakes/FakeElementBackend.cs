@@ -74,6 +74,16 @@ internal sealed class FakeElementBackend : IElementBackend
     /// </summary>
     public bool TryInvokeResult { get; set; } = true;
 
+    /// <summary>
+    /// Controls the return value of <see cref="TrySelect"/>.
+    /// Defaults to <see langword="false"/> (SelectionItemPattern not supported).
+    /// Set to <see langword="true"/> to simulate a RadioButton or other selection element.
+    /// </summary>
+    public bool TrySelectResult { get; set; }
+
+    /// <summary>Whether <see cref="TrySelect"/> was called.</summary>
+    public bool WasSelected { get; private set; }
+
     /// <summary>Number of focus operations recorded on this element.</summary>
     public int FocusCount { get; private set; }
 
@@ -86,6 +96,16 @@ internal sealed class FakeElementBackend : IElementBackend
 
     /// <summary>The last value passed to <see cref="TrySelectItem"/>, or <see langword="null"/>.</summary>
     public string? LastSelectedItem { get; private set; }
+
+    /// <summary>
+    /// Controls the return value of <see cref="TryExpand"/>.
+    /// Defaults to <see langword="false"/> (ExpandCollapsePattern not supported).
+    /// Set to <see langword="true"/> to simulate a ComboBox or other collapsible element.
+    /// </summary>
+    public bool TryExpandResult { get; set; }
+
+    /// <summary>Whether <see cref="TryExpand"/> was called.</summary>
+    public bool WasExpanded { get; private set; }
 
     // ── IElementBackend: Identity ─────────────────────────────────────────────
 
@@ -150,6 +170,15 @@ internal sealed class FakeElementBackend : IElementBackend
     public string? TryGetDocumentText() => null;
 
     /// <inheritdoc/>
+    public bool TrySelect()
+    {
+        if (!TrySelectResult)
+            return false;
+        WasSelected = true;
+        return true;
+    }
+
+    /// <inheritdoc/>
     public bool TryToggleOn()
     {
         if (_toggleState == null)
@@ -175,6 +204,13 @@ internal sealed class FakeElementBackend : IElementBackend
     {
         ScrolledIntoView = true;
         return true;
+    }
+
+    /// <inheritdoc/>
+    public bool TryExpand()
+    {
+        WasExpanded = true;
+        return TryExpandResult;
     }
 
     /// <inheritdoc/>

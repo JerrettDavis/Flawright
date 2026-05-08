@@ -148,6 +148,17 @@ internal sealed class UiaElementBackend : IElementBackend
     }
 
     /// <inheritdoc/>
+    public bool TrySelect()
+    {
+        var sip = _element.Patterns.SelectionItem;
+        if (!sip.IsSupported)
+            return false;
+
+        sip.Pattern.Select();
+        return true;
+    }
+
+    /// <inheritdoc/>
     public bool TryToggleOn()
     {
         var tp = _element.Patterns.Toggle;
@@ -204,6 +215,17 @@ internal sealed class UiaElementBackend : IElementBackend
             return false;
 
         sp.Pattern.ScrollIntoView();
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public bool TryExpand()
+    {
+        var ecp = _element.Patterns.ExpandCollapse;
+        if (!ecp.IsSupported)
+            return false;
+
+        ecp.Pattern.Expand();
         return true;
     }
 

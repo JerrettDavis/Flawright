@@ -655,6 +655,61 @@ public sealed class FlawrightElementTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // CheckAsync — RadioButton (SelectionItemPattern fallback)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task CheckAsync_UsesSelectionItemPattern_WhenTogglePatternUnsupported()
+    {
+        // Simulate a RadioButton: no TogglePattern, but TrySelect returns true.
+        var backend = new FakeElementBackend(name: "Radio 1", controlTypeName: "RadioButton");
+        backend.TrySelectResult = true;
+        var element = new FlawrightElement(backend, new FakeInputBackend());
+
+        await element.CheckAsync();  // must not throw
+
+        Assert.True(backend.WasSelected);
+    }
+
+    [Fact]
+    public async Task CheckAsync_TogglePatternTakesPrecedenceOverSelectionItem()
+    {
+        // When TogglePattern is supported it must be used, not SelectionItemPattern.
+        var backend = UiaTree.CheckBox("CB", initialState: false).Build();
+        backend.TrySelectResult = true;  // also has selection pattern — toggle wins
+        var element = CreateElement(backend);
+
+        await element.CheckAsync();
+
+        Assert.True(backend.GetToggleState());   // toggled on
+        Assert.False(backend.WasSelected);       // selection path NOT taken
+    }
+
+    [Fact]
+    public async Task CheckAsync_Throws_WhenNeitherToggleNorSelectionPatternSupported()
+    {
+        // Button has no toggle and no selection — should throw with both patterns mentioned.
+        var backend = UiaTree.Button("B").Build();
+        var element = CreateElement(backend);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => element.CheckAsync());
+        Assert.Contains("TogglePattern", ex.Message);
+        Assert.Contains("SelectionItemPattern", ex.Message);
+    }
+
+    [Fact]
+    public async Task UncheckAsync_ThrowsSpecificMessage_WhenOnlySelectionPatternSupported()
+    {
+        // RadioButton: TryToggleOff returns false, and TrySelect is irrelevant for uncheck.
+        var backend = new FakeElementBackend(name: "Radio 1", controlTypeName: "RadioButton");
+        backend.TrySelectResult = true;  // selection supported, but no toggle
+        var element = new FlawrightElement(backend, new FakeInputBackend());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => element.UncheckAsync());
+        Assert.Contains("RadioButton", ex.Message);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // SetCheckedAsync
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -763,10 +818,12 @@ public sealed class FlawrightElementTests
         public bool TrySetValue(string text) => false;
         public string? TryGetValue() => null;
         public string? TryGetDocumentText() => null;
+        public bool TrySelect() => false;
         public bool TryToggleOn() => false;
         public bool TryToggleOff() => false;
         public bool? GetToggleState() => null;
         public bool TryScrollIntoView() => false;
+        public bool TryExpand() => false;
         public bool TrySelectItem(string nameOrId) => false;
         public bool TryInvoke() => false;
         public System.Collections.Generic.IEnumerable<IElementBackend> FindAll(IElementCondition condition)

@@ -277,6 +277,77 @@ public sealed class SelectorParserTests
         Assert.Equal("Hello World", node.Value);
     }
 
+    [Fact]
+    public void Parse_PrefixSelector_UnquotedValueWithSpaces_Parsed()
+    {
+        // "name:Click Me" must parse as Prefix(Name, "Click Me") — spaces preserved.
+        var ast = SelectorParser.Parse("name:Click Me");
+
+        var node = Assert.IsType<SelectorAst.Prefix>(ast);
+        Assert.Equal(PrefixKind.Name, node.Kind);
+        Assert.Equal("Click Me", node.Value);
+    }
+
+    [Fact]
+    public void Parse_PrefixSelector_UnquotedValueWithMultipleSpaces_Parsed()
+    {
+        var ast = SelectorParser.Parse("text:Save As Document");
+
+        var node = Assert.IsType<SelectorAst.Prefix>(ast);
+        Assert.Equal(PrefixKind.Text, node.Kind);
+        Assert.Equal("Save As Document", node.Value);
+    }
+
+    [Fact]
+    public void Parse_PrefixSelector_ValueWithLeadingWhitespace_Trimmed()
+    {
+        // "name: Click Me" — the space after colon is stripped, value is "Click Me".
+        var ast = SelectorParser.Parse("name: Click Me");
+
+        var node = Assert.IsType<SelectorAst.Prefix>(ast);
+        Assert.Equal("Click Me", node.Value);
+    }
+
+    [Fact]
+    public void Parse_PrefixSelector_ValueWithTrailingWhitespace_Trimmed()
+    {
+        // Trailing spaces on the value are trimmed.
+        var ast = SelectorParser.Parse("name:Click Me  ");
+
+        var node = Assert.IsType<SelectorAst.Prefix>(ast);
+        Assert.Equal("Click Me", node.Value);
+    }
+
+    [Fact]
+    public void Parse_PrefixSelector_ChainWithSpacedName_SplitsAtCombinator()
+    {
+        // "name:Click Me >> [class=Button]" — value is "Click Me", not "Click Me >> [class=Button]"
+        var ast = SelectorParser.Parse("name:Click Me >> [class=Button]");
+
+        var chain = Assert.IsType<SelectorAst.Chain>(ast);
+        Assert.Equal(2, chain.Steps.Count);
+        var step0 = Assert.IsType<SelectorAst.Prefix>(chain.Steps[0]);
+        Assert.Equal(PrefixKind.Name, step0.Kind);
+        Assert.Equal("Click Me", step0.Value);
+        var step1 = Assert.IsType<SelectorAst.Attribute>(chain.Steps[1]);
+        Assert.Equal(AttributeName.ClassName, step1.Name);
+        Assert.Equal("Button", step1.Value);
+    }
+
+    [Theory]
+    [InlineData("name:OK")]
+    [InlineData("name:Click Me")]
+    [InlineData("text:Save As Document")]
+    [InlineData("automationid:btn_ok")]
+    [InlineData("class:MyClass")]
+    public void TryParse_PrefixWithSpaces_ReturnsTrueWithAst(string selector)
+    {
+        var result = SelectorParser.TryParse(selector, out var ast);
+
+        Assert.True(result);
+        Assert.NotNull(ast);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Bare name selector
     // ═══════════════════════════════════════════════════════════════════════════

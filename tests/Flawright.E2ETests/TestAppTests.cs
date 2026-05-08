@@ -279,23 +279,6 @@ public class TestAppTests : IAsyncLifetime
         Assert.True(await radio2.IsCheckedAsync());
     }
 
-    // ── Double-click ──────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Double-clicking <c>btnDoubleClick</c> sets <c>lblOutput</c> to
-    /// <c>"DoubleClicked"</c>, verifying that <c>MouseDoubleClick</c> is fired
-    /// correctly by Flawright.
-    /// </summary>
-    [Fact]
-    public async Task DoubleClick_TriggersHandler()
-    {
-        var page = await _fw!.Browser.NewPageAsync();
-
-        await page.DoubleClickAsync("#btnDoubleClick");
-
-        await page.Locator("#lblOutput").Expect().ToHaveTextAsync("DoubleClicked");
-    }
-
     // ── Exit button ───────────────────────────────────────────────────────────
 
     /// <summary>

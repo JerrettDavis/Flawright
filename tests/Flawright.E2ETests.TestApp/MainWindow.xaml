@@ -1,4 +1,4 @@
-<Window x:Class="Flawright.E2ETests.TestApp.MainWindow"
+﻿<Window x:Class="Flawright.E2ETests.TestApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Flawright Test App"
@@ -88,12 +88,23 @@
         </StackPanel>
 
         <!-- ── Output label ──────────────────────────────────────────────────── -->
-        <TextBlock x:Name="lblOutput"
-                   AutomationProperties.AutomationId="lblOutput"
-                   AutomationProperties.Name="lblOutput"
-                   Text=""
-                   Height="24"
-                   Margin="0,0,0,8" />
+        <!--
+            TextBox with IsReadOnly="True" is used instead of TextBlock so that
+            UIA exposes the content via ValuePattern.Value, which refreshes on every
+            Text mutation. TextBlock only exposes its initial text via the UIA Name
+            property (set at element-load time from AutomationProperties.Name) and
+            does not update when Text changes programmatically.
+        -->
+        <TextBox x:Name="lblOutput"
+                 AutomationProperties.AutomationId="lblOutput"
+                 AutomationProperties.Name="lblOutput"
+                 IsReadOnly="True"
+                 IsTabStop="False"
+                 BorderThickness="0"
+                 Background="Transparent"
+                 Text=""
+                 Height="24"
+                 Margin="0,0,0,8" />
 
         <!-- ── Show Dialog ───────────────────────────────────────────────────── -->
         <Button x:Name="btnShowDialog"

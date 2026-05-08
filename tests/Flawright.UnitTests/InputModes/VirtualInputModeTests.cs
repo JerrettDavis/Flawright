@@ -226,10 +226,12 @@ public sealed class VirtualInputModeTests
         public bool TrySetValue(string text) => false;
         public string? TryGetValue() => null;
         public string? TryGetDocumentText() => null;
+        public bool TrySelect() => false;
         public bool TryToggleOn() => false;
         public bool TryToggleOff() => false;
         public bool? GetToggleState() => null;
         public bool TryScrollIntoView() => false;
+        public bool TryExpand() => false;
         public bool TrySelectItem(string nameOrId) => false;
         public System.Collections.Generic.IEnumerable<IElementBackend> FindAll(IElementCondition condition)
             => System.Linq.Enumerable.Empty<IElementBackend>();

@@ -352,6 +352,52 @@ public sealed class LocatorActionsTests
             () => locator.SelectOptionAsync((SelectOptionValue)null!));
     }
 
+    // ── SelectOptionAsync — ExpandCollapse (ComboBox) ─────────────────────────
+
+    [Fact]
+    public async Task SelectOptionAsync_CallsTryExpand_BeforeSelectingItem()
+    {
+        // Simulate a ComboBox: TryExpandResult = true so the backend records the expand call.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.List("ComboBox")
+                .WithChild(UiaTree.ListItem("Option A"))
+                .WithChild(UiaTree.ListItem("Option B")))
+            .Build();
+
+        var combo = (FakeElementBackend)root.Children[0];
+        combo.TryExpandResult = true;
+
+        var locator = LocatorTestBase.CreateLocator("controltype:List", root);
+
+        await locator.SelectOptionAsync("Option B");
+
+        Assert.True(combo.WasExpanded, "TryExpand should have been called before item lookup.");
+        Assert.Equal("Option B", combo.LastSelectedItem);
+    }
+
+    [Fact]
+    public async Task SelectOptionAsync_StillSelectsItem_WhenExpandNotSupported()
+    {
+        // ListBox: no ExpandCollapse pattern — TryExpandResult = false (default).
+        // Selection should still work.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.List("ListBox")
+                .WithChild(UiaTree.ListItem("Blue")))
+            .Build();
+
+        var list = (FakeElementBackend)root.Children[0];
+        // TryExpandResult is false by default — ExpandCollapse not supported.
+
+        var locator = LocatorTestBase.CreateLocator("controltype:List", root);
+
+        await locator.SelectOptionAsync("Blue");
+
+        // WasExpanded is still true because TryExpand is always called;
+        // the result (false) means the pattern was not supported but it was attempted.
+        Assert.True(list.WasExpanded);
+        Assert.Equal("Blue", list.LastSelectedItem);
+    }
+
     // ── HoverAsync ────────────────────────────────────────────────────────────
 
     [Fact]

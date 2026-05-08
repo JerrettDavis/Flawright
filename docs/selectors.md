@@ -30,6 +30,17 @@ Identical to `text:`. Use whichever reads more naturally in context.
 ```csharp
 page.Locator("name:File")
 page.Locator("name:OK")
+page.Locator("name:Click Me")    // spaces in the value are preserved
+```
+
+**Values may contain spaces.** The parser greedily reads everything up to the next `>>`
+combinator (or end of the selector string) as the value. Leading and trailing whitespace
+is trimmed, so `name: Click Me ` is equivalent to `name:Click Me`.
+
+If the value itself ever contains the literal string `>>`, use the quoted form instead:
+
+```csharp
+page.Locator("name:\"Step >> Done\"")   // quoted value with >> inside
 ```
 
 ### `#` — AutomationId

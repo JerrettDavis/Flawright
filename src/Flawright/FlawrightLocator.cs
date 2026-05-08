@@ -1051,10 +1051,12 @@ file sealed class PointElementBackend : IElementBackend
     public bool TrySetValue(string text) => _inner.TrySetValue(text);
     public string? TryGetValue() => _inner.TryGetValue();
     public string? TryGetDocumentText() => _inner.TryGetDocumentText();
+    public bool TrySelect() => _inner.TrySelect();
     public bool TryToggleOn() => _inner.TryToggleOn();
     public bool TryToggleOff() => _inner.TryToggleOff();
     public bool? GetToggleState() => _inner.GetToggleState();
     public bool TryScrollIntoView() => _inner.TryScrollIntoView();
+    public bool TryExpand() => _inner.TryExpand();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
     public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);
     public IElementBackend? FindFirst(IElementCondition condition) => _inner.FindFirst(condition);

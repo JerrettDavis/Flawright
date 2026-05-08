@@ -201,7 +201,10 @@ internal static class SelectorParser
             if (ctx.IsAtEnd)
                 throw new ArgumentException($"Expected a value after prefix '{peek}:'.");
 
-            var value = ParseValue(ctx);
+            // Prefix values greedily consume everything up to the next >> combinator
+            // or end of string, preserving embedded spaces (e.g. "name:Click Me").
+            // Leading/trailing whitespace is trimmed; a quoted value is still supported.
+            var value = ParsePrefixValue(ctx);
             if (value.Length == 0)
                 throw new ArgumentException($"Expected a non-empty value after prefix '{peek}:'.");
 
@@ -281,6 +284,26 @@ internal static class SelectorParser
             return ParseQuotedValue(ctx, ch);
 
         return ctx.ReadUnquotedValue();
+    }
+
+    /// <summary>
+    /// Parses the value portion of a <c>prefix:value</c> selector, allowing
+    /// embedded whitespace in the value.  If the value starts with a quote
+    /// character it is parsed as a quoted string (same as <see cref="ParseValue"/>).
+    /// Otherwise, the value is read greedily up to the next <c>&gt;&gt;</c> combinator
+    /// or end of input, with leading and trailing whitespace trimmed.
+    /// </summary>
+    private static string ParsePrefixValue(ParseContext ctx)
+    {
+        ctx.SkipWhitespace();
+        if (ctx.IsAtEnd)
+            return string.Empty;
+
+        var ch = ctx.Current;
+        if (ch == '"' || ch == '\'')
+            return ParseQuotedValue(ctx, ch);
+
+        return ctx.ReadPrefixValue();
     }
 
     private static string ParseQuotedValue(ParseContext ctx, char quote)
@@ -493,6 +516,26 @@ internal static class SelectorParser
             while (!IsAtEnd && Current != stop)
                 Advance();
             return Source[start..Position];
+        }
+
+        /// <summary>
+        /// Reads a prefix value that may contain embedded whitespace.
+        /// Consumes everything up to the next <c>&gt;&gt;</c> combinator or end of
+        /// input, then trims trailing whitespace from the result.
+        /// Leading whitespace has already been skipped by the caller
+        /// (via <see cref="SkipWhitespace"/>).
+        /// </summary>
+        public string ReadPrefixValue()
+        {
+            var start = Position;
+            while (!IsAtEnd)
+            {
+                // Stop at >> combinator (two consecutive '>')
+                if (Current == '>' && Position + 1 < Length && Source[Position + 1] == '>')
+                    break;
+                Advance();
+            }
+            return Source[start..Position].TrimEnd();
         }
     }
 }

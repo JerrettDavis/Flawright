@@ -71,6 +71,14 @@ public interface IElementBackend
     string? TryGetDocumentText();
 
     /// <summary>
+    /// Attempts to select the element via <c>SelectionItemPattern</c>.
+    /// This is used for controls (e.g. WPF <c>RadioButton</c>) that implement
+    /// <c>SelectionItemPattern</c> instead of <c>TogglePattern</c>.
+    /// </summary>
+    /// <returns><see langword="true"/> if the element was selected; <see langword="false"/> if <c>SelectionItemPattern</c> is not supported.</returns>
+    bool TrySelect();
+
+    /// <summary>
     /// Attempts to set the toggle state to <c>On</c> using <c>TogglePattern</c>.
     /// Loops up to two iterations if the state does not immediately change.
     /// </summary>
@@ -98,6 +106,18 @@ public interface IElementBackend
     /// </summary>
     /// <returns><see langword="true"/> if the pattern was invoked; <see langword="false"/> if not supported.</returns>
     bool TryScrollIntoView();
+
+    /// <summary>
+    /// Attempts to expand the element via <c>ExpandCollapsePattern</c>.
+    /// Used before searching descendants of collapsible containers (e.g. WPF
+    /// <c>ComboBox</c>) to materialise virtualised items in the UIA tree.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the pattern was invoked (the element was expanded or
+    /// was already expanded); <see langword="false"/> if <c>ExpandCollapsePattern</c> is
+    /// not supported.
+    /// </returns>
+    bool TryExpand();
 
     /// <summary>
     /// Finds a descendant by name or automation ID and selects it via
