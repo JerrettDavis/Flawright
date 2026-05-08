@@ -355,6 +355,83 @@ public sealed class FlawrightElementTests
         Assert.False(await element.IsCheckedAsync());
     }
 
+    // IsCheckedAsync — SelectionItemPattern fallback (RadioButton path)
+
+    [Fact]
+    public async Task IsCheckedAsync_ReturnsTrue_WhenSelectionItemSelected()
+    {
+        // A RadioButton that is currently selected should return true from IsCheckedAsync.
+        var backend = UiaTree.RadioButton("Radio 1", initialState: true).Build();
+        var element = CreateElement(backend);
+
+        Assert.True(await element.IsCheckedAsync());
+    }
+
+    [Fact]
+    public async Task IsCheckedAsync_ReturnsFalse_WhenSelectionItemNotSelected()
+    {
+        // A RadioButton that is NOT selected should return false.
+        var backend = UiaTree.RadioButton("Radio 1", initialState: false).Build();
+        var element = CreateElement(backend);
+
+        Assert.False(await element.IsCheckedAsync());
+    }
+
+    [Fact]
+    public async Task IsCheckedAsync_UsesToggleState_WhenBothPatternsPresent()
+    {
+        // When TogglePattern is present, it takes priority over SelectionItemPattern.
+        var backend = new FakeElementBackend(
+            name: "Hybrid",
+            controlTypeName: "CheckBox",
+            supportsToggle: true,
+            initialToggleState: true,
+            supportsSelection: true,
+            initialSelectionState: false);  // toggle=true wins
+        var element = CreateElement(backend);
+
+        Assert.True(await element.IsCheckedAsync());
+    }
+
+    // SelectedTextAsync
+
+    [Fact]
+    public async Task SelectedTextAsync_ReturnsSelectedChildName_WhenChildIsSelected()
+    {
+        // A ComboBox / ListBox: the selected item's Name is the selected text.
+        var backend = new FakeElementBackend(
+            name: "MyCombo",
+            controlTypeName: "ComboBox",
+            children:
+            [
+                new FakeElementBackend(
+                    name: "Option A",
+                    controlTypeName: "ListItem",
+                    supportsSelection: true,
+                    initialSelectionState: false),
+                new FakeElementBackend(
+                    name: "Option B",
+                    controlTypeName: "ListItem",
+                    supportsSelection: true,
+                    initialSelectionState: true),   // <-- selected
+            ]);
+        var element = CreateElement(backend);
+
+        var text = await element.SelectedTextAsync();
+        Assert.Equal("Option B", text);
+    }
+
+    [Fact]
+    public async Task SelectedTextAsync_ReturnsNull_WhenNoChildSelected()
+    {
+        // No selected child and no ValuePattern — result is null.
+        var backend = new FakeElementBackend(name: "MyCombo", controlTypeName: "ComboBox");
+        var element = CreateElement(backend);
+
+        var text = await element.SelectedTextAsync();
+        Assert.Null(text);
+    }
+
     [Fact]
     public async Task IsEditableAsync_ReturnsTrue_WhenValuePatternSupportedAndEnabled()
     {
@@ -822,6 +899,8 @@ public sealed class FlawrightElementTests
         public bool TryToggleOn() => false;
         public bool TryToggleOff() => false;
         public bool? GetToggleState() => null;
+        public bool? GetSelectionState() => null;
+        public string? GetSelectedText() => null;
         public bool TryScrollIntoView() => false;
         public bool TryExpand() => false;
         public bool TrySelectItem(string nameOrId) => false;

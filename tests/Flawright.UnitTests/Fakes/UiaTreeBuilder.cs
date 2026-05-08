@@ -25,6 +25,8 @@ internal sealed class UiaTreeBuilder
     private string? _value;
     private bool _supportsToggle;
     private bool _initialToggleState;
+    private bool _supportsSelection;
+    private bool _initialSelectionState;
     private readonly List<UiaTreeBuilder> _children = [];
 
     private UiaTreeBuilder() { }
@@ -43,6 +45,10 @@ internal sealed class UiaTreeBuilder
     /// <summary>Creates a builder for a CheckBox element with toggle support.</summary>
     public static UiaTreeBuilder CheckBox(string name, bool initialState = false)
         => new UiaTreeBuilder().WithControlType("CheckBox").WithName(name).WithToggle(initialState);
+
+    /// <summary>Creates a builder for a RadioButton element with selection support.</summary>
+    public static UiaTreeBuilder RadioButton(string name, bool initialState = false)
+        => new UiaTreeBuilder().WithControlType("RadioButton").WithName(name).WithSelection(initialState);
 
     /// <summary>Creates a builder for a generic Pane element.</summary>
     public static UiaTreeBuilder Pane(string? name = null) => new UiaTreeBuilder().WithControlType("Pane").WithName(name ?? string.Empty);
@@ -91,6 +97,14 @@ internal sealed class UiaTreeBuilder
         return this;
     }
 
+    /// <summary>Enables SelectionItemPattern support and sets the initial state.</summary>
+    public UiaTreeBuilder WithSelection(bool initialState = false)
+    {
+        _supportsSelection = true;
+        _initialSelectionState = initialState;
+        return this;
+    }
+
     /// <summary>Adds a child element to the tree.</summary>
     public UiaTreeBuilder WithChild(UiaTreeBuilder childBuilder)
     {
@@ -117,7 +131,9 @@ internal sealed class UiaTreeBuilder
             children: children,
             initialValue: _value,
             supportsToggle: _supportsToggle,
-            initialToggleState: _initialToggleState);
+            initialToggleState: _initialToggleState,
+            supportsSelection: _supportsSelection,
+            initialSelectionState: _initialSelectionState);
     }
 }
 
@@ -138,6 +154,10 @@ internal static class UiaTree
     /// <inheritdoc cref="UiaTreeBuilder.CheckBox"/>
     public static UiaTreeBuilder CheckBox(string name, bool initialState = false)
         => UiaTreeBuilder.CheckBox(name, initialState);
+
+    /// <inheritdoc cref="UiaTreeBuilder.RadioButton"/>
+    public static UiaTreeBuilder RadioButton(string name, bool initialState = false)
+        => UiaTreeBuilder.RadioButton(name, initialState);
 
     /// <inheritdoc cref="UiaTreeBuilder.Pane"/>
     public static UiaTreeBuilder Pane(string? name = null) => UiaTreeBuilder.Pane(name);

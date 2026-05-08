@@ -516,7 +516,18 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task<bool> IsCheckedAsync(CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
-        return backend.GetToggleState() == true;
+
+        // Try TogglePattern first (CheckBox); fall back to SelectionItemPattern (RadioButton).
+        var toggle = backend.GetToggleState();
+        if (toggle.HasValue)
+            return toggle.Value;
+
+        var selected = backend.GetSelectionState();
+        if (selected.HasValue)
+            return selected.Value;
+
+        // Neither pattern supported — treat as unchecked.
+        return false;
     }
 
     /// <inheritdoc/>
@@ -548,6 +559,13 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
         var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         return await el.InputValueAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<string?> SelectedTextAsync(CancellationToken ct = default)
+    {
+        var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
+        return backend.GetSelectedText();
     }
 
     /// <inheritdoc/>
@@ -1055,6 +1073,8 @@ file sealed class PointElementBackend : IElementBackend
     public bool TryToggleOn() => _inner.TryToggleOn();
     public bool TryToggleOff() => _inner.TryToggleOff();
     public bool? GetToggleState() => _inner.GetToggleState();
+    public bool? GetSelectionState() => _inner.GetSelectionState();
+    public string? GetSelectedText() => _inner.GetSelectedText();
     public bool TryScrollIntoView() => _inner.TryScrollIntoView();
     public bool TryExpand() => _inner.TryExpand();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);

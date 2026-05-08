@@ -102,6 +102,29 @@ public interface IElementBackend
     bool? GetToggleState();
 
     /// <summary>
+    /// Gets the current selection state via <c>SelectionItemPattern</c>.
+    /// Used for controls (e.g. WPF <c>RadioButton</c>) that expose
+    /// <c>SelectionItemPattern.IsSelected</c> instead of <c>TogglePattern</c>.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the item is selected, <see langword="false"/> if it is not,
+    /// <see langword="null"/> if <c>SelectionItemPattern</c> is not supported by this element.
+    /// </returns>
+    bool? GetSelectionState();
+
+    /// <summary>
+    /// Gets the display text of the currently selected item via
+    /// <c>SelectionPattern.GetSelection()</c> (for container controls such as
+    /// WPF <c>ComboBox</c> or <c>ListBox</c>), falling back to
+    /// <c>ValuePattern.Value</c> for editable combo boxes.
+    /// </summary>
+    /// <returns>
+    /// The <c>Name</c> of the first selected child item, or
+    /// <see langword="null"/> if no selection can be determined.
+    /// </returns>
+    string? GetSelectedText();
+
+    /// <summary>
     /// Attempts to scroll the element into view via <c>ScrollItemPattern</c>.
     /// </summary>
     /// <returns><see langword="true"/> if the pattern was invoked; <see langword="false"/> if not supported.</returns>

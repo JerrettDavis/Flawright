@@ -208,6 +208,45 @@ internal sealed class UiaElementBackend : IElementBackend
     }
 
     /// <inheritdoc/>
+    public bool? GetSelectionState()
+    {
+        var sip = _element.Patterns.SelectionItem;
+        if (!sip.IsSupported)
+            return null;
+
+        return sip.Pattern.IsSelected.Value;
+    }
+
+    /// <inheritdoc/>
+    public string? GetSelectedText()
+    {
+        // Primary path: SelectionPattern.Selection — works for ListBox, ComboBox, etc.
+        var sp = _element.Patterns.Selection;
+        if (sp.IsSupported)
+        {
+#pragma warning disable CA1031 // Best-effort; Selection.Value may throw if container is empty
+            try
+            {
+                var selected = sp.Pattern.Selection.Value;
+                if (selected is { Length: > 0 })
+                    return selected[0].Name;
+            }
+            catch (Exception)
+            {
+                // Fall through to next path
+            }
+#pragma warning restore CA1031
+        }
+
+        // Fallback: ValuePattern.Value — works for editable ComboBox controls.
+        var vp = _element.Patterns.Value;
+        if (vp.IsSupported)
+            return vp.Pattern.Value.Value;
+
+        return null;
+    }
+
+    /// <inheritdoc/>
     public bool TryScrollIntoView()
     {
         var sp = _element.Patterns.ScrollItem;

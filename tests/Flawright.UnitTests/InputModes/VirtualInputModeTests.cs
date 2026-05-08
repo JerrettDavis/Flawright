@@ -230,6 +230,8 @@ public sealed class VirtualInputModeTests
         public bool TryToggleOn() => false;
         public bool TryToggleOff() => false;
         public bool? GetToggleState() => null;
+        public bool? GetSelectionState() => null;
+        public string? GetSelectedText() => null;
         public bool TryScrollIntoView() => false;
         public bool TryExpand() => false;
         public bool TrySelectItem(string nameOrId) => false;

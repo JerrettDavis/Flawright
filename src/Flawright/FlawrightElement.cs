@@ -42,6 +42,8 @@ file sealed class SinglePointBackend : IElementBackend
     public bool TryToggleOn() => _inner.TryToggleOn();
     public bool TryToggleOff() => _inner.TryToggleOff();
     public bool? GetToggleState() => _inner.GetToggleState();
+    public bool? GetSelectionState() => _inner.GetSelectionState();
+    public string? GetSelectedText() => _inner.GetSelectedText();
     public bool TryScrollIntoView() => _inner.TryScrollIntoView();
     public bool TryExpand() => _inner.TryExpand();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
@@ -222,6 +224,10 @@ internal sealed class FlawrightElement : IFlawrightElement
     }
 
     /// <inheritdoc/>
+    public Task<string?> SelectedTextAsync(CancellationToken ct = default)
+        => Task.FromResult(_backend.GetSelectedText());
+
+    /// <inheritdoc/>
     public Task<string?> GetAttributeAsync(string name, CancellationToken ct = default)
     {
         var result = (name?.ToUpperInvariant() ?? string.Empty) switch
@@ -270,7 +276,19 @@ internal sealed class FlawrightElement : IFlawrightElement
 
     /// <inheritdoc/>
     public Task<bool> IsCheckedAsync(CancellationToken ct = default)
-        => Task.FromResult(_backend.GetToggleState() == true);
+    {
+        // Try TogglePattern first (CheckBox); fall back to SelectionItemPattern (RadioButton).
+        var toggle = _backend.GetToggleState();
+        if (toggle.HasValue)
+            return Task.FromResult(toggle.Value);
+
+        var selected = _backend.GetSelectionState();
+        if (selected.HasValue)
+            return Task.FromResult(selected.Value);
+
+        // Neither pattern is supported — treat as unchecked (consistent with prior behaviour).
+        return Task.FromResult(false);
+    }
 
     /// <inheritdoc/>
     public Task<bool> IsEditableAsync(CancellationToken ct = default)

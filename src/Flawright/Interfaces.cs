@@ -498,6 +498,17 @@ public interface IFlawrightLocator
     /// <summary>Returns the input value of the first matching element (auto-waited), or <see langword="null"/>.</summary>
     Task<string?> InputValueAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Returns the display text of the currently selected item in a selection
+    /// container (e.g. WPF <c>ComboBox</c>, <c>ListBox</c>) via
+    /// <c>SelectionPattern.GetSelection()</c>, falling back to
+    /// <c>ValuePattern.Value</c> for editable combo boxes.
+    /// Returns <see langword="null"/> when no item is selected or the element
+    /// does not support either pattern.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<string?> SelectedTextAsync(CancellationToken ct = default);
+
     /// <summary>Returns the value of a named attribute on the first matching element (auto-waited).</summary>
     Task<string?> GetAttributeAsync(string name, CancellationToken ct = default);
 
@@ -645,6 +656,17 @@ public interface IFlawrightElement
     /// <c>TextPattern</c> (i.e., it is not a text input).
     /// </exception>
     Task<string?> InputValueAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the display text of the currently selected item in a selection
+    /// container (e.g. WPF <c>ComboBox</c>, <c>ListBox</c>).
+    /// Resolution order: <c>SelectionPattern.GetSelection()</c> →
+    /// <c>ValuePattern.Value</c> (editable combo).
+    /// Returns <see langword="null"/> when no item is selected or neither pattern
+    /// is supported.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<string?> SelectedTextAsync(CancellationToken ct = default);
 
     // ── New surface (Wave B.3) — State ────────────────────────────────────────
 

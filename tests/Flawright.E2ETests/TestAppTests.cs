@@ -137,6 +137,8 @@ public class TestAppTests : IAsyncLifetime
     /// <summary>
     /// <see cref="IFlawrightLocator.SelectOptionAsync(string, LocatorSelectOptionOptions?, CancellationToken)"/>
     /// sets <c>cmbSelect</c> to the specified item by name.
+    /// WPF ComboBox exposes the selected item via <c>SelectionPattern.GetSelection()</c>,
+    /// not <c>ValuePattern</c>, so the assertion uses <see cref="IFlawrightLocator.SelectedTextAsync"/>.
     /// </summary>
     [Fact]
     public async Task SelectOption_SetsComboBoxValue()
@@ -145,8 +147,8 @@ public class TestAppTests : IAsyncLifetime
 
         await page.SelectOptionAsync("#cmbSelect", "Option B");
 
-        var value = await page.Locator("#cmbSelect").InputValueAsync();
-        Assert.Equal("Option B", value);
+        var selected = await page.Locator("#cmbSelect").SelectedTextAsync();
+        Assert.Equal("Option B", selected);
     }
 
     // ── Filter ────────────────────────────────────────────────────────────────
@@ -190,13 +192,28 @@ public class TestAppTests : IAsyncLifetime
     /// <summary>
     /// <c>name:</c>-prefixed selectors match elements whose UIA <c>Name</c>
     /// property equals the given string.
+    ///
+    /// <para>
+    /// WPF <c>Button</c> controls naturally expose their inner <c>TextBlock</c>
+    /// as a separate UIA element sharing the same Name, so a bare
+    /// <c>name:Click Me</c> selector matches both the Button and its content
+    /// presenter child.  The correct pattern is to compose the name filter with a
+    /// ControlType constraint — here we use
+    /// <c>controltype:Button</c> + <see cref="LocatorFilterOptions.HasText"/>
+    /// to target only the Button element.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task Locator_FindsByName()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        var count = await page.Locator("name:Click Me").CountAsync();
+        // Filter to ControlType=Button to exclude the inner TextBlock that
+        // WPF's ContentPresenter exposes with the same UIA Name.
+        var count = await page
+            .Locator("controltype:Button")
+            .Filter(new LocatorFilterOptions { HasText = "Click Me" })
+            .CountAsync();
         Assert.Equal(1, count);
     }
 

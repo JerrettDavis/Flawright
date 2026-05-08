@@ -116,6 +116,80 @@ public sealed class LocatorReadTests
         await Assert.ThrowsAsync<FlawrightTimeoutException>(() => locator.IsCheckedAsync());
     }
 
+    [Fact]
+    public async Task IsCheckedAsync_ReturnsTrue_ViaSelectionItemPattern_WhenRadioSelected()
+    {
+        // RadioButton uses SelectionItemPattern, not TogglePattern.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.RadioButton("Radio 2", initialState: true))
+            .Build();
+        var locator = LocatorTestBase.CreateLocator("controltype:RadioButton", root);
+
+        var isChecked = await locator.IsCheckedAsync();
+        Assert.True(isChecked);
+    }
+
+    [Fact]
+    public async Task IsCheckedAsync_ReturnsFalse_ViaSelectionItemPattern_WhenRadioNotSelected()
+    {
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.RadioButton("Radio 1", initialState: false))
+            .Build();
+        var locator = LocatorTestBase.CreateLocator("controltype:RadioButton", root);
+
+        var isChecked = await locator.IsCheckedAsync();
+        Assert.False(isChecked);
+    }
+
+    // ── SelectedTextAsync ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SelectedTextAsync_ReturnsSelectedItemName()
+    {
+        var combo = new FakeElementBackend(
+            name: "Combo",
+            automationId: "cmb",
+            controlTypeName: "ComboBox",
+            children:
+            [
+                new FakeElementBackend(
+                    name: "Item A",
+                    controlTypeName: "ListItem",
+                    supportsSelection: true,
+                    initialSelectionState: false),
+                new FakeElementBackend(
+                    name: "Item B",
+                    controlTypeName: "ListItem",
+                    supportsSelection: true,
+                    initialSelectionState: true),
+            ]);
+        var root = new FakeElementBackend(
+            name: "App",
+            controlTypeName: "Window",
+            children: [combo]);
+        var locator = LocatorTestBase.CreateLocator("#cmb", root);
+
+        var text = await locator.SelectedTextAsync();
+        Assert.Equal("Item B", text);
+    }
+
+    [Fact]
+    public async Task SelectedTextAsync_ReturnsNull_WhenNothingSelected()
+    {
+        var combo = new FakeElementBackend(
+            name: "Combo",
+            automationId: "cmb",
+            controlTypeName: "ComboBox");
+        var root = new FakeElementBackend(
+            name: "App",
+            controlTypeName: "Window",
+            children: [combo]);
+        var locator = LocatorTestBase.CreateLocator("#cmb", root);
+
+        var text = await locator.SelectedTextAsync();
+        Assert.Null(text);
+    }
+
     // ── IsEditableAsync ───────────────────────────────────────────────────────
 
     [Fact]

@@ -80,28 +80,24 @@ public class TestAppRealInputTests : IAsyncLifetime
         await page.Locator("#lblOutput").Expect().ToHaveTextAsync("DoubleClicked");
     }
 
-    // ── Key chord ─────────────────────────────────────────────────────────────
+    // ── Enter key on button ───────────────────────────────────────────────────
 
     /// <summary>
-    /// Pressing <c>Ctrl+A</c> in a TextBox selects all text.
-    /// This requires <see cref="RealInputMode"/> because key chords are
-    /// synthesised at the Win32 level and cannot be expressed via UIA patterns.
+    /// Pressing <c>Enter</c> on a focused button fires its <c>Click</c> handler,
+    /// setting <c>lblOutput</c> to <c>"Clicked"</c>.
+    ///
+    /// This test demonstrates deterministic <see cref="PressAsync"/> behaviour
+    /// under <see cref="RealInputMode"/>: a single key with no chord timing
+    /// dependency and a UIA-observable outcome.
     /// </summary>
     [Fact]
-    public async Task Press_CtrlA_SelectsAllTextInTextBox()
+    public async Task EnterKey_OnFocusedButton_TriggersClick()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Fill the TextBox first so there is text to select.
-        await page.FillAsync("#txtFill", "SelectAll");
+        await page.Locator("#btnClick").FocusAsync();
+        await page.Locator("#btnClick").PressAsync("Enter");
 
-        // Focus it, then press Ctrl+A.
-        await page.Locator("#txtFill").FocusAsync();
-        await page.Locator("#txtFill").PressAsync("Ctrl+A");
-
-        // After Ctrl+A the value is still present — this test validates that
-        // PressAsync with a chord does not throw under RealInputMode.
-        var value = await page.Locator("#txtFill").InputValueAsync();
-        Assert.Equal("SelectAll", value);
+        await page.Locator("#lblOutput").Expect().ToHaveTextAsync("Clicked");
     }
 }

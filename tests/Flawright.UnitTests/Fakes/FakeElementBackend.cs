@@ -14,7 +14,8 @@ internal sealed class FakeElementBackend : IElementBackend
 {
     private readonly List<FakeElementBackend> _children;
     private string? _value;
-    private bool? _toggleState; // null = no toggle pattern; false = off; true = on
+    private bool? _toggleState;    // null = no toggle pattern; false = off; true = on
+    private bool? _selectionState; // null = no SelectionItemPattern
 
     // ── Construction ──────────────────────────────────────────────────────────
 
@@ -32,6 +33,8 @@ internal sealed class FakeElementBackend : IElementBackend
     /// <param name="initialValue">Initial ValuePattern value. <see langword="null"/> = no ValuePattern.</param>
     /// <param name="supportsToggle">Whether the element supports TogglePattern.</param>
     /// <param name="initialToggleState">Initial toggle state (<see langword="true"/> = on, <see langword="false"/> = off).</param>
+    /// <param name="supportsSelection">Whether the element supports SelectionItemPattern.</param>
+    /// <param name="initialSelectionState">Initial selection state (<see langword="true"/> = selected, <see langword="false"/> = not selected).</param>
     public FakeElementBackend(
         string? name = null,
         string? automationId = null,
@@ -43,7 +46,9 @@ internal sealed class FakeElementBackend : IElementBackend
         IEnumerable<FakeElementBackend>? children = null,
         string? initialValue = null,
         bool supportsToggle = false,
-        bool initialToggleState = false)
+        bool initialToggleState = false,
+        bool supportsSelection = false,
+        bool initialSelectionState = false)
     {
         Name = name;
         AutomationId = automationId;
@@ -55,6 +60,7 @@ internal sealed class FakeElementBackend : IElementBackend
         _children = children?.ToList() ?? [];
         _value = initialValue;
         _toggleState = supportsToggle ? initialToggleState : null;
+        _selectionState = supportsSelection ? initialSelectionState : null;
     }
 
     // ── Interaction recording ─────────────────────────────────────────────────
@@ -175,6 +181,9 @@ internal sealed class FakeElementBackend : IElementBackend
         if (!TrySelectResult)
             return false;
         WasSelected = true;
+        // If this fake element supports SelectionItemPattern, update its state.
+        if (_selectionState.HasValue)
+            _selectionState = true;
         return true;
     }
 
@@ -198,6 +207,23 @@ internal sealed class FakeElementBackend : IElementBackend
 
     /// <inheritdoc/>
     public bool? GetToggleState() => _toggleState;
+
+    /// <inheritdoc/>
+    public bool? GetSelectionState() => _selectionState;
+
+    /// <inheritdoc/>
+    public string? GetSelectedText()
+    {
+        // Return the Name of the first child marked as selected (simulates SelectionPattern).
+        foreach (var child in _children)
+        {
+            if (child._selectionState == true)
+                return child.Name;
+        }
+
+        // Fallback: ValuePattern (editable combo).
+        return _value;
+    }
 
     /// <inheritdoc/>
     public bool TryScrollIntoView()
