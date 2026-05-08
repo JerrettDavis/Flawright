@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.10] - 2026-05-07
+
+### Fixed
+- Win11 packaged-app launches no longer fail with "Process with an Id of N is not running" during `WaitWhileMainHandleIsMissing`. After `Application.LaunchStoreApp` returns, the launcher now polls for the actual app process (matched by package family name under `C:\Program Files\WindowsApps\<PFN>_*\`) and re-attaches FlaUI's tracking to that live PID. The activator/broker that `IApplicationActivationManager::ActivateApplication` returns is correctly recognized as a transient and replaced by the long-running app process.
+
 ## [0.2.9] - 2026-05-07
 
 ### Added

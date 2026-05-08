@@ -44,6 +44,34 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
     {
         ArgumentNullException.ThrowIfNull(aumid);
         var app = Application.LaunchStoreApp(aumid, args);
+
+        // FlaUI returns an Application tracking the activator/broker PID returned
+        // by IApplicationActivationManager::ActivateApplication.  On Windows 11
+        // that broker exits within ~1 second after handing off to the actual app
+        // process (e.g. Notepad.exe).  Calling WaitWhileMainHandleIsMissing on the
+        // stale PID then throws "Process with an Id of N is not running".
+        //
+        // Fix: poll briefly for a process whose main module path is under the
+        // package install directory and re-Attach FlaUI's tracking to that live PID.
+        var pfn = PackagedAppResolver.GetPackageFamilyName(aumid);
+        var realPid = PackagedAppResolver.WaitForPackagedAppProcess(pfn, TimeSpan.FromSeconds(5));
+
+        if (realPid != 0 && realPid != app.ProcessId)
+        {
+#pragma warning disable CA1031 // Best-effort re-attach: fallback to activator if Attach fails
+            try
+            {
+                // Re-attach to the real packaged app process.
+                app = Application.Attach(realPid);
+            }
+            catch
+            {
+                // If re-attach fails, fall back to whatever LaunchStoreApp returned
+                // (the activator may still be live in some edge-case scenarios).
+            }
+#pragma warning restore CA1031
+        }
+
         return new FlaUiApplicationHandle(app, new UIA3Automation());
     }
 
