@@ -226,16 +226,17 @@ public sealed class PackagedAppResolverTests
     // ─── WaitForPackagedAppProcess — does not match on partial PFN ───────────
 
     [Fact]
-    public void WaitForPackagedAppProcess_PathWithSimilarButDifferentPfn_DoesNotMatch()
+    public void WaitForPackagedAppProcess_PathWithDifferentPublisherId_DoesNotMatch()
     {
-        // "Microsoft.WindowsNotepadPro_8wekyb3d8bbwe" must NOT match a search for
-        // "Microsoft.WindowsNotepad_8wekyb3d8bbwe" — the marker always ends with '_'.
+        // A package with the same name but a DIFFERENT publisher ID must not match.
+        // publisherMarker = "__8wekyb3d8bbwe", so a path with "__deadbeefdeadbe" should
+        // not be returned.
         const string TargetPfn = "Microsoft.WindowsNotepad_8wekyb3d8bbwe";
-        const string WrongPath = @"C:\Program Files\WindowsApps\Microsoft.WindowsNotepadPro_8wekyb3d8bbwe_1.0_x64__8wekyb3d8bbwe\app.exe";
+        const string WrongPublisherPath = @"C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_1.0_x64__deadbeefdeadbe\app.exe";
 
         IEnumerable<(int, string?)> Snapshot() =>
         [
-            (6666, WrongPath)
+            (6666, WrongPublisherPath)
         ];
 
         var pid = PackagedAppResolver.WaitForPackagedAppProcess(
@@ -245,5 +246,27 @@ public sealed class PackagedAppResolverTests
             processSnapshotProvider: Snapshot);
 
         Assert.Equal(0, pid);
+    }
+
+    [Fact]
+    public void WaitForPackagedAppProcess_PathUnderWindowsAppsWithCorrectPfnParts_Matches()
+    {
+        // Validate that the real-world path format works:
+        // <PackageName>_<Version>_<Arch>__<PublisherId>
+        // e.g. Microsoft.WindowsNotepad_11.2512.29.0_x64__8wekyb3d8bbwe
+        const string TargetPfn = "Microsoft.WindowsNotepad_8wekyb3d8bbwe";
+        const string RealWorldPath = @"C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_11.2512.29.0_x64__8wekyb3d8bbwe\Notepad\Notepad.exe";
+
+        IEnumerable<(int, string?)> Snapshot() =>
+        [
+            (7777, RealWorldPath)
+        ];
+
+        var pid = PackagedAppResolver.WaitForPackagedAppProcess(
+            TargetPfn,
+            TimeSpan.FromSeconds(1),
+            processSnapshotProvider: Snapshot);
+
+        Assert.Equal(7777, pid);
     }
 }

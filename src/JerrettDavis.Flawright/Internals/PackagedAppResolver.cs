@@ -79,16 +79,44 @@ internal static class PackagedAppResolver
         var snapshot = processSnapshotProvider ?? DefaultSnapshot;
         var deadline = DateTime.UtcNow + timeout;
 
-        // The package install directory is always under this marker:
-        // C:\Program Files\WindowsApps\<PFN>_<version>_<arch>__<publisherId>\
-        var marker = $"\\WindowsApps\\{packageFamilyName}_";
+        // The package install directory path looks like:
+        //   C:\Program Files\WindowsApps\<PackageName>_<Version>_<Arch>__<PublisherId>\...
+        //
+        // The PackageFamilyName (PFN) is "<PackageName>_<PublisherId>" — note the single
+        // underscore between name and publisher in the PFN, but a DOUBLE underscore before
+        // the publisher in the directory name.  We must match on both halves of the PFN
+        // rather than on the PFN string directly.
+        //
+        // Strategy: split PFN on the LAST underscore to get (packageName, publisherId),
+        // then require both:
+        //   path contains  \WindowsApps\<packageName>_        (starts of dir name)
+        //   path contains  __<publisherId>\  OR  __<publisherId>  (end of dir name)
+        var lastUnderscore = packageFamilyName.LastIndexOf('_');
+        string packageNameMarker;
+        string publisherMarker;
+
+        if (lastUnderscore > 0)
+        {
+            var pkgName = packageFamilyName[..lastUnderscore];
+            var publisherId = packageFamilyName[(lastUnderscore + 1)..];
+            packageNameMarker = $"\\WindowsApps\\{pkgName}_";
+            publisherMarker = $"__{publisherId}";
+        }
+        else
+        {
+            // No underscore — treat the whole PFN as a package-name prefix.
+            packageNameMarker = $"\\WindowsApps\\{packageFamilyName}_";
+            publisherMarker = string.Empty;
+        }
 
         while (DateTime.UtcNow < deadline)
         {
             foreach (var (pid, path) in snapshot())
             {
                 if (path != null &&
-                    path.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                    path.Contains(packageNameMarker, StringComparison.OrdinalIgnoreCase) &&
+                    (publisherMarker.Length == 0 ||
+                     path.Contains(publisherMarker, StringComparison.OrdinalIgnoreCase)))
                 {
                     return pid;
                 }
