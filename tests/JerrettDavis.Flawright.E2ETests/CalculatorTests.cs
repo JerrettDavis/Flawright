@@ -11,7 +11,7 @@ namespace JerrettDavis.Flawright.E2ETests;
 /// </summary>
 public class CalculatorTests : IAsyncLifetime
 {
-    private Flawright? _fw;
+    private IFlawright? _fw;
 
     public async Task InitializeAsync()
     {
@@ -49,8 +49,7 @@ public class CalculatorTests : IAsyncLifetime
         var page = await _fw!.Browser.NewPageAsync();
 
         // Calculator uses automation IDs for number buttons
-        var button3 = await page.Locator("#3").FirstAsync();
-        await button3.ClickAsync();
+        await page.Locator("#3").First.ClickAsync();
         // Clicking without error means the API works
     }
 

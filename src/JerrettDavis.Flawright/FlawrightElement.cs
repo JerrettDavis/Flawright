@@ -1,207 +1,352 @@
-using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Definitions;
-using FlaUI.Core.Input;
+using System.Drawing;
+using JerrettDavis.Flawright.Backends;
+using JerrettDavis.Flawright.Backends.Uia;
+using JerrettDavis.Flawright.Locator;
 
 namespace JerrettDavis.Flawright;
 
 /// <summary>
-/// A resolved UI element with async action methods.  Instances are produced
-/// by <see cref="IFlawrightLocator.FirstAsync"/>,
-/// <see cref="IFlawrightLocator.NthAsync"/>, and
+/// A resolved UI element with async action methods.  Instances are produced by
+/// <see cref="IFlawrightLocator.First"/>,
+/// <see cref="IFlawrightLocator.Nth"/>, and
 /// <see cref="IFlawrightLocator.AllAsync"/>.
+///
+/// <para>
+/// All platform operations are delegated to <see cref="IElementBackend"/> so the
+/// class is fully testable without a live UIA tree.
+/// </para>
 /// </summary>
 /// <example>
 /// <code>
-/// var element = await page.Locator("#editor").FirstAsync();
+/// var element = await page.Locator("#editor").First.ElementHandleAsync();
 /// await element.FillAsync("hello world");
-/// var text = await element.TextAsync();
+/// var text = await element.InnerTextAsync();
 /// </code>
 /// </example>
-public sealed class FlawrightElement : IFlawrightElement
+internal sealed class FlawrightElement : IFlawrightElement
 {
-    private readonly AutomationElement _element;
+    private readonly IElementBackend _backend;
+    private readonly IInputBackend _input;
 
-    internal FlawrightElement(AutomationElement element, IFlawrightLocator locator)
+    // ── Constructors ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// New constructor — used by Wave C locator and all unit tests.
+    /// </summary>
+    internal FlawrightElement(IElementBackend backend, IInputBackend input)
     {
-        _element = element;
-        Locator = locator;
-    }
-
-    /// <inheritdoc/>
-    public IFlawrightLocator Locator { get; }
-
-    // ── Actions ──────────────────────────────────────────────────────────────
-
-    /// <inheritdoc/>
-    public Task ClickAsync(CancellationToken ct = default)
-        => Task.Run(() => _element.Click(), ct);
-
-    /// <inheritdoc/>
-    public Task DoubleClickAsync(CancellationToken ct = default)
-        => Task.Run(() => _element.DoubleClick(), ct);
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Sets the element value in one shot via <c>ValuePattern.SetValue</c>.
-    /// If the element does not support <c>ValuePattern</c>, the method falls
-    /// back to treating the element as a text-box via <c>AsTextBox().Text</c>.
-    /// </remarks>
-    public Task FillAsync(string text, CancellationToken ct = default)
-        => Task.Run(() =>
-        {
-            // Try ValuePattern first (most edit controls)
-            var vp = _element.Patterns.Value;
-            if (vp.IsSupported)
-            {
-                vp.Pattern.SetValue(text);
-                return;
-            }
-
-            // Fall back to TextBox abstraction
-            var tb = _element.AsTextBox();
-            if (tb != null)
-            {
-                tb.Text = text;
-                return;
-            }
-
-            throw new InvalidOperationException(
-                $"Element '{_element.AutomationId ?? _element.Name}' does not support filling.");
-        }, ct);
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Text resolution order:
-    /// <list type="number">
-    ///   <item><description>
-    ///     <c>ValuePattern.Value</c> — for edit/input controls.
-    ///   </description></item>
-    ///   <item><description>
-    ///     <c>TextPattern.DocumentRange.GetText(-1)</c> — for document and
-    ///     rich-text controls.
-    ///   </description></item>
-    ///   <item><description>
-    ///     <c>AutomationElement.Name</c> — fallback for labels, buttons, etc.
-    ///   </description></item>
-    /// </list>
-    /// </remarks>
-    public Task<string> TextAsync(CancellationToken ct = default)
-        => Task.Run(() =>
-        {
-            // 1. ValuePattern (edit controls, text-boxes)
-            var vp = _element.Patterns.Value;
-            if (vp.IsSupported)
-                return vp.Pattern.Value.Value ?? string.Empty;
-
-            // 2. TextPattern (documents, rich-text)
-            var tp = _element.Patterns.Text;
-            if (tp.IsSupported)
-            {
-                try
-                {
-                    return tp.Pattern.DocumentRange.GetText(-1) ?? string.Empty;
-                }
-#pragma warning disable CA1031 // Fall through to Name fallback if TextPattern fails
-                catch (Exception)
-#pragma warning restore CA1031
-                {
-                    // fall through to Name
-                }
-            }
-
-            // 3. Name property (labels, buttons, static text)
-            return _element.Name ?? string.Empty;
-        }, ct);
-
-    /// <inheritdoc/>
-    public Task<bool> IsVisibleAsync(CancellationToken ct = default)
-        => Task.Run(() => !_element.IsOffscreen, ct);
-
-    /// <inheritdoc/>
-    public Task<bool> IsEnabledAsync(CancellationToken ct = default)
-        => Task.Run(() => _element.IsEnabled, ct);
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Uses <c>TogglePattern.ToggleState</c>.  Returns <see langword="false"/>
-    /// if the element does not support <c>TogglePattern</c>.
-    /// </remarks>
-    public Task<bool> IsCheckedAsync(CancellationToken ct = default)
-        => Task.Run(() =>
-        {
-            var tp = _element.Patterns.Toggle;
-            if (!tp.IsSupported)
-                return false;
-            return tp.Pattern.ToggleState.Value == ToggleState.On;
-        }, ct);
-
-    /// <inheritdoc/>
-    public Task HoverAsync(CancellationToken ct = default)
-        => Task.Run(() =>
-        {
-            var rect = _element.BoundingRectangle;
-            var cx = rect.Left + rect.Width / 2;
-            var cy = rect.Top + rect.Height / 2;
-            Mouse.MoveTo(cx, cy);
-        }, ct);
-
-    /// <inheritdoc/>
-    public Task FocusAsync(CancellationToken ct = default)
-        => Task.Run(() => _element.Focus(), ct);
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Uses <c>ScrollItemPattern.ScrollIntoView</c> if available.
-    /// No exception is thrown when the pattern is not supported.
-    /// </remarks>
-    public Task ScrollIntoViewIfNeededAsync(CancellationToken ct = default)
-        => Task.Run(() =>
-        {
-            var sp = _element.Patterns.ScrollItem;
-            if (sp.IsSupported)
-                sp.Pattern.ScrollIntoView();
-        }, ct);
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Supported attribute names: <c>"AutomationId"</c>, <c>"Name"</c>,
-    /// <c>"ClassName"</c>, <c>"ControlType"</c>, <c>"Value"</c>.
-    /// Any other name returns <see langword="null"/>.
-    /// </remarks>
-    public Task<string?> GetAttributeAsync(string name, CancellationToken ct = default)
-        => Task.Run<string?>(() =>
-        {
-            return name.ToUpperInvariant() switch
-            {
-                "AUTOMATIONID" => _element.AutomationId,
-                "NAME" => _element.Name,
-                "CLASSNAME" => _element.ClassName,
-                "CONTROLTYPE" => _element.ControlType.ToString(),
-                "VALUE" => GetValueSafe(),
-                _ => null
-            };
-        }, ct);
-
-    // ── Private helpers ──────────────────────────────────────────────────────
-
-    private string? GetValueSafe()
-    {
-        try
-        {
-            var vp = _element.Patterns.Value;
-            return vp.IsSupported ? vp.Pattern.Value.Value : null;
-        }
-#pragma warning disable CA1031 // Return null for any error reading value attribute
-        catch (Exception)
-#pragma warning restore CA1031
-        {
-            return null;
-        }
+        _backend = backend;
+        _input = input;
     }
 
     /// <summary>
-    /// Exposes the underlying FlaUI <see cref="AutomationElement"/> for
-    /// advanced scenarios.  Use sparingly; prefer the typed API.
+    /// Legacy constructor — kept so the existing <see cref="FlawrightLocator"/>
+    /// still compiles until Wave C rewrites it.  REMOVE in Wave C.
     /// </summary>
-    internal AutomationElement AutomationElement => _element;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Legacy shim")]
+    internal FlawrightElement(FlaUI.Core.AutomationElements.AutomationElement element, IFlawrightLocator locator)
+        : this(new UiaElementBackend(element), new FlaUiInputBackend())
+    {
+        // Stash the locator for the legacy Locator property.
+        _legacyLocator = locator;
+    }
+
+    // Populated only when the legacy constructor is used.
+    private readonly IFlawrightLocator? _legacyLocator;
+
+    // ── Internal backend access (used by FlawrightLocator.DragToAsync) ────────
+
+    /// <summary>
+    /// Exposes the underlying backend for internal callers (e.g. DragToAsync).
+    /// </summary>
+    internal IElementBackend InternalBackend => _backend;
+
+    // ── Legacy internal property — REMOVE in Wave C ──────────────────────────
+
+    /// <summary>
+    /// Exposes the underlying FlaUI <see cref="FlaUI.Core.AutomationElements.AutomationElement"/> for
+    /// callers that still depend on the raw element (FlawrightAssertions, FlawrightPage).
+    /// <b>REMOVE in Wave C</b> when those callers are updated to use IElementBackend.
+    /// </summary>
+    internal FlaUI.Core.AutomationElements.AutomationElement AutomationElement
+    {
+        get
+        {
+            if (_backend is UiaElementBackend uia)
+                return uia.Element;
+
+            throw new InvalidOperationException(
+                "AutomationElement is only accessible when backed by UiaElementBackend.  " +
+                "This element uses a fake or custom backend.");
+        }
+    }
+
+    // ── IFlawrightElement: Legacy surface — explicit implementations (REMOVE in Wave C) ─────────────────
+    //
+    // Using explicit interface implementation prevents C# overload-resolution ambiguity between
+    // e.g. ClickAsync(CancellationToken) and ClickAsync(LocatorClickOptions?, CancellationToken).
+    // FlawrightLocator and FlawrightAssertions use IFlawrightElement references so they still
+    // resolve these correctly.
+
+    /// <inheritdoc/>
+    IFlawrightLocator IFlawrightElement.Locator =>
+        _legacyLocator
+            ?? throw new InvalidOperationException(
+                "This FlawrightElement was created via the new IElementBackend constructor " +
+                "and does not have an associated locator.  " +
+                "Use IFlawrightLocator.ElementHandleAsync() for handle-based access.");
+
+    /// <inheritdoc/>
+    Task<string> IFlawrightElement.TextAsync(CancellationToken ct)
+        => InnerTextAsync(ct);
+
+    // ── IFlawrightElement: Identity properties ────────────────────────────────
+
+    /// <inheritdoc/>
+    public string? AutomationId => _backend.AutomationId;
+
+    /// <inheritdoc/>
+    public string? Name => _backend.Name;
+
+    /// <inheritdoc/>
+    public string? ClassName => _backend.ClassName;
+
+    /// <inheritdoc/>
+    public string ControlTypeName => _backend.ControlTypeName;
+
+    // ── IFlawrightElement: Read methods ───────────────────────────────────────
+
+    /// <inheritdoc/>
+    public Task<BoundingBox?> BoundingBoxAsync(CancellationToken ct = default)
+    {
+        var rect = _backend.BoundingRectangle;
+        if (rect == Rectangle.Empty || (rect.Width == 0 && rect.Height == 0))
+            return Task.FromResult<BoundingBox?>(null);
+
+        return Task.FromResult<BoundingBox?>(
+            new BoundingBox(rect.X, rect.Y, rect.Width, rect.Height));
+    }
+
+    /// <inheritdoc/>
+    public Task<string> InnerTextAsync(CancellationToken ct = default)
+    {
+        // Resolution order: ValuePattern → TextPattern → Name
+        var value = _backend.TryGetValue();
+        if (value != null)
+            return Task.FromResult(value);
+
+        var doc = _backend.TryGetDocumentText();
+        if (doc != null)
+            return Task.FromResult(doc);
+
+        return Task.FromResult(_backend.Name ?? string.Empty);
+    }
+
+    /// <inheritdoc/>
+    public Task<string?> TextContentAsync(CancellationToken ct = default)
+    {
+        // Same resolution order as InnerTextAsync, but returns null instead of empty.
+        var value = _backend.TryGetValue();
+        if (value != null)
+            return Task.FromResult<string?>(value);
+
+        var doc = _backend.TryGetDocumentText();
+        if (doc != null)
+            return Task.FromResult<string?>(doc);
+
+        return Task.FromResult(_backend.Name);
+    }
+
+    /// <inheritdoc/>
+    public Task<string?> InputValueAsync(CancellationToken ct = default)
+    {
+        var value = _backend.TryGetValue();
+        if (value != null)
+            return Task.FromResult<string?>(value);
+
+        // Check TextPattern as a secondary signal that this is a text control
+        var doc = _backend.TryGetDocumentText();
+        if (doc != null)
+            return Task.FromResult<string?>(doc);
+
+        throw new InvalidOperationException(
+            "InputValue is only supported on elements that implement ValuePattern or TextPattern. " +
+            "This element appears to be neither an input, textarea, nor select control.");
+    }
+
+    /// <inheritdoc/>
+    public Task<string?> GetAttributeAsync(string name, CancellationToken ct = default)
+    {
+        var result = (name?.ToUpperInvariant() ?? string.Empty) switch
+        {
+            "ID" or "AUTOMATIONID" or "DATA-TESTID"
+                => _backend.AutomationId,
+
+            "NAME" or "ARIA-LABEL"
+                => _backend.Name,
+
+            "CLASS" or "CLASSNAME"
+                => _backend.ClassName,
+
+            "CONTROLTYPE" or "ROLE"
+                => _backend.ControlTypeName,
+
+            "VALUE"
+                => _backend.TryGetValue(),
+
+            "ENABLED"
+                => _backend.IsEnabled ? "true" : "false",
+
+            _ => null
+        };
+
+        return Task.FromResult(result);
+    }
+
+    // ── IFlawrightElement: State methods ──────────────────────────────────────
+
+    /// <inheritdoc/>
+    public Task<bool> IsVisibleAsync(CancellationToken ct = default)
+        => Task.FromResult(!_backend.IsOffscreen);
+
+    /// <inheritdoc/>
+    public Task<bool> IsHiddenAsync(CancellationToken ct = default)
+        => Task.FromResult(_backend.IsOffscreen);
+
+    /// <inheritdoc/>
+    public Task<bool> IsEnabledAsync(CancellationToken ct = default)
+        => Task.FromResult(_backend.IsEnabled);
+
+    /// <inheritdoc/>
+    public Task<bool> IsDisabledAsync(CancellationToken ct = default)
+        => Task.FromResult(!_backend.IsEnabled);
+
+    /// <inheritdoc/>
+    public Task<bool> IsCheckedAsync(CancellationToken ct = default)
+        => Task.FromResult(_backend.GetToggleState() == true);
+
+    /// <inheritdoc/>
+    public Task<bool> IsEditableAsync(CancellationToken ct = default)
+        // Approximate: editable = ValuePattern supported AND element is enabled.
+        // A future wave can add IsReadOnly to IElementBackend if finer control is needed.
+        => Task.FromResult(_backend.TryGetValue() != null && _backend.IsEnabled);
+
+    // ── IFlawrightElement: Action methods ─────────────────────────────────────
+
+    /// <inheritdoc/>
+    public Task ClickAsync(LocatorClickOptions? options = null, CancellationToken ct = default)
+    {
+        // Wave D: honor options.Button, options.Position, options.Modifiers, options.Delay.
+        _backend.Click();
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task DoubleClickAsync(LocatorDoubleClickOptions? options = null, CancellationToken ct = default)
+    {
+        // Wave D: honor options.
+        _backend.DoubleClick();
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task FillAsync(string text, LocatorFillOptions? options = null, CancellationToken ct = default)
+    {
+        if (!_backend.TrySetValue(text))
+            throw new InvalidOperationException(
+                "Element does not support text input.  " +
+                "Ensure the element implements ValuePattern or is a TextBox control.");
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task ClearAsync(LocatorClearOptions? options = null, CancellationToken ct = default)
+    {
+        _backend.TrySetValue(string.Empty);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task FocusAsync(CancellationToken ct = default)
+    {
+        _backend.Focus();
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task HoverAsync(LocatorHoverOptions? options = null, CancellationToken ct = default)
+    {
+        var rect = _backend.BoundingRectangle;
+
+        int x;
+        int y;
+
+        if (options?.Position is { } pos)
+        {
+            // Caller-specified offset relative to the element's top-left corner.
+            x = rect.X + (int)pos.X;
+            y = rect.Y + (int)pos.Y;
+        }
+        else
+        {
+            // Default: element centre.
+            x = rect.X + rect.Width / 2;
+            y = rect.Y + rect.Height / 2;
+        }
+
+        _input.MouseMove(x, y, steps: 0);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task ScrollIntoViewIfNeededAsync(CancellationToken ct = default)
+    {
+        _backend.TryScrollIntoView();
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task CheckAsync(LocatorCheckOptions? options = null, CancellationToken ct = default)
+    {
+        if (_backend.GetToggleState() == true)
+            return Task.CompletedTask;  // already checked — no-op
+
+        if (!_backend.TryToggleOn())
+            throw new InvalidOperationException(
+                "Element does not support toggle.  " +
+                "Ensure the element implements TogglePattern.");
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task UncheckAsync(LocatorUncheckOptions? options = null, CancellationToken ct = default)
+    {
+        if (_backend.GetToggleState() == false)
+            return Task.CompletedTask;  // already unchecked — no-op
+
+        if (!_backend.TryToggleOff())
+            throw new InvalidOperationException(
+                "Element does not support toggle.  " +
+                "Ensure the element implements TogglePattern.");
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task SetCheckedAsync(bool @checked, LocatorSetCheckedOptions? options = null, CancellationToken ct = default)
+        => @checked ? CheckAsync(null, ct) : UncheckAsync(null, ct);
+
+    /// <inheritdoc/>
+    public Task SelectOptionAsync(string value, LocatorSelectOptionOptions? options = null, CancellationToken ct = default)
+    {
+        if (!_backend.TrySelectItem(value))
+            throw new InvalidOperationException(
+                $"Could not find or select item '{value}'.  " +
+                "Ensure the element has a descendant with matching Name or AutomationId " +
+                "that implements SelectionItemPattern.");
+
+        return Task.CompletedTask;
+    }
 }

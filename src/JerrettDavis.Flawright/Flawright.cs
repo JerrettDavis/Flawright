@@ -1,10 +1,19 @@
+using System.Diagnostics.CodeAnalysis;
+using FlaUI.Core.Conditions;
+using FlaUI.UIA3;
+using JerrettDavis.Flawright.Backends;
+using JerrettDavis.Flawright.Backends.Uia;
+using JerrettDavis.Flawright.Selectors;
+
 namespace JerrettDavis.Flawright;
 
 #pragma warning disable CA1724 // Type name 'Flawright' intentionally matches the library / namespace root — this is the standard Playwright pattern
 /// <summary>
 /// Entry point for the Flawright desktop-automation library.
-/// Use <see cref="LaunchAsync"/> to start an application, or
-/// <see cref="AttachAsync"/> to connect to one that is already running.
+/// Use <see cref="LaunchAsync(LaunchOptions, FlawrightOptions?, CancellationToken)"/> to
+/// start an application, or
+/// <see cref="AttachAsync(AttachOptions, FlawrightOptions?, CancellationToken)"/> to
+/// connect to one that is already running.
 /// </summary>
 /// <example>
 /// <code>
@@ -27,46 +36,67 @@ public sealed class Flawright : IFlawright
     /// <inheritdoc/>
     public IFlawrightBrowser Browser => _browser;
 
+    // ── Public factory ────────────────────────────────────────────────────────
+
     /// <summary>
     /// Launches a new application and returns a Flawright instance bound to it.
     /// </summary>
-    /// <param name="options">Launch options, including the path to the executable.</param>
+    /// <param name="options">
+    /// Launch options.  Exactly one of <see cref="LaunchOptions.ApplicationPath"/> or
+    /// <see cref="LaunchOptions.Aumid"/> must be set.
+    /// </param>
     /// <param name="fwOptions">
     /// Global Flawright options (timeouts, screenshot directory, etc.).
     /// <see langword="null"/> uses sensible defaults.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>
-    /// A <see cref="Flawright"/> instance whose <see cref="Browser"/> is ready
-    /// to use.
+    /// A <see cref="Flawright"/> instance whose <see cref="Browser"/> is ready to use.
     /// </returns>
     /// <example>
     /// <code>
+    /// // Win32 app
     /// await using var fw = await Flawright.LaunchAsync(
     ///     new LaunchOptions { ApplicationPath = "calc.exe" });
+    ///
+    /// // Store / UWP app
+    /// await using var fw = await Flawright.LaunchAsync(
+    ///     new LaunchOptions { Aumid = "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App" });
     /// </code>
     /// </example>
-    public static Task<Flawright> LaunchAsync(
+    [ExcludeFromCodeCoverage] // Requires real FlaUI/UIA — covered by E2E tests only
+    public static Task<IFlawright> LaunchAsync(
         LaunchOptions options,
         FlawrightOptions? fwOptions = null,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var browser = new FlawrightBrowser(options, fwOptions ?? new FlawrightOptions());
-        return Task.FromResult(new Flawright(browser));
+        var automation = new UIA3Automation();
+        var translator = new UiaConditionTranslator(
+            new ConditionFactory(automation.PropertyLibrary),
+            AriaRoleMapper.Map);
+        return LaunchAsync(
+            options,
+            fwOptions,
+            new FlaUiApplicationLauncher(),
+            new FlaUiInputBackend(),
+            translator,
+            ct);
     }
 
     /// <summary>
     /// Attaches to an already-running process and returns a Flawright instance.
     /// </summary>
-    /// <param name="options">Attach options, including the target process ID.</param>
+    /// <param name="options">
+    /// Attach options.  Exactly one of <see cref="AttachOptions.ProcessId"/> or
+    /// <see cref="AttachOptions.ProcessName"/> must be set.
+    /// </param>
     /// <param name="fwOptions">
     /// Global Flawright options.  <see langword="null"/> uses sensible defaults.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>
-    /// A <see cref="Flawright"/> instance whose <see cref="Browser"/> is ready
-    /// to use.
+    /// A <see cref="Flawright"/> instance whose <see cref="Browser"/> is ready to use.
     /// </returns>
     /// <example>
     /// <code>
@@ -74,63 +104,69 @@ public sealed class Flawright : IFlawright
     ///     new AttachOptions { ProcessId = 12345 });
     /// </code>
     /// </example>
-    public static Task<Flawright> AttachAsync(
+    [ExcludeFromCodeCoverage] // Requires real FlaUI/UIA — covered by E2E tests only
+    public static Task<IFlawright> AttachAsync(
         AttachOptions options,
         FlawrightOptions? fwOptions = null,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var browser = new FlawrightBrowser(options, fwOptions ?? new FlawrightOptions());
-        return Task.FromResult(new Flawright(browser));
+        var automation = new UIA3Automation();
+        var translator = new UiaConditionTranslator(
+            new ConditionFactory(automation.PropertyLibrary),
+            AriaRoleMapper.Map);
+        return AttachAsync(
+            options,
+            fwOptions,
+            new FlaUiApplicationLauncher(),
+            new FlaUiInputBackend(),
+            translator,
+            ct);
     }
+
+    // ── Internal factory overloads (for testing) ──────────────────────────────
+
+    /// <summary>
+    /// Launches a new application using the provided launcher, input backend, and translator.
+    /// Intended for unit tests that inject fake backends.
+    /// </summary>
+    internal static Task<IFlawright> LaunchAsync(
+        LaunchOptions options,
+        FlawrightOptions? fwOptions,
+        IApplicationLauncher launcher,
+        IInputBackend input,
+        IConditionTranslator translator,
+        CancellationToken ct = default)
+    {
+        var opts = fwOptions ?? new FlawrightOptions();
+        var browser = new FlawrightBrowser(launcher, input, translator, options, opts);
+        return Task.FromResult<IFlawright>(new Flawright(browser));
+    }
+
+    /// <summary>
+    /// Attaches to an already-running process using the provided launcher, input backend, and translator.
+    /// Intended for unit tests that inject fake backends.
+    /// </summary>
+    internal static Task<IFlawright> AttachAsync(
+        AttachOptions options,
+        FlawrightOptions? fwOptions,
+        IApplicationLauncher launcher,
+        IInputBackend input,
+        IConditionTranslator translator,
+        CancellationToken ct = default)
+    {
+        var opts = fwOptions ?? new FlawrightOptions();
+        var browser = new FlawrightBrowser(launcher, input, translator, options, opts);
+        return Task.FromResult<IFlawright>(new Flawright(browser));
+    }
+
+    // ── IAsyncDisposable ──────────────────────────────────────────────────────
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
         await _browser.DisposeAsync().ConfigureAwait(false);
     }
-}
-
-/// <summary>
-/// Options for launching a new application via Flawright.
-/// </summary>
-/// <example>
-/// <code>
-/// var opts = new LaunchOptions
-/// {
-///     ApplicationPath  = @"C:\Windows\System32\notepad.exe",
-///     Arguments        = ["myfile.txt"],
-///     WorkingDirectory = @"C:\Documents"
-/// };
-/// </code>
-/// </example>
-public sealed record LaunchOptions
-{
-    /// <summary>
-    /// Full path or filename (resolved via PATH) of the executable to launch.
-    /// </summary>
-    public string ApplicationPath { get; init; } = null!;
-
-    /// <summary>Optional command-line arguments to pass to the process.</summary>
-    public string[]? Arguments { get; init; }
-
-    /// <summary>
-    /// Working directory for the launched process.
-    /// <see langword="null"/> inherits the current process's working directory.
-    /// </summary>
-    public string? WorkingDirectory { get; init; }
-}
-
-/// <summary>Options for attaching to an existing process via Flawright.</summary>
-/// <example>
-/// <code>
-/// var opts = new AttachOptions { ProcessId = 9876 };
-/// </code>
-/// </example>
-public sealed record AttachOptions
-{
-    /// <summary>The OS process ID to attach to.</summary>
-    public int ProcessId { get; init; }
 }
 
 /// <summary>

@@ -2,8 +2,8 @@ namespace JerrettDavis.Flawright;
 
 /// <summary>
 /// Entry point for launching or attaching to desktop applications.
-/// Obtain an instance via <see cref="Flawright.LaunchAsync"/> or
-/// <see cref="Flawright.AttachAsync"/>.
+/// Obtain an instance via <see cref="Flawright.LaunchAsync(LaunchOptions, FlawrightOptions?, CancellationToken)"/> or
+/// <see cref="Flawright.AttachAsync(AttachOptions, FlawrightOptions?, CancellationToken)"/>.
 /// </summary>
 /// <example>
 /// <code>
@@ -67,9 +67,25 @@ public interface IFlawrightBrowser : IAsyncDisposable
 /// </summary>
 public interface IFlawrightPage : IAsyncDisposable
 {
+    // ── Identity ──────────────────────────────────────────────────────────────
+
     /// <summary>Returns the title of the current window.</summary>
     /// <param name="ct">Cancellation token.</param>
     Task<string> TitleAsync(CancellationToken ct = default);
+
+    /// <summary>Brings the window to the front of the z-order.</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task BringToFrontAsync(CancellationToken ct = default);
+
+    /// <summary>Waits for the specified number of milliseconds.</summary>
+    /// <param name="milliseconds">Duration to wait.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task WaitForTimeoutAsync(double milliseconds, CancellationToken ct = default);
+
+    /// <summary>Gets the options used to configure this page.</summary>
+    FlawrightOptions Options { get; }
+
+    // ── Locator factory ───────────────────────────────────────────────────────
 
     /// <summary>
     /// Creates a locator for elements matching <paramref name="selector"/>.
@@ -79,161 +95,393 @@ public interface IFlawrightPage : IAsyncDisposable
     /// </param>
     IFlawrightLocator Locator(string selector);
 
-    /// <summary>
-    /// Clicks the first element matching <paramref name="selector"/>.
-    /// </summary>
-    /// <param name="selector">Element selector.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ClickAsync(string selector, TimeSpan? timeout = null, CancellationToken ct = default);
+    /// <summary>Returns a locator for elements with the given ARIA role.</summary>
+    IFlawrightLocator GetByRole(Selectors.AriaRole role, Locator.LocatorGetByRoleOptions? options = null);
 
-    /// <summary>
-    /// Sets the value of the first element matching <paramref name="selector"/>
-    /// in one shot via <c>ValuePattern</c>.
-    /// </summary>
-    /// <param name="selector">Element selector.</param>
-    /// <param name="text">Text to fill.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task FillAsync(string selector, string text, TimeSpan? timeout = null, CancellationToken ct = default);
+    /// <summary>Returns a locator for elements with a label matching <paramref name="text"/>.</summary>
+    IFlawrightLocator GetByLabel(string text, Locator.LocatorGetByLabelOptions? options = null);
 
-    /// <summary>
-    /// Focuses the element and types <paramref name="text"/> character-by-character
-    /// via the keyboard (realistic typing, suitable for inputs with key handlers).
-    /// Use <see cref="FillAsync"/> for faster value-set via ValuePattern.
-    /// </summary>
-    /// <param name="selector">Element selector.</param>
-    /// <param name="text">Text to type.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task TypeAsync(string selector, string text, TimeSpan? timeout = null, CancellationToken ct = default);
+    /// <summary>Returns a locator for elements whose visible text matches <paramref name="text"/>.</summary>
+    IFlawrightLocator GetByText(string text, Locator.LocatorGetByTextOptions? options = null);
 
-    /// <summary>
-    /// Focuses the element and sends a key or chord (e.g. "Enter", "Ctrl+S").
-    /// </summary>
-    /// <param name="selector">Element selector.</param>
-    /// <param name="key">Key name or chord string.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task PressAsync(string selector, string key, TimeSpan? timeout = null, CancellationToken ct = default);
+    /// <summary>Returns a locator for elements with a matching test ID (AutomationId).</summary>
+    IFlawrightLocator GetByTestId(string testId);
 
-    /// <summary>
-    /// Checks the checkbox or toggle-button matching <paramref name="selector"/>
-    /// (sets it to the <c>On</c> state).
-    /// </summary>
-    /// <param name="selector">Element selector.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task CheckAsync(string selector, TimeSpan? timeout = null, CancellationToken ct = default);
+    /// <summary>Returns a locator for elements with a placeholder matching <paramref name="text"/>.</summary>
+    IFlawrightLocator GetByPlaceholder(string text, Locator.LocatorGetByPlaceholderOptions? options = null);
 
-    /// <summary>
-    /// Unchecks the checkbox or toggle-button matching <paramref name="selector"/>
-    /// (sets it to the <c>Off</c> state).
-    /// </summary>
-    /// <param name="selector">Element selector.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task UncheckAsync(string selector, TimeSpan? timeout = null, CancellationToken ct = default);
+    /// <summary>Returns a locator for elements with a title matching <paramref name="text"/>.</summary>
+    IFlawrightLocator GetByTitle(string text, Locator.LocatorGetByTitleOptions? options = null);
 
-    /// <summary>
-    /// Selects an item by value in a combo-box or list-box matching
-    /// <paramref name="selector"/>.
-    /// </summary>
-    /// <param name="selector">Element selector (the container, not the item).</param>
-    /// <param name="value">
-    /// Text of the item to select.  Matched against item <c>Name</c> or
-    /// AutomationId.
-    /// </param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task SelectOptionAsync(string selector, string value, TimeSpan? timeout = null, CancellationToken ct = default);
+    // ── Convenience action methods (delegate to Locator(...).XxxAsync) ─────────
 
-    /// <summary>
-    /// Waits for an element matching <paramref name="selector"/> to appear and
-    /// returns it (convenience wrapper around <c>Locator(selector).FirstAsync()</c>).
-    /// </summary>
-    /// <param name="selector">Element selector.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task<IFlawrightElement> WaitForSelectorAsync(string selector, TimeSpan? timeout = null, CancellationToken ct = default);
+    /// <summary>Clicks the first element matching <paramref name="selector"/>.</summary>
+    Task ClickAsync(string selector, Locator.LocatorClickOptions? options = null, CancellationToken ct = default);
 
-    /// <summary>
-    /// Captures a screenshot of the window.
-    /// </summary>
-    /// <param name="path">
-    /// Optional file path to save the screenshot.  If <see langword="null"/>, only
-    /// the byte array is returned.
-    /// </param>
+    /// <summary>Double-clicks the first element matching <paramref name="selector"/>.</summary>
+    Task DoubleClickAsync(string selector, Locator.LocatorDoubleClickOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Sets the value of the first element matching <paramref name="selector"/> via <c>ValuePattern</c>.</summary>
+    Task FillAsync(string selector, string value, Locator.LocatorFillOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Types <paramref name="text"/> character-by-character into the first element matching <paramref name="selector"/>.</summary>
+    Task TypeAsync(string selector, string text, Locator.LocatorTypeOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Focuses the element and sends a key or chord.</summary>
+    Task PressAsync(string selector, string key, Locator.LocatorPressOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Checks the element matching <paramref name="selector"/> (sets it to the <c>On</c> state).</summary>
+    Task CheckAsync(string selector, Locator.LocatorCheckOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Unchecks the element matching <paramref name="selector"/> (sets it to the <c>Off</c> state).</summary>
+    Task UncheckAsync(string selector, Locator.LocatorUncheckOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Sets the checked state of the element matching <paramref name="selector"/>.</summary>
+#pragma warning disable CA1716
+    Task SetCheckedAsync(string selector, bool @checked, Locator.LocatorSetCheckedOptions? options = null, CancellationToken ct = default);
+#pragma warning restore CA1716
+
+    /// <summary>Selects an item by value in a combo-box or list-box matching <paramref name="selector"/>.</summary>
+    Task SelectOptionAsync(string selector, string value, Locator.LocatorSelectOptionOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Hovers over the first element matching <paramref name="selector"/>.</summary>
+    Task HoverAsync(string selector, Locator.LocatorHoverOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Focuses the first element matching <paramref name="selector"/>.</summary>
+    Task FocusAsync(string selector, CancellationToken ct = default);
+
+    /// <summary>Drags the element matching <paramref name="source"/> to the element matching <paramref name="target"/>.</summary>
+    Task DragAndDropAsync(string source, string target, Locator.LocatorDragToOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Waits for an element matching <paramref name="selector"/> to appear and returns it.</summary>
+    Task<IFlawrightElement> WaitForSelectorAsync(string selector, Locator.LocatorWaitForOptions? options = null, CancellationToken ct = default);
+
+    // ── Screenshot ────────────────────────────────────────────────────────────
+
+    /// <summary>Captures a screenshot of the window.</summary>
+    /// <param name="options">Screenshot options (e.g. save path).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>PNG image data as a byte array.</returns>
-    Task<byte[]> ScreenshotAsync(string? path = null, CancellationToken ct = default);
+    Task<byte[]> ScreenshotAsync(Locator.LocatorScreenshotOptions? options = null, CancellationToken ct = default);
+
+    // ── Sub-APIs ──────────────────────────────────────────────────────────────
+
+    /// <summary>Gets the mouse sub-API for absolute-coordinate mouse operations.</summary>
+    IFlawrightMouse Mouse { get; }
+
+    /// <summary>Gets the keyboard sub-API for global keyboard operations.</summary>
+    IFlawrightKeyboard Keyboard { get; }
+}
+
+/// <summary>
+/// Low-level mouse operations at absolute screen coordinates.
+/// Mirrors Playwright's <c>Mouse</c> class.
+/// Obtain via <see cref="IFlawrightPage.Mouse"/>.
+/// </summary>
+public interface IFlawrightMouse
+{
+    /// <summary>Clicks at the specified screen coordinates.</summary>
+    Task ClickAsync(double x, double y, Page.MouseClickOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Double-clicks at the specified screen coordinates.</summary>
+    Task DoubleClickAsync(double x, double y, Page.MouseDoubleClickOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Presses a mouse button at the current position.</summary>
+    Task DownAsync(Page.MouseDownOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Releases a mouse button at the current position.</summary>
+    Task UpAsync(Page.MouseUpOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Moves the mouse to the specified screen coordinates.</summary>
+    Task MoveAsync(double x, double y, Page.MouseMoveOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Dispatches a mouse wheel event.</summary>
+    Task WheelAsync(double deltaX, double deltaY, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Global keyboard operations.
+/// Mirrors Playwright's <c>Keyboard</c> class.
+/// Obtain via <see cref="IFlawrightPage.Keyboard"/>.
+/// </summary>
+public interface IFlawrightKeyboard
+{
+    /// <summary>Holds down a key.</summary>
+    Task DownAsync(string key, CancellationToken ct = default);
+
+    /// <summary>Releases a key.</summary>
+    Task UpAsync(string key, CancellationToken ct = default);
+
+    /// <summary>Presses a key or chord (e.g. "Ctrl+S"). Press+release.</summary>
+    Task PressAsync(string key, Page.KeyboardPressOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Types text character-by-character with optional delay.</summary>
+    Task TypeAsync(string text, Page.KeyboardTypeOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Inserts text directly without key-by-key simulation.</summary>
+    Task InsertTextAsync(string text, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Assertion helpers for a page, providing Playwright-style
+/// <c>expect(page).toHaveTitle()</c> semantics with auto-waiting.
+/// Obtain via <see cref="AssertionsStatic.Expect(IFlawrightPage)"/>.
+/// </summary>
+public interface IFlawrightPageAssertions
+{
+    /// <summary>
+    /// Gets the negated assertions object.
+    /// </summary>
+#pragma warning disable CA1716
+    IFlawrightPageAssertions Not { get; }
+#pragma warning restore CA1716
+
+    /// <summary>Asserts that the page title equals <paramref name="expected"/>.</summary>
+    Task ToHaveTitleAsync(string expected, Assertions.PageAssertionsToHaveTitleOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the page title matches <paramref name="expected"/>.</summary>
+    Task ToHaveTitleAsync(System.Text.RegularExpressions.Regex expected, Assertions.PageAssertionsToHaveTitleOptions? options = null, CancellationToken ct = default);
 }
 
 /// <summary>
 /// A lazy reference to one or more UI elements, resolved at action time with
 /// auto-waiting.  Mirrors Playwright's <c>Locator</c> concept.
+///
+/// <para>
+/// Breaking change from v0.1.x: <c>FirstAsync</c> and <c>NthAsync</c> have been
+/// removed.  Use the sync properties <see cref="First"/>, <see cref="Last"/>, and
+/// the sync method <see cref="Nth"/> to obtain sub-locators, then call action
+/// methods on those.
+/// </para>
 /// </summary>
 public interface IFlawrightLocator
 {
+    // ── Identity ──────────────────────────────────────────────────────────────
+
     /// <summary>Gets the raw selector string used by this locator.</summary>
     string Selector { get; }
 
-    /// <summary>
-    /// Auto-waits until at least one matching element exists, then returns the
-    /// first one.
-    /// </summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <exception cref="FlawrightTimeoutException">
-    /// Thrown when no matching element is found within the timeout.
-    /// </exception>
-    Task<IFlawrightElement> FirstAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    // ── Sync chaining (Playwright contract: these are properties/methods returning Locator) ──
+
+    /// <summary>Returns a locator that resolves to the first matching element.</summary>
+    IFlawrightLocator First { get; }
+
+    /// <summary>Returns a locator that resolves to the last matching element.</summary>
+    IFlawrightLocator Last { get; }
+
+    /// <summary>Returns a locator that resolves to the element at <paramref name="index"/> (0-based).</summary>
+    /// <param name="index">Zero-based position in the matched result set.</param>
+    IFlawrightLocator Nth(int index);
+
+    // ── Scoped chaining ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Auto-waits until at least <paramref name="index"/> + 1 matching elements
-    /// exist, then returns the one at <paramref name="index"/> (0-based).
+    /// Returns a new locator scoped to descendants matching <paramref name="selector"/>
+    /// within the elements matched by this locator.
     /// </summary>
-    /// <param name="index">Zero-based index.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task<IFlawrightElement> NthAsync(int index, TimeSpan? timeout = null, CancellationToken ct = default);
+    IFlawrightLocator Locator(string selector);
 
     /// <summary>
-    /// Returns the current count of matching elements without waiting.
+    /// Returns a new locator scoped to descendants matched by <paramref name="inner"/>
+    /// within the elements matched by this locator.
     /// </summary>
-    /// <param name="ct">Cancellation token.</param>
+    IFlawrightLocator Locator(IFlawrightLocator inner);
+
+    // ── Filtering ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns a new locator that further filters the results of this locator
+    /// using the provided options.
+    /// </summary>
+    IFlawrightLocator Filter(Locator.LocatorFilterOptions options);
+
+    // ── Composition ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns a locator that matches elements satisfying both this locator and
+    /// <paramref name="other"/> (intersection).
+    /// </summary>
+#pragma warning disable CA1716 // 'And'/'Or' intentionally match the Playwright API convention
+    IFlawrightLocator And(IFlawrightLocator other);
+
+    /// <summary>
+    /// Returns a locator that matches elements satisfying either this locator or
+    /// <paramref name="other"/> (union).
+    /// </summary>
+    IFlawrightLocator Or(IFlawrightLocator other);
+#pragma warning restore CA1716
+
+    // ── Query helpers (sync, return new Locator) ──────────────────────────────
+
+    /// <summary>Returns a locator for elements with the given ARIA role.</summary>
+    IFlawrightLocator GetByRole(Selectors.AriaRole role, Locator.LocatorGetByRoleOptions? options = null);
+
+    /// <summary>Returns a locator for elements with a label matching <paramref name="text"/>.</summary>
+    IFlawrightLocator GetByLabel(string text, Locator.LocatorGetByLabelOptions? options = null);
+
+    /// <summary>Returns a locator for elements whose visible text matches <paramref name="text"/>.</summary>
+    IFlawrightLocator GetByText(string text, Locator.LocatorGetByTextOptions? options = null);
+
+    /// <summary>Returns a locator for elements with a matching test ID (AutomationId).</summary>
+    IFlawrightLocator GetByTestId(string testId);
+
+    /// <summary>Returns a locator for elements with a placeholder matching <paramref name="text"/>.</summary>
+    IFlawrightLocator GetByPlaceholder(string text, Locator.LocatorGetByPlaceholderOptions? options = null);
+
+    /// <summary>Returns a locator for elements with a title matching <paramref name="text"/>.</summary>
+    IFlawrightLocator GetByTitle(string text, Locator.LocatorGetByTitleOptions? options = null);
+
+    // ── Async resolution ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the current count of matching elements without auto-waiting.
+    /// Returns 0 immediately if no elements are found.
+    /// </summary>
     Task<int> CountAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Auto-waits for at least one matching element, then returns all currently
-    /// matching elements.
+    /// matching elements as <see cref="IFlawrightElement"/> handles.
     /// </summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
     Task<IReadOnlyList<IFlawrightElement>> AllAsync(TimeSpan? timeout = null, CancellationToken ct = default);
 
     /// <summary>
-    /// Returns a new locator that only yields elements from this locator that
-    /// also satisfy <paramref name="predicate"/>.
+    /// Returns the inner text of all currently matching elements without auto-waiting.
     /// </summary>
-    /// <param name="predicate">Filter predicate applied to each candidate element.</param>
-    IFlawrightLocator Filter(Func<IFlawrightElement, bool> predicate);
+    Task<IReadOnlyList<string>> AllInnerTextsAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Clicks the first matching element (auto-waited).
+    /// Returns the text content of all currently matching elements without auto-waiting.
     /// </summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ClickAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task<IReadOnlyList<string>> AllTextContentsAsync(CancellationToken ct = default);
+
+    // ── Async actions (options-based) ─────────────────────────────────────────
+
+    /// <summary>Clicks the first matching element (auto-waited).</summary>
+    Task ClickAsync(Locator.LocatorClickOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Double-clicks the first matching element (auto-waited).</summary>
+    Task DoubleClickAsync(Locator.LocatorDoubleClickOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Fills the first matching element with <paramref name="text"/> via ValuePattern (auto-waited).</summary>
+    Task FillAsync(string text, Locator.LocatorFillOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Clears the value of the first matching element (auto-waited).</summary>
+    Task ClearAsync(Locator.LocatorClearOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Types <paramref name="text"/> character-by-character into the first matching element (auto-waited).</summary>
+    Task TypeAsync(string text, Locator.LocatorTypeOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Types <paramref name="text"/> sequentially into the first matching element (auto-waited).</summary>
+    Task PressSequentiallyAsync(string text, Locator.LocatorPressSequentiallyOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Presses a key or chord on the first matching element (auto-waited).</summary>
+    Task PressAsync(string key, Locator.LocatorPressOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Checks the first matching toggle element (auto-waited).</summary>
+    Task CheckAsync(Locator.LocatorCheckOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Unchecks the first matching toggle element (auto-waited).</summary>
+    Task UncheckAsync(Locator.LocatorUncheckOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Sets the checked state of the first matching element (auto-waited).</summary>
+#pragma warning disable CA1716
+    Task SetCheckedAsync(bool @checked, Locator.LocatorSetCheckedOptions? options = null, CancellationToken ct = default);
+#pragma warning restore CA1716
+
+    /// <summary>Selects an option by string value in the first matching element (auto-waited).</summary>
+    Task SelectOptionAsync(string value, Locator.LocatorSelectOptionOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Selects an option by <see cref="Locator.SelectOptionValue"/> in the first matching element (auto-waited).</summary>
+    Task SelectOptionAsync(Locator.SelectOptionValue value, Locator.LocatorSelectOptionOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Hovers over the first matching element (auto-waited).</summary>
+    Task HoverAsync(Locator.LocatorHoverOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Focuses the first matching element (auto-waited).</summary>
+    Task FocusAsync(CancellationToken ct = default);
+
+    /// <summary>Removes focus from the first matching element (auto-waited).</summary>
+    Task BlurAsync(CancellationToken ct = default);
+
+    /// <summary>Drags the first matching element to <paramref name="target"/> (auto-waited).</summary>
+    Task DragToAsync(IFlawrightLocator target, Locator.LocatorDragToOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Scrolls the first matching element into view if needed (auto-waited).</summary>
+    Task ScrollIntoViewIfNeededAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Fills the first matching element with <paramref name="text"/> via
-    /// ValuePattern (auto-waited).
+    /// Captures a screenshot of the first matching element.
+    /// <para>
+    /// <b>Note:</b> This method is a stub in Wave C. Screenshot capture requires
+    /// <c>IElementBackend.Capture()</c> which will be added in Wave D.
+    /// Currently returns an empty byte array.
+    /// </para>
     /// </summary>
-    /// <param name="text">Text to fill.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task FillAsync(string text, TimeSpan? timeout = null, CancellationToken ct = default);
+    Task<byte[]> ScreenshotAsync(Locator.LocatorScreenshotOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Highlights the first matching element.
+    /// <para><b>Note:</b> Stub in Wave C — Wave D will implement visual highlighting.</para>
+    /// </summary>
+    Task HighlightAsync(CancellationToken ct = default);
+
+    // ── Read methods ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the first matching element is visible.
+    /// Uses a short (1 second) timeout; returns <see langword="false"/> if not found.
+    /// </summary>
+    Task<bool> IsVisibleAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the first matching element is hidden or absent.
+    /// Uses a short (1 second) timeout; returns <see langword="true"/> if not found.
+    /// </summary>
+    Task<bool> IsHiddenAsync(CancellationToken ct = default);
+
+    /// <summary>Returns <see langword="true"/> if the first matching element is enabled (auto-waited).</summary>
+    Task<bool> IsEnabledAsync(CancellationToken ct = default);
+
+    /// <summary>Returns <see langword="true"/> if the first matching element is disabled (auto-waited).</summary>
+    Task<bool> IsDisabledAsync(CancellationToken ct = default);
+
+    /// <summary>Returns <see langword="true"/> if the first matching element is checked (auto-waited).</summary>
+    Task<bool> IsCheckedAsync(CancellationToken ct = default);
+
+    /// <summary>Returns <see langword="true"/> if the first matching element is editable (auto-waited).</summary>
+    Task<bool> IsEditableAsync(CancellationToken ct = default);
+
+    /// <summary>Returns the inner text of the first matching element (auto-waited).</summary>
+    Task<string> InnerTextAsync(CancellationToken ct = default);
+
+    /// <summary>Returns the text content of the first matching element (auto-waited), or <see langword="null"/>.</summary>
+    Task<string?> TextContentAsync(CancellationToken ct = default);
+
+    /// <summary>Returns the input value of the first matching element (auto-waited), or <see langword="null"/>.</summary>
+    Task<string?> InputValueAsync(CancellationToken ct = default);
+
+    /// <summary>Returns the value of a named attribute on the first matching element (auto-waited).</summary>
+    Task<string?> GetAttributeAsync(string name, CancellationToken ct = default);
+
+    /// <summary>Returns the bounding box of the first matching element (auto-waited), or <see langword="null"/>.</summary>
+    Task<Locator.BoundingBox?> BoundingBoxAsync(CancellationToken ct = default);
+
+    // ── Wait for state ────────────────────────────────────────────────────────
+
+    /// <summary>Waits for the first matching element to reach the specified state.</summary>
+    Task WaitForAsync(Locator.LocatorWaitForOptions? options = null, CancellationToken ct = default);
+
+    // ── Element handle ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Resolves this locator to a concrete element handle (auto-waited).
+    /// Prefer locator-based actions over element handles.
+    /// </summary>
+    [Obsolete("Prefer locator-based actions; ElementHandle exists for advanced introspection only.")]
+    Task<IFlawrightElement> ElementHandleAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+
+    // ── Assertions ────────────────────────────────────────────────────────────
 
     /// <summary>Returns assertion helpers for this locator.</summary>
     IFlawrightAssertions Expect();
@@ -242,26 +490,32 @@ public interface IFlawrightLocator
 /// <summary>
 /// A resolved UI element with async action methods.  Mirrors Playwright's
 /// <c>ElementHandle</c> concept.
+///
+/// <para>
+/// The interface exposes two surfaces:
+/// <list type="bullet">
+///   <item><description>
+///     <b>Legacy surface</b> — parameterless or <see cref="CancellationToken"/>-only
+///     overloads carried over from v0.1.x.  These are kept for build compatibility
+///     while <c>FlawrightLocator</c> and <c>FlawrightAssertions</c> still reference
+///     them. They will be <b>removed in Wave C</b> once callers are updated.
+///     Methods in this group are marked <c>// REMOVE in Wave C</c>.
+///   </description></item>
+///   <item><description>
+///     <b>New surface (Wave B.3)</b> — options-based overloads matching Playwright's
+///     <c>Locator</c> action methods, plus new read-only properties and query methods
+///     (<see cref="AutomationId"/>, <see cref="BoundingBoxAsync"/>, etc.).
+///   </description></item>
+/// </list>
+/// </para>
 /// </summary>
 public interface IFlawrightElement
 {
+    // ── Legacy surface — REMOVE in Wave C ────────────────────────────────────
+
     /// <summary>Gets the locator that produced this element.</summary>
+    /// <remarks>REMOVE in Wave C — callers should use the backend-native constructor.</remarks>
     IFlawrightLocator Locator { get; }
-
-    /// <summary>Clicks the element.</summary>
-    /// <param name="ct">Cancellation token.</param>
-    Task ClickAsync(CancellationToken ct = default);
-
-    /// <summary>Double-clicks the element.</summary>
-    /// <param name="ct">Cancellation token.</param>
-    Task DoubleClickAsync(CancellationToken ct = default);
-
-    /// <summary>
-    /// Sets the element's value in one shot via <c>ValuePattern</c>.
-    /// </summary>
-    /// <param name="text">Text to fill.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task FillAsync(string text, CancellationToken ct = default);
 
     /// <summary>
     /// Returns the element's visible text content.  Uses <c>ValuePattern</c>
@@ -269,6 +523,7 @@ public interface IFlawrightElement
     /// controls), and falls back to the <c>Name</c> property.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
+    /// <remarks>REMOVE in Wave C — superseded by <see cref="InnerTextAsync"/> / <see cref="TextContentAsync"/>.</remarks>
     Task<string> TextAsync(CancellationToken ct = default);
 
     /// <summary>Returns <see langword="true"/> if the element is on-screen.</summary>
@@ -285,10 +540,6 @@ public interface IFlawrightElement
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     Task<bool> IsCheckedAsync(CancellationToken ct = default);
-
-    /// <summary>Moves the mouse over the element (hover).</summary>
-    /// <param name="ct">Cancellation token.</param>
-    Task HoverAsync(CancellationToken ct = default);
 
     /// <summary>Gives keyboard focus to the element.</summary>
     /// <param name="ct">Cancellation token.</param>
@@ -312,11 +563,129 @@ public interface IFlawrightElement
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The attribute value as a string, or <see langword="null"/>.</returns>
     Task<string?> GetAttributeAsync(string name, CancellationToken ct = default);
+
+    // ── New surface (Wave B.3) — Identity / read ──────────────────────────────
+
+    /// <summary>Gets the UIA AutomationId of the element, or <see langword="null"/>.</summary>
+    string? AutomationId { get; }
+
+    /// <summary>Gets the UIA Name of the element, or <see langword="null"/>.</summary>
+    string? Name { get; }
+
+    /// <summary>Gets the UIA ClassName of the element, or <see langword="null"/>.</summary>
+    string? ClassName { get; }
+
+    /// <summary>Gets the string name of the UIA ControlType (e.g. "Button", "Edit").</summary>
+    string ControlTypeName { get; }
+
+    /// <summary>Returns the bounding box of the element in screen coordinates, or <see langword="null"/> if the element has no screen presence.</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<Locator.BoundingBox?> BoundingBoxAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the element's inner text.  Resolution order: <c>ValuePattern</c> →
+    /// <c>TextPattern</c> → <c>Name</c>.  Returns <see cref="string.Empty"/> if
+    /// all sources are null.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<string> InnerTextAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the element's text content, or <see langword="null"/> if all
+    /// text sources are null.  Resolution order: <c>ValuePattern</c> →
+    /// <c>TextPattern</c> → <c>Name</c>.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<string?> TextContentAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the current value of an input element via <c>ValuePattern</c>.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The value string.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the element does not support <c>ValuePattern</c> or
+    /// <c>TextPattern</c> (i.e., it is not a text input).
+    /// </exception>
+    Task<string?> InputValueAsync(CancellationToken ct = default);
+
+    // ── New surface (Wave B.3) — State ────────────────────────────────────────
+
+    /// <summary>Returns <see langword="true"/> if the element is hidden (off-screen).</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<bool> IsHiddenAsync(CancellationToken ct = default);
+
+    /// <summary>Returns <see langword="true"/> if the element is disabled.</summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<bool> IsDisabledAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the element supports value input and is
+    /// currently enabled.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<bool> IsEditableAsync(CancellationToken ct = default);
+
+    // ── New surface (Wave B.3) — Actions ──────────────────────────────────────
+
+    /// <summary>Clicks the element with options.</summary>
+    /// <param name="options">Click options (position, modifiers, etc.). <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ClickAsync(Locator.LocatorClickOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Double-clicks the element with options.</summary>
+    /// <param name="options">Double-click options. <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task DoubleClickAsync(Locator.LocatorDoubleClickOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Fills the element with <paramref name="text"/> via <c>ValuePattern</c>.</summary>
+    /// <param name="text">Text to fill.</param>
+    /// <param name="options">Fill options. <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task FillAsync(string text, Locator.LocatorFillOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Clears the element's value.</summary>
+    /// <param name="options">Clear options. <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task ClearAsync(Locator.LocatorClearOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Moves the mouse over the element.</summary>
+    /// <param name="options">Hover options (position offset, modifiers, etc.). <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task HoverAsync(Locator.LocatorHoverOptions? options = null, CancellationToken ct = default);
+
+    // ScrollIntoViewIfNeededAsync(CancellationToken) is already on the legacy surface above — no new overload needed.
+
+    /// <summary>Checks the element (sets toggle state to <c>On</c>).</summary>
+    /// <param name="options">Check options. <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task CheckAsync(Locator.LocatorCheckOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Unchecks the element (sets toggle state to <c>Off</c>).</summary>
+    /// <param name="options">Uncheck options. <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task UncheckAsync(Locator.LocatorUncheckOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Sets the element's checked state.</summary>
+    /// <param name="checked">The desired state: <see langword="true"/> to check, <see langword="false"/> to uncheck.</param>
+    /// <param name="options">Options. <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+#pragma warning disable CA1716 // Parameter name matches Playwright API convention
+    Task SetCheckedAsync(bool @checked, Locator.LocatorSetCheckedOptions? options = null, CancellationToken ct = default);
+#pragma warning restore CA1716
+
+    /// <summary>Selects an item by value in a combo-box or list-box.</summary>
+    /// <param name="value">The name or AutomationId of the item to select.</param>
+    /// <param name="options">Options. <see langword="null"/> uses defaults.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task SelectOptionAsync(string value, Locator.LocatorSelectOptionOptions? options = null, CancellationToken ct = default);
 }
 
 /// <summary>
 /// Assertion helpers for a locator, providing Playwright-style
-/// <c>expect(locator).toBeVisible()</c> semantics.
+/// <c>expect(locator).toBeVisible()</c> semantics with auto-waiting.
+/// Obtain via <see cref="IFlawrightLocator.Expect"/> or the static
+/// <c>Assertions.Expect(locator)</c> entry point.
 /// </summary>
 public interface IFlawrightAssertions
 {
@@ -333,94 +702,184 @@ public interface IFlawrightAssertions
     IFlawrightNotAssertions Not { get; }
 #pragma warning restore CA1716
 
+    // ── State ─────────────────────────────────────────────────────────────────
+
     /// <summary>Asserts that the element is visible (exists and is not off-screen).</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeVisibleAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeVisibleAsync(Assertions.AssertionsToBeVisibleOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is hidden (off-screen or absent).</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeHiddenAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeHiddenAsync(Assertions.AssertionsToBeHiddenOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is enabled.</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeEnabledAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeEnabledAsync(Assertions.AssertionsToBeEnabledOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is disabled.</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeDisabledAsync(TimeSpan? timeout = null, CancellationToken ct = default);
-
-    /// <summary>Asserts that the element's text equals <paramref name="expectedText"/>.</summary>
-    /// <param name="expectedText">Expected text value.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToHaveTextAsync(string expectedText, TimeSpan? timeout = null, CancellationToken ct = default);
-
-    /// <summary>
-    /// Asserts that the locator matches exactly <paramref name="expectedCount"/> elements.
-    /// </summary>
-    /// <param name="expectedCount">Expected element count.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToHaveCountAsync(int expectedCount, CancellationToken ct = default);
-
-    /// <summary>
-    /// Asserts that the element's value (via <c>ValuePattern</c>) equals
-    /// <paramref name="expected"/>.
-    /// </summary>
-    /// <param name="expected">Expected value string.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToHaveValueAsync(string expected, TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeDisabledAsync(Assertions.AssertionsToBeDisabledOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is checked (toggle state is <c>On</c>).</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeCheckedAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeCheckedAsync(Assertions.AssertionsToBeCheckedOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element has keyboard focus.</summary>
+    Task ToBeFocusedAsync(Assertions.AssertionsToBeFocusedOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element is editable (supports value input and is enabled).</summary>
+    Task ToBeEditableAsync(Assertions.AssertionsToBeEditableOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element is empty (no value and no inner text).</summary>
+    Task ToBeEmptyAsync(Assertions.AssertionsToBeEmptyOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element is attached to the UI tree (count > 0).</summary>
+    Task ToBeAttachedAsync(Assertions.AssertionsToBeAttachedOptions? options = null, CancellationToken ct = default);
+
+    // ── Text ──────────────────────────────────────────────────────────────────
+
+    /// <summary>Asserts that the element's inner text equals <paramref name="expected"/>.</summary>
+    Task ToHaveTextAsync(string expected, Assertions.AssertionsToHaveTextOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's inner text matches <paramref name="expected"/>.</summary>
+    Task ToHaveTextAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveTextOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's inner text contains <paramref name="expected"/>.</summary>
+    Task ToContainTextAsync(string expected, Assertions.AssertionsToContainTextOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's inner text contains a match for <paramref name="expected"/>.</summary>
+    Task ToContainTextAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToContainTextOptions? options = null, CancellationToken ct = default);
+
+    // ── Value ─────────────────────────────────────────────────────────────────
+
+    /// <summary>Asserts that the element's value (via <c>ValuePattern</c>) equals <paramref name="expected"/>.</summary>
+    Task ToHaveValueAsync(string expected, Assertions.AssertionsToHaveValueOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's value matches <paramref name="expected"/>.</summary>
+    Task ToHaveValueAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveValueOptions? options = null, CancellationToken ct = default);
+
+    // ── Count ─────────────────────────────────────────────────────────────────
+
+    /// <summary>Asserts that the locator matches exactly <paramref name="expected"/> elements (auto-waited).</summary>
+    Task ToHaveCountAsync(int expected, Assertions.AssertionsToHaveCountOptions? options = null, CancellationToken ct = default);
+
+    // ── Attributes / identity ─────────────────────────────────────────────────
+
+    /// <summary>Asserts that the named attribute equals <paramref name="expected"/>.</summary>
+    Task ToHaveAttributeAsync(string name, string expected, Assertions.AssertionsToHaveAttributeOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the named attribute matches <paramref name="expected"/>.</summary>
+    Task ToHaveAttributeAsync(string name, System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveAttributeOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's AutomationId equals <paramref name="expected"/>.</summary>
+    Task ToHaveIdAsync(string expected, Assertions.AssertionsToHaveIdOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's AutomationId matches <paramref name="expected"/>.</summary>
+    Task ToHaveIdAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveIdOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's ClassName equals <paramref name="expected"/>.</summary>
+    Task ToHaveClassAsync(string expected, Assertions.AssertionsToHaveClassOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's ClassName matches <paramref name="expected"/>.</summary>
+    Task ToHaveClassAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveClassOptions? options = null, CancellationToken ct = default);
+
+    // ── Role / accessibility ──────────────────────────────────────────────────
+
+    /// <summary>Asserts that the element's control type maps to <paramref name="expected"/> ARIA role.</summary>
+    Task ToHaveRoleAsync(Selectors.AriaRole expected, Assertions.AssertionsToHaveRoleOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's accessible name (UIA Name) equals <paramref name="expected"/>.</summary>
+    Task ToHaveAccessibleNameAsync(string expected, Assertions.AssertionsToHaveAccessibleNameOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's accessible name (UIA Name) matches <paramref name="expected"/>.</summary>
+    Task ToHaveAccessibleNameAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveAccessibleNameOptions? options = null, CancellationToken ct = default);
 }
 
 /// <summary>
 /// Negated counterpart of <see cref="IFlawrightAssertions"/>.  Each method
-/// asserts the opposite condition.
+/// asserts the opposite condition.  Obtain via <see cref="IFlawrightAssertions.Not"/>.
 /// </summary>
 public interface IFlawrightNotAssertions
 {
+    // ── State ─────────────────────────────────────────────────────────────────
+
     /// <summary>Asserts that the element is <em>not</em> visible.</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeVisibleAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeVisibleAsync(Assertions.AssertionsToBeVisibleOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is <em>not</em> hidden.</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeHiddenAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeHiddenAsync(Assertions.AssertionsToBeHiddenOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is <em>not</em> enabled.</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeEnabledAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeEnabledAsync(Assertions.AssertionsToBeEnabledOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is <em>not</em> disabled.</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeDisabledAsync(TimeSpan? timeout = null, CancellationToken ct = default);
-
-    /// <summary>Asserts that the element's text does <em>not</em> equal <paramref name="expectedText"/>.</summary>
-    /// <param name="expectedText">Text that must <em>not</em> be present.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToHaveTextAsync(string expectedText, TimeSpan? timeout = null, CancellationToken ct = default);
-
-    /// <summary>Asserts that the element's value does <em>not</em> equal <paramref name="expected"/>.</summary>
-    /// <param name="expected">Value that must <em>not</em> be present.</param>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToHaveValueAsync(string expected, TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeDisabledAsync(Assertions.AssertionsToBeDisabledOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is <em>not</em> checked.</summary>
-    /// <param name="timeout">Per-call timeout override.</param>
-    /// <param name="ct">Cancellation token.</param>
-    Task ToBeCheckedAsync(TimeSpan? timeout = null, CancellationToken ct = default);
+    Task ToBeCheckedAsync(Assertions.AssertionsToBeCheckedOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element does <em>not</em> have keyboard focus.</summary>
+    Task ToBeFocusedAsync(Assertions.AssertionsToBeFocusedOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element is <em>not</em> editable.</summary>
+    Task ToBeEditableAsync(Assertions.AssertionsToBeEditableOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element is <em>not</em> empty.</summary>
+    Task ToBeEmptyAsync(Assertions.AssertionsToBeEmptyOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element is <em>not</em> attached (count == 0).</summary>
+    Task ToBeAttachedAsync(Assertions.AssertionsToBeAttachedOptions? options = null, CancellationToken ct = default);
+
+    // ── Text ──────────────────────────────────────────────────────────────────
+
+    /// <summary>Asserts that the element's inner text does <em>not</em> equal <paramref name="expected"/>.</summary>
+    Task ToHaveTextAsync(string expected, Assertions.AssertionsToHaveTextOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's inner text does <em>not</em> match <paramref name="expected"/>.</summary>
+    Task ToHaveTextAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveTextOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's inner text does <em>not</em> contain <paramref name="expected"/>.</summary>
+    Task ToContainTextAsync(string expected, Assertions.AssertionsToContainTextOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's inner text does <em>not</em> contain a match for <paramref name="expected"/>.</summary>
+    Task ToContainTextAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToContainTextOptions? options = null, CancellationToken ct = default);
+
+    // ── Value ─────────────────────────────────────────────────────────────────
+
+    /// <summary>Asserts that the element's value does <em>not</em> equal <paramref name="expected"/>.</summary>
+    Task ToHaveValueAsync(string expected, Assertions.AssertionsToHaveValueOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's value does <em>not</em> match <paramref name="expected"/>.</summary>
+    Task ToHaveValueAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveValueOptions? options = null, CancellationToken ct = default);
+
+    // ── Count ─────────────────────────────────────────────────────────────────
+
+    /// <summary>Asserts that the locator does <em>not</em> match exactly <paramref name="expected"/> elements.</summary>
+    Task ToHaveCountAsync(int expected, Assertions.AssertionsToHaveCountOptions? options = null, CancellationToken ct = default);
+
+    // ── Attributes / identity ─────────────────────────────────────────────────
+
+    /// <summary>Asserts that the named attribute does <em>not</em> equal <paramref name="expected"/>.</summary>
+    Task ToHaveAttributeAsync(string name, string expected, Assertions.AssertionsToHaveAttributeOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the named attribute does <em>not</em> match <paramref name="expected"/>.</summary>
+    Task ToHaveAttributeAsync(string name, System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveAttributeOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's AutomationId does <em>not</em> equal <paramref name="expected"/>.</summary>
+    Task ToHaveIdAsync(string expected, Assertions.AssertionsToHaveIdOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's AutomationId does <em>not</em> match <paramref name="expected"/>.</summary>
+    Task ToHaveIdAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveIdOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's ClassName does <em>not</em> equal <paramref name="expected"/>.</summary>
+    Task ToHaveClassAsync(string expected, Assertions.AssertionsToHaveClassOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's ClassName does <em>not</em> match <paramref name="expected"/>.</summary>
+    Task ToHaveClassAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveClassOptions? options = null, CancellationToken ct = default);
+
+    // ── Role / accessibility ──────────────────────────────────────────────────
+
+    /// <summary>Asserts that the element's control type does <em>not</em> map to <paramref name="expected"/> ARIA role.</summary>
+    Task ToHaveRoleAsync(Selectors.AriaRole expected, Assertions.AssertionsToHaveRoleOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's accessible name does <em>not</em> equal <paramref name="expected"/>.</summary>
+    Task ToHaveAccessibleNameAsync(string expected, Assertions.AssertionsToHaveAccessibleNameOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Asserts that the element's accessible name does <em>not</em> match <paramref name="expected"/>.</summary>
+    Task ToHaveAccessibleNameAsync(System.Text.RegularExpressions.Regex expected, Assertions.AssertionsToHaveAccessibleNameOptions? options = null, CancellationToken ct = default);
 }
