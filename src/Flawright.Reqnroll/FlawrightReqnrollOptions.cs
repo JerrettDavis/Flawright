@@ -46,7 +46,7 @@ public class FlawrightReqnrollOptions
     public string? DefaultAumid { get; set; }
 
     /// <summary>
-    /// <see cref="Flawright.FlawrightOptions"/> applied to every scenario launch.
+    /// <see cref="FlawrightOptions"/> applied to every scenario launch.
     /// Defaults to <see cref="FlawrightOptions"/> default values (5 s timeout, 100 ms retry).
     /// </summary>
     public FlawrightOptions FlawrightOptions { get; set; } = new();

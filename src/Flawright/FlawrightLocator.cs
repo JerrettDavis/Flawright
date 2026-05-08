@@ -1023,7 +1023,7 @@ file sealed class IndexBasedCondition : IElementCondition
 /// overrides <see cref="BoundingRectangle"/> with a 1×1 rectangle at the given
 /// point.  Used by <see cref="FlawrightLocator.DragToAsync"/> to translate
 /// <c>LocatorDragToOptions.SourcePosition</c> / <c>TargetPosition</c> offsets
-/// into a form that <see cref="Flawright.InputModes.IInputMode.DragTo"/>
+/// into a form that <see cref="IInputMode.DragTo"/>
 /// can understand.
 /// </summary>
 file sealed class PointElementBackend : IElementBackend

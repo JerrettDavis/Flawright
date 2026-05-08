@@ -11,7 +11,7 @@ namespace Flawright;
 /// overrides <see cref="BoundingRectangle"/> with a 1×1 rectangle at the given
 /// point. Used by <see cref="FlawrightElement.HoverAsync"/> to translate a
 /// position-override offset into a form that
-/// <see cref="Flawright.InputModes.IInputMode.Hover"/> can consume.
+/// <see cref="IInputMode.Hover"/> can consume.
 /// </summary>
 file sealed class SinglePointBackend : IElementBackend
 {
