@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — namespace consistency rename
+
+### Breaking Changes
+
+- All `JerrettDavis.Flawright*` namespaces, assembly names, and project directory paths have been renamed to `Flawright*` to match the published NuGet package identity (`Flawright`, `Flawright.Reqnroll`).
+
+**Source-level migration for library consumers:**
+
+| Old | New |
+|-----|-----|
+| `using JerrettDavis.Flawright;` | `using Flawright;` |
+| `using JerrettDavis.Flawright.Locator;` | `using Flawright.Locator;` |
+| `using JerrettDavis.Flawright.CloseBehaviors;` | `using Flawright.CloseBehaviors;` |
+| `using JerrettDavis.Flawright.InputModes;` | `using Flawright.InputModes;` |
+| `using JerrettDavis.Flawright.Reqnroll;` | `using Flawright.Reqnroll;` |
+
+**NuGet package IDs are unchanged** (`Flawright`, `Flawright.Reqnroll`) — no package reference updates required.
+
+This is a source-level breaking change. A major version bump is recommended at release time.
+
 ## [0.3.0] - 2026-05-07
 
 ### Added

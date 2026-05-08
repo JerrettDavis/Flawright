@@ -158,7 +158,7 @@ Feature-level tags apply to every scenario in the feature. Scenario-level tags o
 `IFlawright`, `IFlawrightBrowser`, and `IFlawrightPage` are registered into Reqnroll's BoDi container before any step runs. Inject them via constructor in your own `[Binding]` class:
 
 ```csharp
-using JerrettDavis.Flawright;
+using Flawright;
 using Reqnroll;
 
 [Binding]
@@ -203,8 +203,8 @@ public async Task FillAndLogAsync(string selector, string value)
 Register options once in a `[BeforeTestRun]` hook to set a default app path and timeout for the whole test run:
 
 ```csharp
-using JerrettDavis.Flawright;
-using JerrettDavis.Flawright.Reqnroll;
+using Flawright;
+using Flawright.Reqnroll;
 using Reqnroll;
 using Reqnroll.BoDi;
 

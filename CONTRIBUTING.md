@@ -28,10 +28,10 @@ dotnet build
 
 ```bash
 # Unit tests only (fast, no UI required)
-dotnet test tests/JerrettDavis.Flawright.UnitTests
+dotnet test tests/Flawright.UnitTests
 
 # E2E tests (requires a GUI session — do not run headless)
-dotnet test tests/JerrettDavis.Flawright.E2ETests
+dotnet test tests/Flawright.E2ETests
 ```
 
 ## Coding Standards
@@ -53,7 +53,7 @@ docs: update README with usage examples
 
 ## Pull Request Process
 
-1. Ensure all unit tests pass (`dotnet test tests/JerrettDavis.Flawright.UnitTests`)
+1. Ensure all unit tests pass (`dotnet test tests/Flawright.UnitTests`)
 2. Update `CHANGELOG.md` under `[Unreleased]`
 3. One feature/fix per PR
 4. PRs require at least one review before merging

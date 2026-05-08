@@ -159,7 +159,7 @@ var all = await page.Locator("controltype:ListItem").AllAsync();
 Use `Filter` to narrow down a locator using `LocatorFilterOptions`. Available predicates include `HasText`, `HasNotText`, `Has` (a locator), and `HasNot` (a locator).
 
 ```csharp
-using JerrettDavis.Flawright.Locator; // for LocatorFilterOptions
+using Flawright.Locator; // for LocatorFilterOptions
 
 // Only list items whose text contains "Save"
 var saveItems = page.Locator("controltype:ListItem")

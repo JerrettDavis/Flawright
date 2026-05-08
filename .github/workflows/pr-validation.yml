@@ -63,12 +63,12 @@ jobs:
 
       - name: Run tests
         run: >
-          dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj
+          dotnet test tests/Flawright.UnitTests/Flawright.UnitTests.csproj
           --configuration Release
           --no-build
           --verbosity normal
           --collect:"XPlat Code Coverage"
-          --settings tests/JerrettDavis.Flawright.UnitTests/coverlet.runsettings
+          --settings tests/Flawright.UnitTests/coverlet.runsettings
           --logger "trx;LogFileName=test-results.trx"
           --results-directory ./TestResults
 

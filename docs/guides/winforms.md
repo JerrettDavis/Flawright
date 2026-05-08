@@ -76,8 +76,8 @@ page.Locator("controltype:Button").Nth(2) // Third button
 A typical WinForms login form with a username TextBox (`Name = "txtUsername"`), a password TextBox (`Name = "txtPassword"`), and a Login button (`Name = "btnLogin"`):
 
 ```csharp
-using JerrettDavis.Flawright;
-using JerrettDavis.Flawright.Locator;
+using Flawright;
+using Flawright.Locator;
 using Xunit;
 
 public class LoginFormTests : IAsyncLifetime

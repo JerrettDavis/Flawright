@@ -52,7 +52,7 @@ await page.ClickAsync("name:Next");
 This example shows a generic wizard flow. Real installer control names vary — use Accessibility Insights against your installer to find the correct names.
 
 ```csharp
-using JerrettDavis.Flawright;
+using Flawright;
 using Xunit;
 
 public class InstallerTests : IAsyncLifetime
@@ -101,7 +101,7 @@ public class InstallerTests : IAsyncLifetime
         // Step 5: Wait for progress to complete — the "Finish" button appears
         // when installation is done. Give it extra time.
         await page.Locator("name:Finish").WaitForAsync(
-            new JerrettDavis.Flawright.Locator.LocatorWaitForOptions
+            new Flawright.Locator.LocatorWaitForOptions
             {
                 Timeout = TimeSpan.FromMinutes(5)
             });

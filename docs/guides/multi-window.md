@@ -120,8 +120,8 @@ var firstChild = mdiClient.Locator("controltype:Window").First;
 ## Worked example: Notepad Save As dialog
 
 ```csharp
-using JerrettDavis.Flawright;
-using JerrettDavis.Flawright.Locator;
+using Flawright;
+using Flawright.Locator;
 using Xunit;
 
 public class MultiWindowTests : IAsyncLifetime

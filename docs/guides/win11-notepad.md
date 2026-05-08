@@ -44,7 +44,7 @@ await using var fw = await Flawright.LaunchAsync(new LaunchOptions
 ## Worked example
 
 ```csharp
-using JerrettDavis.Flawright;
+using Flawright;
 using Xunit;
 
 public class NotepadTests : IAsyncLifetime

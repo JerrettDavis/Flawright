@@ -12,7 +12,7 @@
 *.md @JerrettDavis
 
 # Library source
-/src/JerrettDavis.Flawright/ @JerrettDavis
+/src/Flawright/ @JerrettDavis
 
 # Tests
 /tests/ @JerrettDavis

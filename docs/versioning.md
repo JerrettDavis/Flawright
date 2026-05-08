@@ -26,9 +26,9 @@ From version 1.0 onward, Flawright will follow [Semantic Versioning 2.0.0](https
 
 The public API is everything declared `public` in the following namespaces:
 
-- `JerrettDavis.Flawright`
-- `JerrettDavis.Flawright.Locator`
-- `JerrettDavis.Flawright.Reqnroll` (companion package)
+- `Flawright`
+- `Flawright.Locator`
+- `Flawright.Reqnroll` (companion package)
 
 Everything marked `internal` — including backend implementations (`FlaUiApplicationLauncher`, `UiaElementBackend`, `FlaUiInputBackend`, `FlaUiApplicationHandle`, `AutoWait`, `SelectorParser`, `KeyParser`) — is **not** part of the public contract and may change or be removed in any release.
 
@@ -87,7 +87,7 @@ dotnet list package
 Or inspect the assembly version attribute:
 
 ```csharp
-var version = typeof(JerrettDavis.Flawright.Flawright).Assembly
+var version = typeof(Flawright.Flawright).Assembly
     .GetName()
     .Version;
 ```

@@ -66,11 +66,11 @@ jobs:
       # (E2E tests run real apps and have different coverage characteristics).
       - name: Test with coverage
         run: >
-          dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj
+          dotnet test tests/Flawright.UnitTests/Flawright.UnitTests.csproj
           --configuration Release
           --no-build
           --collect:"XPlat Code Coverage"
-          --settings tests/JerrettDavis.Flawright.UnitTests/coverlet.runsettings
+          --settings tests/Flawright.UnitTests/coverlet.runsettings
           --logger "trx;LogFileName=test-results.trx"
           --results-directory ./TestResults
 
@@ -118,7 +118,7 @@ jobs:
             "-reports:$reports" `
             "-targetdir:coverage-report" `
             "-reporttypes:HtmlInline;Cobertura;TextSummary;Badges" `
-            "-assemblyfilters:+JerrettDavis.Flawright*;-*Tests*" `
+            "-assemblyfilters:+Flawright*;-*Tests*" `
             "-filefilters:-**/*.Tests/*;-**/*Tests*/**"
           $summary = Get-Content coverage-report/Summary.txt -Raw
           "COVERAGE_SUMMARY<<EOF`n$summary`nEOF" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -184,18 +184,18 @@ jobs:
             nuget-${{ runner.os }}-
 
       - name: Restore
-        run: dotnet restore tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj
+        run: dotnet restore tests/Flawright.E2ETests/Flawright.E2ETests.csproj
 
       - name: Build E2E
         run: >
-          dotnet build tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj
+          dotnet build tests/Flawright.E2ETests/Flawright.E2ETests.csproj
           --configuration Release
           --no-restore
           /p:ContinuousIntegrationBuild=true
 
       - name: Run E2E tests
         run: >
-          dotnet test tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj
+          dotnet test tests/Flawright.E2ETests/Flawright.E2ETests.csproj
           --configuration Release
           --no-build
           --logger "trx;LogFileName=e2e-results.trx"
@@ -258,11 +258,11 @@ jobs:
       # Targeting the UnitTests project directly keeps coverage collection clean.
       - name: Test (Release)
         run: >
-          dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj
+          dotnet test tests/Flawright.UnitTests/Flawright.UnitTests.csproj
           --configuration Release
           --no-build
           --collect:"XPlat Code Coverage"
-          --settings tests/JerrettDavis.Flawright.UnitTests/coverlet.runsettings
+          --settings tests/Flawright.UnitTests/coverlet.runsettings
           --results-directory ./TestResults
 
       - name: Check coverage threshold

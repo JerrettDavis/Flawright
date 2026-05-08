@@ -41,8 +41,8 @@ Launch Notepad, type some text, and assert it landed. The correct selector depen
 **Windows 11 Notepad** (WinUI3 packaged app — default on Win11):
 
 ```csharp
-using JerrettDavis.Flawright;
-using JerrettDavis.Flawright.CloseBehaviors;
+using Flawright;
+using Flawright.CloseBehaviors;
 
 // Configure how the app closes — Notepad shows a save-changes dialog,
 // so opt into dialog-dismissing close behavior.
@@ -68,8 +68,8 @@ await fw.Browser.CloseAsync();
 **Classic Windows 10 Notepad** (Win32 — also present on some Win11 installs):
 
 ```csharp
-using JerrettDavis.Flawright;
-using JerrettDavis.Flawright.CloseBehaviors;
+using Flawright;
+using Flawright.CloseBehaviors;
 
 await using var fw = await Flawright.LaunchAsync(
     new LaunchOptions { ApplicationPath = "notepad.exe" },
@@ -212,7 +212,7 @@ var title = await page.TitleAsync();
 A locator is a reusable description of how to find an element. It does not execute until you call an action on it. This lets you define locators once and assert them multiple times. All resolution is auto-waited.
 
 ```csharp
-using JerrettDavis.Flawright.Locator; // for LocatorFilterOptions
+using Flawright.Locator; // for LocatorFilterOptions
 
 var saveButton = page.Locator("name:Save");
 
@@ -340,7 +340,7 @@ var saveDialog = await fw.Browser.WaitForPageAsync("Save As");
 Configure at launch time:
 
 ```csharp
-using JerrettDavis.Flawright.CloseBehaviors;
+using Flawright.CloseBehaviors;
 
 // Notepad shows a save-changes dialog — use the dialog-dismissing behavior.
 var options = new FlawrightOptions
@@ -398,7 +398,7 @@ var options = new FlawrightOptions
 **`VirtualInputMode`** drives the application via UIA patterns (`InvokePattern`, `ValuePattern`, etc.) — no focus-steal, no cursor movement. Recommended for CI runs and bulk test suites. Actions without a UIA equivalent throw `NotSupportedException` with an actionable message.
 
 ```csharp
-using JerrettDavis.Flawright.InputModes;
+using Flawright.InputModes;
 
 var options = new FlawrightOptions
 {
@@ -452,7 +452,7 @@ button.AsButton().Invoke();
 **Flawright**
 
 ```csharp
-using JerrettDavis.Flawright;
+using Flawright;
 
 await using var fw = await Flawright.LaunchAsync(new LaunchOptions { ApplicationPath = "myapp.exe" });
 var page = await fw.Browser.NewPageAsync();
@@ -501,7 +501,7 @@ Full documentation site: [jerrettdavis.github.io/Flawright](https://jerrettdavis
 ```
 Flawright/
 ├── src/
-│   ├── JerrettDavis.Flawright/          # Core library
+│   ├── Flawright/          # Core library
 │   │   ├── Flawright.cs                  # Entry point (LaunchAsync / AttachAsync)
 │   │   ├── FlawrightBrowser.cs           # Application wrapper (IFlawrightBrowser)
 │   │   ├── FlawrightPage.cs              # Window wrapper (IFlawrightPage)
@@ -514,7 +514,7 @@ Flawright/
 │   │   ├── AutoWait.cs                   # Internal polling loop
 │   │   ├── Selectors/SelectorParser.cs   # Selector string → FlaUI condition
 │   │   └── Input/KeyParser.cs            # Key/chord string → FlaUI keyboard input
-│   └── JerrettDavis.Flawright.Reqnroll/  # BDD companion package
+│   └── Flawright.Reqnroll/  # BDD companion package
 │       ├── FlawrightReqnrollHooks.cs     # BeforeScenario / AfterScenario lifecycle
 │       ├── FlawrightReqnrollOptions.cs   # Global BDD options (default app path, timeout)
 │       ├── FlawrightSteps.cs             # 25 built-in step bindings
@@ -523,8 +523,8 @@ Flawright/
 │   ├── Flawright.Reqnroll.NotepadDemo/   # Gherkin-driven Notepad tests
 │   └── Flawright.Reqnroll.CalculatorDemo/# Gherkin-driven Calculator tests
 ├── tests/
-│   ├── JerrettDavis.Flawright.UnitTests/ # Unit tests (SelectorParser, KeyParser, AutoWait)
-│   └── JerrettDavis.Flawright.E2ETests/  # E2E tests (Notepad, Calculator)
+│   ├── Flawright.UnitTests/ # Unit tests (SelectorParser, KeyParser, AutoWait)
+│   └── Flawright.E2ETests/  # E2E tests (Notepad, Calculator)
 └── docs/                                 # Extended documentation
 ```
 

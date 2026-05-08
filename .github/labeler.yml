@@ -3,12 +3,12 @@
 library:
   - changed-files:
     - any-glob-to-any-file:
-      - 'src/JerrettDavis.Flawright/**'
+      - 'src/Flawright/**'
 
 reqnroll:
   - changed-files:
     - any-glob-to-any-file:
-      - 'src/JerrettDavis.Flawright.Reqnroll/**'
+      - 'src/Flawright.Reqnroll/**'
 
 tests:
   - changed-files:

@@ -1,14 +1,14 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/JerrettDavis.Flawright/JerrettDavis.Flawright.csproj" />
-    <Project Path="src/JerrettDavis.Flawright.Reqnroll/JerrettDavis.Flawright.Reqnroll.csproj" />
+    <Project Path="src/Flawright/Flawright.csproj" />
+    <Project Path="src/Flawright.Reqnroll/Flawright.Reqnroll.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj" />
-    <Project Path="tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj" />
+    <Project Path="tests/Flawright.E2ETests/Flawright.E2ETests.csproj" />
+    <Project Path="tests/Flawright.UnitTests/Flawright.UnitTests.csproj" />
   </Folder>
   <Folder Name="/samples/">
-    <Project Path="samples/Flawright.Reqnroll.NotepadDemo/JerrettDavis.Flawright.Reqnroll.NotepadDemo.csproj" />
-    <Project Path="samples/Flawright.Reqnroll.CalculatorDemo/JerrettDavis.Flawright.Reqnroll.CalculatorDemo.csproj" />
+    <Project Path="samples/Flawright.Reqnroll.NotepadDemo/Flawright.Reqnroll.NotepadDemo.csproj" />
+    <Project Path="samples/Flawright.Reqnroll.CalculatorDemo/Flawright.Reqnroll.CalculatorDemo.csproj" />
   </Folder>
 </Solution>

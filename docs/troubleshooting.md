@@ -9,7 +9,7 @@ Locator actions (such as `ClickAsync`, `FillAsync`, `WaitForAsync`, and assertio
 **Check the timing.** The element may not yet be in the UIA tree when the call starts. The auto-waiting loop retries every 100ms (default) for up to 5 seconds (default). If your application is slow to render, increase the timeout:
 
 ```csharp
-using JerrettDavis.Flawright.Locator; // for LocatorWaitForOptions
+using Flawright.Locator; // for LocatorWaitForOptions
 
 await page.Locator("#myButton").WaitForAsync(
     new LocatorWaitForOptions { Timeout = TimeSpan.FromSeconds(15) });

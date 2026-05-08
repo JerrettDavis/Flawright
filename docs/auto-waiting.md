@@ -41,7 +41,7 @@ await using var fw = await Flawright.LaunchAsync(
 Every locator and page action accepts an optional `timeout` parameter and a `CancellationToken`:
 
 ```csharp
-using JerrettDavis.Flawright.Locator; // for LocatorWaitForOptions
+using Flawright.Locator; // for LocatorWaitForOptions
 
 // Wait up to 30 seconds for a specific element
 var locator = page.Locator("name:Loading Complete");
@@ -86,7 +86,7 @@ await page.Locator("name:Dialog").Expect()
 When the deadline is exceeded, `FlawrightTimeoutException` is thrown. It carries the selector string and the elapsed duration:
 
 ```csharp
-using JerrettDavis.Flawright.Locator; // for LocatorWaitForOptions
+using Flawright.Locator; // for LocatorWaitForOptions
 
 try
 {

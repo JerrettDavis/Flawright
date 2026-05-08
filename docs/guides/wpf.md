@@ -93,8 +93,8 @@ page.Locator("#mainContent >> controltype:Button")
 A WPF window with a search TextBox (`x:Name="txtSearch"`), a Search button (`x:Name="btnSearch"`), and a results list (`x:Name="lstResults"`):
 
 ```csharp
-using JerrettDavis.Flawright;
-using JerrettDavis.Flawright.Locator;
+using Flawright;
+using Flawright.Locator;
 using Xunit;
 
 public class WpfSearchTests : IAsyncLifetime

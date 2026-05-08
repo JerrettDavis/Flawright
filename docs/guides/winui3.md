@@ -134,8 +134,8 @@ page.Locator("#MainContentFrame >> #MyButton")
 ## Worked example: settings-style app
 
 ```csharp
-using JerrettDavis.Flawright;
-using JerrettDavis.Flawright.Locator;
+using Flawright;
+using Flawright.Locator;
 using Xunit;
 
 public class WinUI3AppTests : IAsyncLifetime

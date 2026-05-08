@@ -1,6 +1,6 @@
 # Examples
 
-Each example below is a self-contained test method. Add `using JerrettDavis.Flawright;` and a reference to `Flawright` to compile them.
+Each example below is a self-contained test method. Add `using Flawright;` and a reference to `Flawright` to compile them.
 
 ## Calculator: arithmetic sequence
 

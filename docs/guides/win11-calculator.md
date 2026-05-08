@@ -76,7 +76,7 @@ await using var fw = await Flawright.LaunchAsync(new LaunchOptions
 ## Worked example: 1 + 2 = 3
 
 ```csharp
-using JerrettDavis.Flawright;
+using Flawright;
 using Xunit;
 
 public class CalculatorTests : IAsyncLifetime

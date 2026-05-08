@@ -76,7 +76,7 @@ page.Locator("controltype:ListItem").Nth(0)
 Navigating Windows Settings to a specific page:
 
 ```csharp
-using JerrettDavis.Flawright;
+using Flawright;
 using Xunit;
 
 public class SettingsAppTests : IAsyncLifetime

@@ -141,7 +141,7 @@ await page.Locator("#slowElement").WaitForAsync(
 
 ## Code coverage and the FlaUI bridge
 
-Several classes in `JerrettDavis.Flawright` are annotated `[ExcludeFromCodeCoverage]`:
+Several classes in `Flawright` are annotated `[ExcludeFromCodeCoverage]`:
 
 - `UiaElementBackend`, `FlaUiApplicationLauncher`, `FlaUiApplicationHandle`, `FlaUiInputBackend` — these make real UIA COM calls. They cannot be meaningfully unit-tested without a live Windows desktop session running the target application.
 - All `*Options` record types — pure data, no logic.

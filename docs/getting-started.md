@@ -67,7 +67,7 @@ The following is a complete, runnable xUnit test that launches Notepad, types te
 **Test file**
 
 ```csharp
-using JerrettDavis.Flawright;
+using Flawright;
 using Xunit;
 
 public class NotepadTests : IAsyncLifetime

@@ -83,7 +83,7 @@ Workaround: ensure the test process is already running elevated so the applicati
 > **This example requires the test process to run elevated.**
 
 ```csharp
-using JerrettDavis.Flawright;
+using Flawright;
 using Xunit;
 
 public class RegistryEditorTests : IAsyncLifetime
@@ -114,7 +114,7 @@ public class RegistryEditorTests : IAsyncLifetime
         var page = await _fw!.Browser.NewPageAsync();
 
         var hklmNode = page.Locator("controltype:TreeItem")
-            .Filter(new JerrettDavis.Flawright.Locator.LocatorFilterOptions
+            .Filter(new Flawright.Locator.LocatorFilterOptions
             {
                 HasText = "HKEY_LOCAL_MACHINE"
             });
