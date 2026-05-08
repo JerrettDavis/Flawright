@@ -1,0 +1,109 @@
+name: Publish docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'src/**/*.cs'
+      - 'src/**/*.csproj'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'src/**/*.cs'
+      - 'src/**/*.csproj'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  pages: write
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  validate-docs:
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Flawright.slnx
+
+      - name: Install docfx
+        run: dotnet tool update -g docfx
+
+      - name: Build documentation
+        run: docfx docs/docfx.json
+
+      - name: Validate output
+        shell: pwsh
+        run: |
+          if (-not (Test-Path docs/_site)) {
+            Write-Error "Documentation build did not create _site directory"
+            exit 1
+          }
+          $htmlCount = (Get-ChildItem -Path docs/_site -Recurse -Filter *.html).Count
+          Write-Host "Generated $htmlCount HTML files"
+          if ($htmlCount -lt 1) {
+            Write-Error "No HTML files were generated"
+            exit 1
+          }
+          Write-Host "::notice::Documentation validation passed! Generated $htmlCount pages."
+
+      - name: Upload preview
+        uses: actions/upload-artifact@v7
+        with:
+          name: documentation-preview
+          path: docs/_site
+          retention-days: 7
+
+  publish-docs:
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Flawright.slnx
+
+      - name: Install docfx
+        run: dotnet tool update -g docfx
+
+      - name: Build documentation
+        run: docfx docs/docfx.json
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/_site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

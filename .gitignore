@@ -69,6 +69,10 @@ coverage/
 docs/_site/
 docs/api/
 !docs/api/index.md
+.docfx.cache/
+
+## Reqnroll — generated step-binding glue
+*.feature.cs
 
 ## OS
 Thumbs.db
