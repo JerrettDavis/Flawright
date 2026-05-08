@@ -199,11 +199,14 @@ jobs:
         if: always()
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Continue'
           Write-Host "=== Get-AppxPackage *Calculator* *Notepad* *Paint* ==="
-          Get-AppxPackage *Calculator*, *Notepad*, *Paint* | Select-Object Name, PackageFamilyName, PackageFullName, InstallLocation | Format-List
+          foreach ($pat in @('*Calculator*', '*Notepad*', '*Paint*')) {
+            Get-AppxPackage $pat -ErrorAction SilentlyContinue | Select-Object Name, PackageFamilyName, PackageFullName, InstallLocation | Format-List
+          }
           Write-Host ""
           Write-Host "=== Get-AppxPackage -AllUsers *Calculator* (machine-wide) ==="
-          Get-AppxPackage -AllUsers *Calculator* | Select-Object Name, PackageFamilyName, PackageFullName, IsFramework, IsResourcePackage | Format-List
+          Get-AppxPackage -AllUsers *Calculator* -ErrorAction SilentlyContinue | Select-Object Name, PackageFamilyName, PackageFullName, IsFramework, IsResourcePackage | Format-List
           Write-Host ""
           Write-Host "=== %LOCALAPPDATA%\Microsoft\WindowsApps contents ==="
           $windowsApps = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps"
