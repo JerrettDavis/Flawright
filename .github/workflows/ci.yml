@@ -131,8 +131,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
         with:
-          files: |
-            **/TestResults/*/coverage.cobertura.xml
+          files: "**/TestResults/*/coverage.cobertura.xml"
           flags: unittests
           fail_ci_if_error: true
           verbose: true
@@ -234,8 +233,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
         with:
-          files: |
-            **/TestResults/*/coverage.cobertura.xml
+          files: "**/TestResults/*/coverage.cobertura.xml"
           flags: unittests
           fail_ci_if_error: false
           verbose: true
