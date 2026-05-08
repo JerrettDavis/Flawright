@@ -6,26 +6,39 @@ using Xunit;
 namespace Flawright.E2ETests;
 
 /// <summary>
-/// E2E tests for Notepad.  Uses <see cref="IAsyncLifetime"/> so that
-/// <c>DisposeAsync</c> is guaranteed to run even when a test throws.
+/// Opt-in E2E tests for the system Notepad application.
+/// Each test skips automatically with a descriptive reason when
+/// <c>notepad.exe</c> is not available as a real (non-stub) executable
+/// on the current machine.
 /// </summary>
 /// <remarks>
-/// Uses <see cref="VirtualInputMode"/> — all actions in this fixture use
-/// <c>FillAsync</c>, <c>InputValueAsync</c>, <c>CountAsync</c>,
-/// <c>TitleAsync</c>, and <c>ScreenshotAsync</c>, which are all UIA-pattern
-/// compatible.  No hover, drag, double-click, or key chords are used.
+/// <para>
+/// These tests are intentionally opt-in: on <c>windows-latest</c> CI runners
+/// (Windows Server 2025) the Store version of Notepad may not be installed,
+/// causing every test to skip rather than fail.  They run automatically on
+/// developer machines and Windows 11 Pro CI runners where Notepad is present.
+/// </para>
+/// <para>
+/// For deterministic, always-on E2E coverage use
+/// <see cref="TestAppTests"/> which targets the repo-shipped WPF test app.
+/// </para>
+/// <para>
+/// Uses <see cref="VirtualInputMode"/> — all actions use UIA patterns only
+/// (no focus-steal, no cursor movement), safe for CI runners.
+/// </para>
 /// </remarks>
-public class NotepadTests : IAsyncLifetime
+public class SystemNotepadTests : IAsyncLifetime
 {
     private IFlawright? _fw;
 
+    /// <inheritdoc/>
     public async Task InitializeAsync()
     {
         // Configure DismissDialogCloseBehavior so CloseAsync handles
         // the "save changes?" dialog that Notepad shows on exit.
         // VirtualInputMode: drives Notepad via UIA patterns — no focus-steal,
         // no cursor movement, safe for CI runners.
-        _fw = await Flawright.LaunchAsync(
+        _fw = await global::Flawright.Flawright.LaunchAsync(
             new LaunchOptions { ApplicationPath = "notepad.exe" },
             new FlawrightOptions
             {
@@ -34,6 +47,7 @@ public class NotepadTests : IAsyncLifetime
             });
     }
 
+    /// <inheritdoc/>
     public async Task DisposeAsync()
     {
         if (_fw != null)
@@ -45,14 +59,16 @@ public class NotepadTests : IAsyncLifetime
         }
     }
 
-    [Fact]
+    /// <summary>Verifies that Notepad launches and a window can be retrieved.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_LaunchAndFindWindow()
     {
         var page = await _fw!.Browser.NewPageAsync();
         Assert.NotNull(page);
     }
 
-    [Fact]
+    /// <summary>Finds the Notepad text-editor control by its UIA class name.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_FindTextBox_ByControlType()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -63,7 +79,8 @@ public class NotepadTests : IAsyncLifetime
         Assert.NotNull(textBox);
     }
 
-    [Fact]
+    /// <summary>Types text into the Notepad editor and reads it back.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_TypeText()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -73,7 +90,8 @@ public class NotepadTests : IAsyncLifetime
         Assert.Equal("Hello Flawright!", text);
     }
 
-    [Fact]
+    /// <summary>Finds the menu bar in the Notepad window.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_FindMenuBar()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -84,7 +102,8 @@ public class NotepadTests : IAsyncLifetime
         Assert.NotNull(menuBar);
     }
 
-    [Fact]
+    /// <summary>Takes a screenshot of the Notepad window.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_Screenshot()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -94,7 +113,8 @@ public class NotepadTests : IAsyncLifetime
         Assert.True(screenshot.Length > 0);
     }
 
-    [Fact]
+    /// <summary>Asserts that the Notepad editor is visible.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_ExpectToBeVisible()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -102,7 +122,8 @@ public class NotepadTests : IAsyncLifetime
         await page.Locator("class:Edit").Expect().ToBeVisibleAsync();
     }
 
-    [Fact]
+    /// <summary>Asserts that the Notepad editor is enabled.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_ExpectToBeEnabled()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -110,7 +131,8 @@ public class NotepadTests : IAsyncLifetime
         await page.Locator("class:Edit").Expect().ToBeEnabledAsync();
     }
 
-    [Fact]
+    /// <summary>Counts the number of Edit controls in the Notepad window.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_CountElements()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -119,7 +141,8 @@ public class NotepadTests : IAsyncLifetime
         Assert.Equal(1, count);
     }
 
-    [Fact]
+    /// <summary>Verifies that the Notepad window title is non-empty.</summary>
+    [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_GetTitle_ReturnsNonEmpty()
     {
         var page = await _fw!.Browser.NewPageAsync();

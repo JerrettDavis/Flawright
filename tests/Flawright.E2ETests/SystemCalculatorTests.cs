@@ -5,26 +5,39 @@ using Xunit;
 namespace Flawright.E2ETests;
 
 /// <summary>
-/// E2E tests for Windows Calculator.  Uses <see cref="IAsyncLifetime"/> so
-/// that <c>DisposeAsync</c> is guaranteed to run even when a test throws.
-/// <see cref="Flawright.DisposeAsync"/> closes the process and kills it
-/// if it has not yet exited.
+/// Opt-in E2E tests for the Windows Calculator application.
+/// Each test skips automatically with a descriptive reason when the
+/// Calculator AppX package is not installed on the current machine.
 /// </summary>
 /// <remarks>
-/// Uses <see cref="VirtualInputMode"/> — all actions in this fixture use
-/// <c>ClickAsync</c> (via <c>InvokePattern</c>), <c>CountAsync</c>, and
-/// <c>ScreenshotAsync</c>, which are all UIA-pattern compatible.  No hover,
-/// drag, double-click, or key chords are used.
+/// <para>
+/// These tests are intentionally opt-in: <c>windows-latest</c> CI runners
+/// (Windows Server 2025) do not ship the UWP Calculator, so every test
+/// skips with a human-readable message rather than failing.  They run
+/// automatically on developer machines and Windows 11 Pro CI runners
+/// where Calculator is installed.
+/// </para>
+/// <para>
+/// For deterministic, always-on E2E coverage use
+/// <see cref="TestAppTests"/> which targets the repo-shipped WPF test app.
+/// </para>
+/// <para>
+/// Uses <see cref="VirtualInputMode"/> — all actions use UIA patterns
+/// (no focus-steal, no cursor movement), safe for CI runners.
+/// </para>
 /// </remarks>
-public class CalculatorTests : IAsyncLifetime
+public class SystemCalculatorTests : IAsyncLifetime
 {
+    private const string CalculatorAumid = "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App";
+
     private IFlawright? _fw;
 
+    /// <inheritdoc/>
     public async Task InitializeAsync()
     {
         // VirtualInputMode: drives Calculator via UIA patterns — no focus-steal,
         // no cursor movement, safe for CI runners.
-        _fw = await Flawright.LaunchAsync(
+        _fw = await global::Flawright.Flawright.LaunchAsync(
             new LaunchOptions { ApplicationPath = "calc.exe" },
             new FlawrightOptions
             {
@@ -32,20 +45,23 @@ public class CalculatorTests : IAsyncLifetime
             });
     }
 
+    /// <inheritdoc/>
     public async Task DisposeAsync()
     {
         if (_fw != null)
             await _fw.DisposeAsync();
     }
 
-    [Fact]
+    /// <summary>Verifies that Calculator launches and a window can be retrieved.</summary>
+    [RequiresAppFact(Aumid = CalculatorAumid)]
     public async Task Calculator_LaunchAndFindWindow()
     {
         var page = await _fw!.Browser.NewPageAsync();
         Assert.NotNull(page);
     }
 
-    [Fact]
+    /// <summary>Counts button controls and confirms at least one exists.</summary>
+    [RequiresAppFact(Aumid = CalculatorAumid)]
     public async Task Calculator_FindNumberButtons()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -54,7 +70,8 @@ public class CalculatorTests : IAsyncLifetime
         Assert.True(buttonCount > 0, "Calculator should have buttons");
     }
 
-    [Fact]
+    /// <summary>Clicks the "3" number button via its automation ID.</summary>
+    [RequiresAppFact(Aumid = CalculatorAumid)]
     public async Task Calculator_ClickButton()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -64,7 +81,8 @@ public class CalculatorTests : IAsyncLifetime
         // Clicking without error means the API works
     }
 
-    [Fact]
+    /// <summary>Takes a screenshot of the Calculator window.</summary>
+    [RequiresAppFact(Aumid = CalculatorAumid)]
     public async Task Calculator_Screenshot()
     {
         var page = await _fw!.Browser.NewPageAsync();
@@ -74,7 +92,8 @@ public class CalculatorTests : IAsyncLifetime
         Assert.True(screenshot.Length > 0);
     }
 
-    [Fact]
+    /// <summary>Asserts that at least one Calculator button is visible.</summary>
+    [RequiresAppFact(Aumid = CalculatorAumid)]
     public async Task Calculator_ExpectButtonsToBeVisible()
     {
         var page = await _fw!.Browser.NewPageAsync();
