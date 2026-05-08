@@ -59,6 +59,30 @@ public interface IFlawrightBrowser : IAsyncDisposable
         string titleOrPredicate,
         TimeSpan? timeout = null,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Closes the application gracefully. If a "save changes?" dialog appears,
+    /// the discard-changes button is clicked automatically (handling both
+    /// "Don't Save" and "Don't save" variants for cross-OS compatibility).
+    /// Falls back to a process kill if the app does not exit within
+    /// <paramref name="timeout"/>.
+    /// </summary>
+    /// <param name="discardUnsavedChanges">
+    ///   When true (the default), automatically clicks "Don't Save" / "Don't save"
+    ///   on any save-changes dialog that appears. When false, the method does not
+    ///   interact with dialogs — you can drive the dialog yourself first, or
+    ///   accept that the dispose force-kill will handle it.
+    /// </param>
+    /// <param name="timeout">
+    ///   How long to wait for clean exit before falling back to a process kill.
+    ///   Defaults to 5 seconds.
+    /// </param>
+    /// <returns>
+    ///   True if the application exited gracefully (either because no dialog appeared,
+    ///   or the discard button was clicked successfully). False if the method had to
+    ///   fall back to a process kill.
+    /// </returns>
+    Task<bool> CloseAsync(bool discardUnsavedChanges = true, TimeSpan? timeout = null);
 }
 
 /// <summary>

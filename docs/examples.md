@@ -80,6 +80,9 @@ public async Task Notepad_TypeAndVerify()
     // Capture a screenshot for the test report
     byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad-test.png");
     Assert.True(png.Length > 0);
+
+    // Gracefully close — dismisses the "save changes?" dialog if it appears
+    await fw.Browser.CloseAsync();
 }
 
 [Fact]
@@ -196,6 +199,9 @@ public async Task Notepad_KeyboardInput()
 
     // Select all and copy with a chord
     await page.PressAsync("#RichEditBox", "Ctrl+A");
+
+    // Gracefully close — dismisses the "save changes?" dialog if it appears
+    await fw.Browser.CloseAsync();
 }
 ```
 

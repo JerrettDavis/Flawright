@@ -55,6 +55,9 @@ await page.FillAsync("#RichEditBox", "Hello from Flawright!");
 await page.Locator("#RichEditBox").Expect().ToBeVisibleAsync();
 
 byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
+
+// Gracefully close — dismisses the "save changes?" dialog if it appears
+await fw.Browser.CloseAsync();
 ```
 
 **Classic Windows 10 Notepad** (Win32 — also present on some Win11 installs):
@@ -74,6 +77,9 @@ await page.FillAsync("class:Edit", "Hello from Flawright!");
 await page.Locator("class:Edit").Expect().ToBeVisibleAsync();
 
 byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
+
+// Gracefully close — dismisses the "save changes?" dialog if it appears
+await fw.Browser.CloseAsync();
 ```
 
 > **Windows 10 vs Windows 11 Notepad**

@@ -99,6 +99,22 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
     }
 
     /// <inheritdoc/>
+    public IElementBackend? FindButtonByName(string buttonName)
+    {
+        var cf = _automation.ConditionFactory;
+        var condition = cf.ByName(buttonName).And(cf.ByControlType(FlaUI.Core.Definitions.ControlType.Button));
+
+        foreach (var window in _app.GetAllTopLevelWindows(_automation))
+        {
+            var found = window.FindFirstDescendant(condition);
+            if (found != null)
+                return new UiaElementBackend(found);
+        }
+
+        return null;
+    }
+
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (_disposed)

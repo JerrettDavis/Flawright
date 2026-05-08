@@ -38,4 +38,16 @@ internal interface IApplicationHandle : IDisposable
 
     /// <summary>Returns element backends for all current top-level windows.</summary>
     IReadOnlyList<IElementBackend> GetAllTopLevelWindows();
+
+    /// <summary>
+    /// Searches all current top-level windows for a button descendant whose UIA Name
+    /// exactly matches <paramref name="buttonName"/>.  Returns the first match, or
+    /// <see langword="null"/> if no such button exists.
+    /// </summary>
+    /// <remarks>
+    /// Used by <see cref="FlawrightBrowser.CloseAsync"/> to locate the discard-changes
+    /// button on a "save changes?" dialog without introducing new backend abstractions.
+    /// </remarks>
+    /// <param name="buttonName">The exact UIA Name of the button to find.</param>
+    IElementBackend? FindButtonByName(string buttonName);
 }

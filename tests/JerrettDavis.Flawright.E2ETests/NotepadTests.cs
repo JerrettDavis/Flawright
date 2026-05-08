@@ -22,7 +22,11 @@ public class NotepadTests : IAsyncLifetime
     public async Task DisposeAsync()
     {
         if (_fw != null)
+        {
+            // Gracefully close — dismisses the "save changes?" dialog if it appears
+            await _fw.Browser.CloseAsync();
             await _fw.DisposeAsync();
+        }
     }
 
     [Fact]

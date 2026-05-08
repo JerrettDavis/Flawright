@@ -39,6 +39,9 @@ internal static class ReadmeQuickstartCompileCheck
 
         // Take a screenshot — string-path overload (the bug that was reported)
         byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
+
+        // Gracefully close — dismisses the "save changes?" dialog if it appears
+        await fw.Browser.CloseAsync();
     }
 
     // ── README: Attach example ────────────────────────────────────────────────
@@ -153,6 +156,9 @@ internal static class ReadmeQuickstartCompileCheck
         await page.Locator("controltype:MenuBar").Expect().ToBeVisibleAsync();
 
         var png = await page.ScreenshotAsync();
+
+        // Gracefully close — dismisses the "save changes?" dialog if it appears
+        await fw.Browser.CloseAsync();
     }
 
     // ── docs/examples.md: Calculator ─────────────────────────────────────────
@@ -196,6 +202,9 @@ internal static class ReadmeQuickstartCompileCheck
 
         // String-path convenience overload
         byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad-test.png");
+
+        // Gracefully close — dismisses the "save changes?" dialog if it appears
+        await fw.Browser.CloseAsync();
     }
 
     // ── docs/examples.md: Attach to running process ──────────────────────────

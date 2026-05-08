@@ -86,6 +86,29 @@ internal sealed class FakeApplicationHandle : IApplicationHandle
         => (IReadOnlyList<IElementBackend>)(new List<IElementBackend> { _mainWindow }.AsReadOnly());
 
     /// <inheritdoc/>
+    public IElementBackend? FindButtonByName(string buttonName)
+    {
+        // Search the main window's descendants for a Button with the given name.
+        return SearchForButton(_mainWindow, buttonName);
+    }
+
+    private static FakeElementBackend? SearchForButton(FakeElementBackend root, string buttonName)
+    {
+        foreach (var child in root.Children)
+        {
+            if (string.Equals(child.ControlTypeName, "Button", StringComparison.Ordinal)
+                && string.Equals(child.Name, buttonName, StringComparison.Ordinal))
+                return child;
+
+            var found = SearchForButton(child, buttonName);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
+    /// <inheritdoc/>
     public void Dispose()
     {
         _disposed = true;

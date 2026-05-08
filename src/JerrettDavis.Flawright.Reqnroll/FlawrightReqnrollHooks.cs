@@ -108,6 +108,8 @@ public sealed class FlawrightReqnrollHooks
         try
         {
             var fw = _container.Resolve<IFlawright>();
+            // Gracefully close — dismisses the "save changes?" dialog if it appears
+            await fw.Browser.CloseAsync().ConfigureAwait(false);
             await fw.DisposeAsync().ConfigureAwait(false);
         }
         catch (ObjectContainerException) { /* never registered — InitializeAsync must have failed */ }
