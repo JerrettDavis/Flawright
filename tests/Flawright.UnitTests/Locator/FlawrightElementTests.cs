@@ -432,6 +432,44 @@ public sealed class FlawrightElementTests
         Assert.Null(text);
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TextPattern (TryGetDocumentText) fallback paths
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task InnerTextAsync_ReturnsDocumentText_WhenValuePatternNullAndTextPatternPresent()
+    {
+        // TryGetValue() returns null but TryGetDocumentText() returns text.
+        var backend = new DocumentTextBackend("rich content");
+        var element = new FlawrightElement(backend, new FakeInputBackend());
+
+        var result = await element.InnerTextAsync();
+
+        Assert.Equal("rich content", result);
+    }
+
+    [Fact]
+    public async Task TextContentAsync_ReturnsDocumentText_WhenValuePatternNullAndTextPatternPresent()
+    {
+        var backend = new DocumentTextBackend("doc text");
+        var element = new FlawrightElement(backend, new FakeInputBackend());
+
+        var result = await element.TextContentAsync();
+
+        Assert.Equal("doc text", result);
+    }
+
+    [Fact]
+    public async Task InputValueAsync_ReturnsDocumentText_WhenValuePatternNullAndTextPatternPresent()
+    {
+        var backend = new DocumentTextBackend("document value");
+        var element = new FlawrightElement(backend, new FakeInputBackend());
+
+        var result = await element.InputValueAsync();
+
+        Assert.Equal("document value", result);
+    }
+
     [Fact]
     public async Task IsEditableAsync_ReturnsTrue_WhenValuePatternSupportedAndEnabled()
     {
@@ -872,6 +910,45 @@ public sealed class FlawrightElementTests
     }
 
     // ── Helpers — custom backend for failure cases ────────────────────────────
+
+    /// <summary>
+    /// A minimal <see cref="IElementBackend"/> stub where <c>TryGetValue()</c>
+    /// returns <see langword="null"/> but <c>TryGetDocumentText()</c> returns the
+    /// provided text.  Used to exercise the TextPattern fallback paths in
+    /// <c>InnerTextAsync</c>, <c>TextContentAsync</c>, and <c>InputValueAsync</c>.
+    /// </summary>
+    private sealed class DocumentTextBackend : IElementBackend
+    {
+        private readonly string _documentText;
+        public DocumentTextBackend(string documentText) => _documentText = documentText;
+        public string? AutomationId => null;
+        public string? Name => "DocElement";
+        public string? ClassName => null;
+        public string ControlTypeName => "Edit";
+        public bool IsEnabled => true;
+        public bool IsOffscreen => false;
+        public System.Drawing.Rectangle BoundingRectangle => System.Drawing.Rectangle.Empty;
+        public void Click() { }
+        public void DoubleClick() { }
+        public void Focus() { }
+        public bool TrySetValue(string text) => true;
+        public string? TryGetValue() => null;
+        public string? TryGetDocumentText() => _documentText;
+        public bool TrySelect() => false;
+        public bool TryToggleOn() => false;
+        public bool TryToggleOff() => false;
+        public bool? GetToggleState() => null;
+        public bool? GetSelectionState() => null;
+        public string? GetSelectedText() => null;
+        public bool TryScrollIntoView() => false;
+        public bool TryExpand() => false;
+        public bool TrySelectItem(string nameOrId) => false;
+        public bool TryInvoke() => false;
+        public System.Collections.Generic.IEnumerable<IElementBackend> FindAll(IElementCondition condition)
+            => System.Linq.Enumerable.Empty<IElementBackend>();
+        public IElementBackend? FindFirst(IElementCondition condition) => null;
+        public byte[] CaptureScreenshot() => Array.Empty<byte>();
+    }
 
     /// <summary>
     /// A minimal <see cref="IElementBackend"/> stub that always returns

@@ -141,6 +141,20 @@ public sealed class LocatorReadTests
         Assert.False(isChecked);
     }
 
+    [Fact]
+    public async Task IsCheckedAsync_ReturnsFalse_WhenNeitherToggleNorSelectionPatternSupported()
+    {
+        // A plain Button has no TogglePattern and no SelectionItemPattern.
+        // The locator's IsCheckedAsync fallback should return false rather than throw.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Button("OK"))
+            .Build();
+        var locator = LocatorTestBase.CreateLocator("controltype:Button", root);
+
+        var isChecked = await locator.IsCheckedAsync();
+        Assert.False(isChecked);
+    }
+
     // ── SelectedTextAsync ─────────────────────────────────────────────────────
 
     [Fact]
