@@ -193,6 +193,10 @@ internal sealed class FlawrightPage : IFlawrightPage
         return Task.FromResult(Array.Empty<byte>());
     }
 
+    /// <inheritdoc/>
+    public Task<byte[]> ScreenshotAsync(string path, CancellationToken ct = default)
+        => ScreenshotAsync(new LocatorScreenshotOptions { Path = path }, ct);
+
     // ── IAsyncDisposable ──────────────────────────────────────────────────────
 
     /// <summary>

@@ -134,8 +134,7 @@ await saveButton.Expect().ToBeEnabledAsync();
 For assertions not in the built-in set, retrieve the element directly and assert with your test framework:
 
 ```csharp
-var element = await page.Locator("name:Title").FirstAsync();
-var text = await element.TextAsync();
+var text = await page.Locator("name:Title").InnerTextAsync();
 Assert.StartsWith("Welcome", text);
 ```
 

@@ -162,26 +162,28 @@ var title = await page.TitleAsync();
 A locator is a reusable description of how to find an element. It does not execute until you call an action on it. This lets you define locators once and assert them multiple times. All resolution is auto-waited.
 
 ```csharp
+using JerrettDavis.Flawright.Locator; // for LocatorFilterOptions
+
 var saveButton = page.Locator("name:Save");
 
 // Resolves the element (auto-waited) and clicks it
 await saveButton.ClickAsync();
 
-// Get the first match
-var el = await saveButton.FirstAsync();
+// Get the first match (sync — returns a new locator narrowed to the first element)
+var firstLocator = saveButton.First;
 
 // Count matching elements (no wait — returns current count)
 var count = await page.Locator("controltype:Button").CountAsync();
 
-// Get the nth match (0-indexed), auto-waited
-var second = await page.Locator("controltype:ListItem").NthAsync(1);
+// Get the nth match (0-indexed), sync — returns a new narrowed locator
+var second = page.Locator("controltype:ListItem").Nth(1);
 
 // Get all matching elements (auto-waits for at least one)
 var all = await page.Locator("controltype:ListItem").AllAsync();
 
-// Filter locator results with a predicate
+// Filter locator results by text content
 var filtered = page.Locator("controltype:ListItem")
-    .Filter(el => el.TextAsync().GetAwaiter().GetResult().Contains("Save"));
+    .Filter(new LocatorFilterOptions { HasText = "Save" });
 
 // Enter the assertion chain
 await saveButton.Expect().ToBeEnabledAsync();
@@ -189,7 +191,7 @@ await saveButton.Expect().ToBeEnabledAsync();
 
 ### `IFlawrightElement` — a resolved element
 
-Returned by `FirstAsync`, `NthAsync`, and `AllAsync`. Exposes actions on the concrete UIA element.
+Returned by `AllAsync` (or via `ElementHandleAsync` for advanced use). Exposes actions on the concrete UIA element.
 
 ```csharp
 // Click

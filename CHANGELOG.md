@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] - 2026-05-07
+
+### Added
+- `ScreenshotAsync(string path, CancellationToken ct = default)` convenience overload on `IFlawrightLocator` and `IFlawrightPage` — matches the canonical README quickstart example and removes the friction of constructing a `LocatorScreenshotOptions` for the common save-to-path case.
+
+### Fixed
+- README and `/docs` code samples updated to compile against the v0.2 API after the Phase 2 rewrite: `FirstAsync()` → sync `.First`, `NthAsync(n)` → sync `.Nth(n)`, `Filter(lambda)` → `Filter(new LocatorFilterOptions { HasText = ... })`.
+- Added `ReadmeQuickstartTests.cs` with compile-time snapshots of every code sample from `README.md` and `/docs/*.md`, preventing future API drift from going undetected in CI.
+
 ## [0.2.0] - 2026-05-07
 
 ### Added

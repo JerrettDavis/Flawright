@@ -41,9 +41,11 @@ await using var fw = await Flawright.LaunchAsync(
 Every locator and page action accepts an optional `timeout` parameter and a `CancellationToken`:
 
 ```csharp
-// Wait up to 30 seconds for this specific element
-var el = await page.Locator("name:Loading Complete")
-    .FirstAsync(timeout: TimeSpan.FromSeconds(30));
+using JerrettDavis.Flawright.Locator; // for LocatorWaitForOptions
+
+// Wait up to 30 seconds for a specific element
+var locator = page.Locator("name:Loading Complete");
+await locator.WaitForAsync(new LocatorWaitForOptions { Timeout = TimeSpan.FromSeconds(30) });
 
 // Use a CancellationToken to cancel early
 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -55,8 +57,7 @@ await page.Locator("name:Dialog").Expect()
 
 | Operation | Auto-waited |
 |---|---|
-| `locator.FirstAsync()` | Yes — retries until element found |
-| `locator.NthAsync(n)` | Yes — retries until nth element exists |
+| `locator.First` / `locator.Nth(n)` | Sync narrowing — auto-wait happens when an action is called on the resulting locator |
 | `locator.AllAsync()` | Yes — retries until at least one element exists |
 | `locator.CountAsync()` | No — returns current count immediately |
 | `page.ClickAsync(selector)` | Yes — waits for element, then clicks |
@@ -66,7 +67,7 @@ await page.Locator("name:Dialog").Expect()
 | `page.CheckAsync(selector)` | Yes — waits for element, then checks |
 | `page.UncheckAsync(selector)` | Yes — waits for element, then unchecks |
 | `page.SelectOptionAsync(selector, value)` | Yes — waits for element, then selects |
-| `page.WaitForSelectorAsync(selector)` | Yes — convenience wrapper around `FirstAsync` |
+| `page.WaitForSelectorAsync(selector)` | Yes — waits for the element to appear |
 | `browser.WaitForPageAsync(title)` | Yes — polls until window with matching title appears |
 | `expect.ToBeVisibleAsync()` | Yes — retries until visible |
 | `expect.ToBeHiddenAsync()` | Yes — retries until hidden |
@@ -85,9 +86,11 @@ await page.Locator("name:Dialog").Expect()
 When the deadline is exceeded, `FlawrightTimeoutException` is thrown. It carries the selector string and the elapsed duration:
 
 ```csharp
+using JerrettDavis.Flawright.Locator; // for LocatorWaitForOptions
+
 try
 {
-    await page.Locator("#save").FirstAsync(timeout: TimeSpan.FromSeconds(2));
+    await page.Locator("#save").WaitForAsync(new LocatorWaitForOptions { Timeout = TimeSpan.FromSeconds(2) });
 }
 catch (FlawrightTimeoutException ex)
 {
@@ -101,7 +104,7 @@ catch (FlawrightTimeoutException ex)
 
 ## Best practices
 
-**Prefer locator actions over element actions for top-level interaction.** `page.ClickAsync("name:OK")` auto-waits for the element; `(await locator.FirstAsync()).ClickAsync()` resolves eagerly and is already past the wait boundary.
+**Prefer locator actions over element actions for top-level interaction.** `page.ClickAsync("name:OK")` auto-waits for the element. If you need to interact with a specific index, use `locator.Nth(n).ClickAsync()` — the auto-wait fires when the action is called on the narrowed locator.
 
 **Use `Expect()` assertions instead of manual element state checks.** `expect.ToBeVisibleAsync()` retries until visible; a raw `element.IsVisibleAsync()` check in `Assert.True(...)` does not.
 

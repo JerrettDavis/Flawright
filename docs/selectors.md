@@ -137,15 +137,15 @@ When no recognized prefix is found and the string does not start with `#` or `[`
 
 An unknown colon-prefix (`foo:bar`) throws `ArgumentException`. The `xpath:` prefix explicitly throws `NotSupportedException` since UIA3 does not have an XPath-compatible tree.
 
-When no element matches, `FirstAsync` throws `FlawrightTimeoutException` after the configured timeout (default 5 seconds).
+When no element matches, locator actions throw `FlawrightTimeoutException` after the configured timeout (default 5 seconds).
 
 ## Nth Element
 
-When a selector matches multiple elements, `FirstAsync` returns the first one in UIA tree order (depth-first). To get a specific match by index (0-based):
+When a selector matches multiple elements, `.First` resolves to the first one in UIA tree order (depth-first). To get a specific match by index (0-based):
 
 ```csharp
-// Second list item (index 1)
-var item = await page.Locator("controltype:ListItem").NthAsync(1);
+// Second list item (index 1) — sync, returns a narrowed locator
+var item = page.Locator("controltype:ListItem").Nth(1);
 
 // Count total — no waiting, returns current count
 var n = await page.Locator("controltype:Button").CountAsync();
@@ -156,14 +156,16 @@ var all = await page.Locator("controltype:ListItem").AllAsync();
 
 ## Filtering
 
-Use `Filter` to narrow down a locator by an additional predicate. The predicate receives each `IFlawrightElement` and returns `true` to keep it.
+Use `Filter` to narrow down a locator using `LocatorFilterOptions`. Available predicates include `HasText`, `HasNotText`, `Has` (a locator), and `HasNot` (a locator).
 
 ```csharp
+using JerrettDavis.Flawright.Locator; // for LocatorFilterOptions
+
 // Only list items whose text contains "Save"
 var saveItems = page.Locator("controltype:ListItem")
-    .Filter(el => el.TextAsync().GetAwaiter().GetResult().Contains("Save"));
+    .Filter(new LocatorFilterOptions { HasText = "Save" });
 
-var first = await saveItems.FirstAsync();
+var first = saveItems.First;
 ```
 
 Filters compose: chaining multiple `Filter` calls ANDs the predicates.

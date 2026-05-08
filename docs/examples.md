@@ -64,8 +64,7 @@ public async Task Notepad_TypeAndVerify()
     await page.FillAsync("controltype:Edit", content);
 
     // Verify the text landed
-    var editor = await page.Locator("controltype:Edit").FirstAsync();
-    var text = await editor.TextAsync();
+    var text = await page.Locator("controltype:Edit").InnerTextAsync();
     Assert.Equal(content, text);
 
     // Capture a screenshot for the test report

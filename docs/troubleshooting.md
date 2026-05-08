@@ -2,21 +2,25 @@
 
 ## "Locator not found" (`FlawrightTimeoutException`)
 
-`FirstAsync` and other auto-waited operations throw `FlawrightTimeoutException` when an element is not found within the configured timeout.
+Locator actions (such as `ClickAsync`, `FillAsync`, `WaitForAsync`, and assertions) throw `FlawrightTimeoutException` when an element is not found within the configured timeout.
 
 **Check the selector.** Open [Accessibility Insights](https://accessibilityinsights.io/) or `inspect.exe` and verify the element exists and that its Name / AutomationId / ControlType matches your selector exactly. Names are case-sensitive.
 
 **Check the timing.** The element may not yet be in the UIA tree when the call starts. The auto-waiting loop retries every 100ms (default) for up to 5 seconds (default). If your application is slow to render, increase the timeout:
 
 ```csharp
-var el = await page.Locator("#myButton").FirstAsync(timeout: TimeSpan.FromSeconds(15));
+using JerrettDavis.Flawright.Locator; // for LocatorWaitForOptions
+
+await page.Locator("#myButton").WaitForAsync(
+    new LocatorWaitForOptions { Timeout = TimeSpan.FromSeconds(15) });
 ```
 
 **Check the root.** `NewPageAsync` uses `GetMainWindow`, which returns the *main* window of the process. If the element lives in a secondary window (dialog, MDI child, context menu), use `WaitForPageAsync` to get a page for that window first:
 
 ```csharp
 var dialog = await fw.Browser.WaitForPageAsync("Save As");
-var fileNameBox = await dialog.Locator("controltype:Edit").FirstAsync();
+var fileNameBox = dialog.Locator("controltype:Edit");
+await fileNameBox.Expect().ToBeVisibleAsync();
 ```
 
 **Check virtualization.** ListView and TreeView controls with virtualization may not expose offscreen items in the UIA tree. Scroll the control to bring items into view before searching.

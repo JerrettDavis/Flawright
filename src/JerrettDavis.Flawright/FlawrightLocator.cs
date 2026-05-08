@@ -502,6 +502,10 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     }
 
     /// <inheritdoc/>
+    public Task<byte[]> ScreenshotAsync(string path, CancellationToken ct = default)
+        => ScreenshotAsync(new LocatorScreenshotOptions { Path = path }, ct);
+
+    /// <inheritdoc/>
     public Task HighlightAsync(CancellationToken ct = default)
     {
         // Wave C stub: Wave D will implement visual element highlighting.

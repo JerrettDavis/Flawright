@@ -164,6 +164,16 @@ public interface IFlawrightPage : IAsyncDisposable
     /// <returns>PNG image data as a byte array.</returns>
     Task<byte[]> ScreenshotAsync(Locator.LocatorScreenshotOptions? options = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// Captures a screenshot of the window and saves it to <paramref name="path"/>.
+    /// Convenience overload — equivalent to passing
+    /// <c>new LocatorScreenshotOptions { Path = path }</c>.
+    /// </summary>
+    /// <param name="path">File path where the PNG screenshot will be saved.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>PNG image data as a byte array.</returns>
+    Task<byte[]> ScreenshotAsync(string path, CancellationToken ct = default);
+
     // ── Sub-APIs ──────────────────────────────────────────────────────────────
 
     /// <summary>Gets the mouse sub-API for absolute-coordinate mouse operations.</summary>
@@ -419,6 +429,16 @@ public interface IFlawrightLocator
     /// </para>
     /// </summary>
     Task<byte[]> ScreenshotAsync(Locator.LocatorScreenshotOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Captures a screenshot of the first matching element and saves it to
+    /// <paramref name="path"/>.  Convenience overload — equivalent to passing
+    /// <c>new LocatorScreenshotOptions { Path = path }</c>.
+    /// </summary>
+    /// <param name="path">File path where the PNG screenshot will be saved.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>PNG image data as a byte array.</returns>
+    Task<byte[]> ScreenshotAsync(string path, CancellationToken ct = default);
 
     /// <summary>
     /// Highlights the first matching element.

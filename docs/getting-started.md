@@ -89,8 +89,7 @@ public class NotepadTests : IAsyncLifetime
 
         await page.FillAsync("controltype:Edit", "Hello from Flawright!");
 
-        var textBox = await page.Locator("controltype:Edit").FirstAsync();
-        var text = await textBox.TextAsync();
+        var text = await page.Locator("controltype:Edit").InnerTextAsync();
         Assert.Equal("Hello from Flawright!", text);
     }
 
