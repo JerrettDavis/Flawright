@@ -2,10 +2,14 @@
 
 A Playwright-flavored API for FlaUI: write Windows desktop UI tests that read like web tests.
 
-[![CI](https://github.com/JerrettDavis/Flawright/actions/workflows/ci.yml/badge.svg)](https://github.com/JerrettDavis/Flawright/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/Flawright.svg)](https://www.nuget.org/packages/Flawright)
+[![Downloads](https://img.shields.io/nuget/dt/Flawright.svg)](https://www.nuget.org/packages/Flawright)
+[![CI](https://github.com/JerrettDavis/Flawright/actions/workflows/ci.yml/badge.svg)](https://github.com/JerrettDavis/Flawright/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/JerrettDavis/Flawright/actions/workflows/codeql.yml/badge.svg)](https://github.com/JerrettDavis/Flawright/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/JerrettDavis/Flawright/graph/badge.svg)](https://codecov.io/gh/JerrettDavis/Flawright)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-10.0-512bd4)](https://dotnet.microsoft.com)
+[![.NET 10.0](https://img.shields.io/badge/.NET-10.0-512bd4)](https://dotnet.microsoft.com)
+[![Documentation](https://img.shields.io/badge/docs-online-blue.svg)](https://jerrettdavis.github.io/Flawright/)
 
 ## Why Flawright?
 
@@ -337,24 +341,66 @@ var page = await fw.Browser.NewPageAsync();
 await page.ClickAsync("name:OK");
 ```
 
+## Behavior-driven testing with Reqnroll
+
+Flawright ships a companion package `Flawright.Reqnroll` for writing Gherkin/BDD tests:
+
+```bash
+dotnet add package Flawright.Reqnroll
+```
+
+```gherkin
+@launch:notepad.exe
+Scenario: Type and verify text in Notepad
+    Given I have the application in focus
+    When I fill "[name=\"Text editor\"]" with "Hello from Flawright!"
+    Then "[name=\"Text editor\"]" should contain "Hello"
+```
+
+See [docs/bdd.md](docs/bdd.md) for the full step reference, tag forms, and DI patterns.
+
+## Documentation
+
+Full documentation site: [jerrettdavis.github.io/Flawright](https://jerrettdavis.github.io/Flawright/)
+
+- [Getting Started](docs/getting-started.md)
+- [Selector Syntax](docs/selectors.md)
+- [Auto-waiting](docs/auto-waiting.md)
+- [Assertions](docs/assertions.md)
+- [Examples](docs/examples.md)
+- [BDD with Reqnroll](docs/bdd.md)
+- [Per-app guides](docs/guides/) — Win11 Notepad, Calculator, File Explorer, classic Win32, WinForms, WPF, WinUI3, UWP/Store, multi-window, installer wizards, elevated apps
+- [Versioning & Stability](docs/versioning.md)
+- [Performance Guide](docs/performance.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [API Reference](https://jerrettdavis.github.io/Flawright/api/)
+
 ## Project Layout
 
 ```
 Flawright/
 ├── src/
-│   └── JerrettDavis.Flawright/          # Library source
-│       ├── Flawright.cs                  # Entry point (LaunchAsync / AttachAsync)
-│       ├── FlawrightBrowser.cs           # Application wrapper (IFlawrightBrowser)
-│       ├── FlawrightPage.cs              # Window wrapper (IFlawrightPage)
-│       ├── FlawrightLocator.cs           # Lazy element query (IFlawrightLocator)
-│       ├── FlawrightElement.cs           # Resolved element (IFlawrightElement)
-│       ├── FlawrightAssertions.cs        # Assertion chain (IFlawrightAssertions)
-│       ├── FlawrightOptions.cs           # Global options (timeout, retry, screenshot dir)
-│       ├── FlawrightTimeoutException.cs  # Timeout exception
-│       ├── Interfaces.cs                 # All public interfaces
-│       ├── AutoWait.cs                   # Internal polling loop
-│       ├── Selectors/SelectorParser.cs   # Selector string → FlaUI condition
-│       └── Input/KeyParser.cs            # Key/chord string → FlaUI keyboard input
+│   ├── JerrettDavis.Flawright/          # Core library
+│   │   ├── Flawright.cs                  # Entry point (LaunchAsync / AttachAsync)
+│   │   ├── FlawrightBrowser.cs           # Application wrapper (IFlawrightBrowser)
+│   │   ├── FlawrightPage.cs              # Window wrapper (IFlawrightPage)
+│   │   ├── FlawrightLocator.cs           # Lazy element query (IFlawrightLocator)
+│   │   ├── FlawrightElement.cs           # Resolved element (IFlawrightElement)
+│   │   ├── FlawrightAssertions.cs        # Assertion chain (IFlawrightAssertions)
+│   │   ├── FlawrightOptions.cs           # Global options (timeout, retry, screenshot dir)
+│   │   ├── FlawrightTimeoutException.cs  # Timeout exception
+│   │   ├── Interfaces.cs                 # All public interfaces
+│   │   ├── AutoWait.cs                   # Internal polling loop
+│   │   ├── Selectors/SelectorParser.cs   # Selector string → FlaUI condition
+│   │   └── Input/KeyParser.cs            # Key/chord string → FlaUI keyboard input
+│   └── JerrettDavis.Flawright.Reqnroll/  # BDD companion package
+│       ├── FlawrightReqnrollHooks.cs     # BeforeScenario / AfterScenario lifecycle
+│       ├── FlawrightReqnrollOptions.cs   # Global BDD options (default app path, timeout)
+│       ├── FlawrightSteps.cs             # 25 built-in step bindings
+│       └── TagParser.cs                  # @launch / @aumid / @attach tag parsing
+├── samples/
+│   ├── Flawright.Reqnroll.NotepadDemo/   # Gherkin-driven Notepad tests
+│   └── Flawright.Reqnroll.CalculatorDemo/# Gherkin-driven Calculator tests
 ├── tests/
 │   ├── JerrettDavis.Flawright.UnitTests/ # Unit tests (SelectorParser, KeyParser, AutoWait)
 │   └── JerrettDavis.Flawright.E2ETests/  # E2E tests (Notepad, Calculator)

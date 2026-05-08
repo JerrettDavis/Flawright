@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-05-07
+
+### Added
+- Per-app-type guides under `docs/guides/`: Win11 Notepad, Win11 Calculator, classic Win32, WinForms, WPF, WinUI 3, UWP/Store apps, File Explorer, multi-window apps, installer wizards, elevated/admin apps.
+- `docs/versioning.md` — API stability & semver policy.
+- `docs/performance.md` — performance guidance and threading model.
+- Expanded `docs/troubleshooting.md` with Win11-specific scenarios and integrity-level mismatch (UAC) guidance.
+- New companion package: `Flawright.Reqnroll` for Reqnroll/Gherkin BDD testing.
+  - 25 built-in step bindings covering click/fill/type/keyboard/check/select/wait/assert.
+  - Tag-driven scenario configuration (`@launch:`, `@aumid:`, `@attach:`, `@attachpid:`).
+  - BoDi-based DI; `IFlawright`/`IFlawrightBrowser`/`IFlawrightPage` injectable into custom bindings.
+  - Per-scenario lifecycle (fresh app instance per scenario).
+- Sample projects under `samples/Flawright.Reqnroll.NotepadDemo/` and `samples/Flawright.Reqnroll.CalculatorDemo/` demonstrating end-to-end Gherkin-driven tests.
+- `docs/bdd.md` — full BDD documentation including tag reference, step library, and DI patterns.
+- Codecov integration: `codecov.yml` config, `codecov/codecov-action@v6` upload in CI (both `pr-checks` and `release` jobs), badge in README.
+- GitHub issue templates (`bug_report`, `feature_request`, `config`) in `.github/ISSUE_TEMPLATE/`.
+- Pull request template (`.github/pull_request_template.md`) with Flawright-specific checklist.
+- `CODEOWNERS` file assigning `@JerrettDavis` to all paths.
+- `labeler.yml` workflow + `.github/labeler.yml` auto-labeler config (paths to labels, plus PR size labels via `codelytv/pr-size-labeler`).
+- `pr-validation.yml` workflow with dry-run pack and per-test PR check via `EnricoMi/publish-unit-test-result-action@v2`.
+- `global.json` SDK pin (`10.0.107`, `rollForward: latestFeature`).
+- `PackageReleaseNotes` property in `JerrettDavis.Flawright.csproj` pointing to CHANGELOG.
+- DocFX-generated documentation site published to GitHub Pages at https://jerrettdavis.github.io/Flawright/
+- API reference auto-generated from XML doc comments via DocFX metadata extraction.
+- New `docs.yml` workflow with `validate-docs` (PRs — builds site and uploads preview artifact) and `publish-docs` (push to main / workflow_dispatch — deploys to GitHub Pages) jobs.
+- Documentation badge in README linking to the live site.
+
+### Changed
+- README badge row reordered to match the house-style ceiling row (NuGet | Downloads | CI | CodeQL | Codecov | License | .NET). Added `<!-- DOCS_BADGE_PLACEHOLDER -->` for Wave 3-Bravo.
+- Pinned `dotnet/nbgv` to commit SHA `b944774b6878ef950cc14d1a72bf9c0ffafbb839` in `ci.yml` (was `@master`).
+- Bumped repo version to `0.3` in `version.json`.
+
 ## [0.2.14] - 2026-05-07
 
 ### Changed
