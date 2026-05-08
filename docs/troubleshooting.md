@@ -162,3 +162,133 @@ Both tools browse the UIA tree, but they show slightly different views:
 - **Accessibility Insights** is higher-level and formats properties for readability. Easier to navigate for finding AutomationIds and Names.
 
 Use Accessibility Insights first; drop down to `inspect.exe` when you need the automation pattern details.
+
+---
+
+## "Process with an Id of N is not running"
+
+**Symptom:** Test fails with `InvalidOperationException: Process with an Id of N is not running` during `WaitWhileMainHandleIsMissing` after launching a packaged (WinUI3) app via `notepad.exe`, `calc.exe`, or another AppExecutionAlias.
+
+**Cause:** On Windows 11, `ApplicationPath = "notepad.exe"` starts an activator/broker stub process that immediately exits after activating the real packaged app. Earlier Flawright versions tracked the broker PID, which became invalid before the main window appeared.
+
+**Fix:** Upgrade to Flawright **≥ 0.2.12**. The launcher now polls for the real packaged-app process (matched by package family name under `C:\Program Files\WindowsApps\`) and re-attaches FlaUI tracking to the live PID. No code changes needed.
+
+---
+
+## "Cannot find process with id" during dispose
+
+**Symptom:** `DisposeAsync` throws `InvalidOperationException: No process is associated with this object` or `Cannot find process with id` when cleaning up after a test.
+
+**Cause:** The `HasExited` check on the underlying `Process` object threw when the process handle was already disposed or was never associated with a real process (e.g., after attaching to a packaged app whose activation stub exited).
+
+**Fix:** Upgrade to Flawright **≥ 0.2.9**. The `SafeProcessQueries` helper wraps `HasExited` in a try/catch that returns `true` (safe default for dispose paths) instead of propagating the exception.
+
+---
+
+## "Locator not found within Ns" — diagnosing with Inspect
+
+When `FlawrightTimeoutException` occurs and you cannot figure out why the element is not found:
+
+1. **Open Accessibility Insights for Windows** (or `inspect.exe`) while the application is running.
+2. Hover over the element you expect to find — Accessibility Insights highlights it and shows its UIA properties.
+3. Compare the `AutomationId`, `Name`, and `ControlType` shown in the tool against your selector.
+4. Common mismatches:
+   - Element has AutomationId `""` (empty) — use `name:` or `controltype:` instead.
+   - Name is localized — your locale shows a different string than the selector.
+   - Element is inside a virtualized container and is not yet in the tree — scroll the container into view.
+5. Increase timeout as a diagnostic step: `WaitForAsync(new LocatorWaitForOptions { Timeout = TimeSpan.FromSeconds(30) })`. If it still fails after 30 seconds, the element is structurally absent, not just slow.
+
+---
+
+## Win10 vs Win11 selector mismatch
+
+Several inbox Windows apps expose a different UIA tree on Windows 10 vs Windows 11 because Microsoft replaced them with WinUI3 packaged versions.
+
+| App | Win10 selector | Win11 selector |
+|---|---|---|
+| Notepad editor | `controltype:Edit` | `[name="Text editor"]` (tabbed) or `#RichEditBox` |
+| Calculator buttons | `#1`, `#plus`, `#equals` | `#num1Button`, `#plusButton`, `#equalButton` |
+
+If tests pass locally (Win11) but fail on a Win10 CI runner or vice versa, the selector has an OS-version mismatch. Solutions:
+- Use a version-agnostic selector where possible (`name:OK` works on both if the button text is the same).
+- Branch the selector based on the OS version detected at runtime.
+- Run tests only on the target OS they are written for.
+
+See the [Win11 Notepad guide](guides/win11-notepad.md) and [Win11 Calculator guide](guides/win11-calculator.md) for the specific selectors for each version.
+
+---
+
+## AppContainer / sandbox attach failures
+
+**Symptom:** Flawright finds the application window but all `Locator` calls return nothing, or `FindFirstDescendant` returns null even though the element is visible.
+
+**Cause:** The app runs in an AppContainer (UWP or sandboxed WinUI3). The UIA cross-process boundary requires the test process to have `uiAccess=true` in its manifest and to run from a trusted path.
+
+**Workaround:**
+- Sign the test runner executable.
+- Place it in a trusted location (e.g., `C:\Program Files\MyTestRunner\`).
+- Add `<uiAccess>true</uiAccess>` to its application manifest.
+
+This is a Windows security requirement. See [Troubleshooting — AppContainer apps](#appcontainer-apps-uwp--winui3) above for the full detail, and [UWP / Store apps guide](guides/uwp-store-apps.md).
+
+---
+
+## UAC integrity-level mismatch (elevated app + non-elevated test)
+
+**Symptom:** Test process starts the elevated app, `NewPageAsync()` returns a page, but all locator actions time out. Or `GetAllPagesAsync()` finds a window with the right title but its element tree is empty.
+
+**Cause:** The app runs at high integrity (administrator) and the test process runs at medium integrity. Windows blocks cross-integrity-level UIA access.
+
+**Fix:** Run the test process elevated. See [Elevated apps guide](guides/elevated-apps.md) for options.
+
+---
+
+## Coverage gate failing in CI but passing locally
+
+**Symptom:** The CI coverage check fails (e.g., `irongut/CodeCoverageSummary` reports < 90%) but running `dotnet test` locally shows > 90%.
+
+**Root causes:**
+
+- **Test ordering:** Coverage results depend on which tests run. If some tests are filtered out in CI (e.g., E2E tests skipped because there is no desktop session), the denominator changes.
+- **Parallel vs sequential execution:** Local machines may run tests in a different order, causing different code paths to be hit.
+- **Platform-specific exclusions:** Some code is compiled conditionally (`#if WINDOWS`) and may count differently in CI depending on the TFM.
+- **Coverage tool version mismatch:** Different versions of `coverlet` or `dotnet-coverage` may count lines differently.
+
+**Fixes:**
+- Confirm CI and local use the same test filter (`--filter "Category!=E2E"` or similar).
+- Check `coverlet` and `dotnet-coverage` version alignment in `Directory.Packages.props`.
+- Run `dotnet test --collect:"XPlat Code Coverage"` locally with the same filter as CI to reproduce.
+- Check `codecov.yml` for any path exclusion patterns that differ between environments.
+
+---
+
+## DocFX site warnings about unresolvable cross-references
+
+**Symptom:** `docfx docs/docfx.json` prints warnings like:
+```
+[warning] Cross reference 'SomeType' not found.
+```
+or
+```
+[warning] Cannot resolve 'xref:SomeType'.
+```
+
+**Cause:** Most of these warnings are caused by attribute types (like `[GeneratedCode]`, `[ExcludeFromCodeCoverage]`, `[ObsoleteAttribute]`) from third-party assemblies (`System.CodeDom.Compiler`, `System.Diagnostics.CodeAnalysis`, `System.ComponentModel`) that DocFX cannot resolve because it does not have metadata for those assemblies in the docs build context.
+
+**Impact:** These warnings are cosmetic — they do not affect the site content or navigation. The generated API docs are correct; only the type links for those attribute types are missing.
+
+**Suppress or ignore:** These warnings are safe to ignore. If they clutter CI output, add the offending cross-reference names to the DocFX `filterConfig.yml` exclusion list or use `--warningsAsErrors` carefully to exclude known-false-positive patterns.
+
+---
+
+## AppContainer apps (UWP / WinUI3)
+
+UWP and sandboxed WinUI3 apps run in an AppContainer with restricted UIA access. Symptoms include:
+
+- The application window appears in the UIA tree but children are inaccessible.
+- `FindFirstDescendant` returns null even when the element is visible.
+- Access is denied enumerating automation properties.
+
+**Cause:** AppContainer apps require the test process to have the `uiAccess=true` attribute in its manifest and the process must be launched from a trusted location (e.g., `Program Files`). This is a Windows security requirement, not a Flawright limitation.
+
+**Workaround for testing:** Use a signed test runner with `uiAccess=true` and place it in a trusted location, or test the app in a non-AppContainer packaging mode during development. The [FlaUI documentation](https://github.com/FlaUI/FlaUI) has more detail on UIAccess requirements.

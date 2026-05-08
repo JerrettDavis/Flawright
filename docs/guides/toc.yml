@@ -1,0 +1,35 @@
+- name: Overview
+  href: index.md
+
+- name: Win11 Notepad
+  href: win11-notepad.md
+
+- name: Win11 Calculator
+  href: win11-calculator.md
+
+- name: Classic Win32
+  href: classic-win32.md
+
+- name: WinForms
+  href: winforms.md
+
+- name: WPF
+  href: wpf.md
+
+- name: WinUI 3
+  href: winui3.md
+
+- name: UWP / Store apps
+  href: uwp-store-apps.md
+
+- name: File Explorer
+  href: file-explorer.md
+
+- name: Multi-window apps
+  href: multi-window.md
+
+- name: Installer wizards
+  href: installer-wizards.md
+
+- name: Elevated apps
+  href: elevated-apps.md
