@@ -1,0 +1,45 @@
+# Auto-labeling configuration for pull requests
+
+library:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/JerrettDavis.Flawright/**'
+
+reqnroll:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'src/JerrettDavis.Flawright.Reqnroll/**'
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'tests/**'
+
+samples:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'samples/**'
+
+docs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**'
+      - 'README.md'
+      - 'CHANGELOG.md'
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**'
+
+build:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - '*.slnx'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Directory.Packages.props'

@@ -1,0 +1,127 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.editorconfig'
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  validate-pr:
+    name: Validate PR
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}-
+            nuget-${{ runner.os }}-
+
+      - name: Determine version (NBGV)
+        id: nbgv
+        uses: dotnet/nbgv@b944774b6878ef950cc14d1a72bf9c0ffafbb839  # v0.4.x — pinned for supply-chain integrity
+        with:
+          setAllVars: true
+
+      - name: Restore
+        run: dotnet restore Flawright.slnx
+
+      - name: Build
+        run: >
+          dotnet build Flawright.slnx
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+          /p:Deterministic=true
+
+      - name: Run tests
+        run: >
+          dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj
+          --configuration Release
+          --no-build
+          --verbosity normal
+          --collect:"XPlat Code Coverage"
+          --settings tests/JerrettDavis.Flawright.UnitTests/coverlet.runsettings
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./TestResults
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
+        if: always()
+        with:
+          files: |
+            **/TestResults/**/*.trx
+          check_name: Test Results
+
+      - name: Dry-run NuGet packaging
+        shell: pwsh
+        run: |
+          Write-Host "Performing dry-run of NuGet packaging..."
+          New-Item -ItemType Directory -Force -Path ./dry-run-packages | Out-Null
+          dotnet pack Flawright.slnx `
+            --configuration Release `
+            --no-build `
+            --output ./dry-run-packages `
+            /p:ContinuousIntegrationBuild=true
+          $packages = Get-ChildItem ./dry-run-packages/*.nupkg -ErrorAction SilentlyContinue
+          if (-not $packages) {
+            Write-Error "No packages were created"
+            exit 1
+          }
+          Write-Host "Packaged files:"
+          $packages | ForEach-Object { Write-Host "  $($_.Name)" }
+
+      - name: Upload dry-run packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: dry-run-packages
+          path: ./dry-run-packages/*.nupkg
+          retention-days: 7
+
+      - name: PR Summary
+        if: always()
+        shell: pwsh
+        run: |
+          "## PR Validation Summary" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "**Version**: $env:NBGV_NuGetPackageVersion" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "### Packages" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          $packages = Get-ChildItem ./dry-run-packages/*.nupkg -ErrorAction SilentlyContinue
+          if ($packages) {
+            "The following packages will be created on merge:" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+            $packages | ForEach-Object { $_.Name | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append }
+            '```' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          } else {
+            "No packages were created during the dry-run." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          }

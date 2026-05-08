@@ -128,6 +128,17 @@ jobs:
           $summary = Get-Content coverage-report/Summary.txt -Raw
           "COVERAGE_SUMMARY<<EOF`n$summary`nEOF" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          files: |
+            **/TestResults/*/coverage.cobertura.xml
+          flags: unittests
+          fail_ci_if_error: true
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v7
         with:
@@ -174,7 +185,7 @@ jobs:
 
       - name: Determine version (NBGV)
         id: nbgv
-        uses: dotnet/nbgv@master
+        uses: dotnet/nbgv@b944774b6878ef950cc14d1a72bf9c0ffafbb839  # v0.4.x — pinned for supply-chain integrity
         with:
           setAllVars: true
 
@@ -219,6 +230,17 @@ jobs:
             exit 1
           }
           Write-Host "Coverage gate passed: $linePercent% >= 90%"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          files: |
+            **/TestResults/*/coverage.cobertura.xml
+          flags: unittests
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Pack
         run: >
