@@ -71,6 +71,26 @@ internal sealed class UiaElementBackend : IElementBackend
     // ── Pattern operations ────────────────────────────────────────────────────
 
     /// <inheritdoc/>
+    public bool TryInvoke()
+    {
+        var ip = _element.Patterns.Invoke;
+        if (ip.IsSupported)
+        {
+            ip.Pattern.Invoke();
+            return true;
+        }
+
+        var la = _element.Patterns.LegacyIAccessible;
+        if (la.IsSupported)
+        {
+            la.Pattern.DoDefaultAction();
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc/>
     public bool TrySetValue(string text)
     {
         var vp = _element.Patterns.Value;

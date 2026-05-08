@@ -767,6 +767,7 @@ public sealed class FlawrightElementTests
         public bool? GetToggleState() => null;
         public bool TryScrollIntoView() => false;
         public bool TrySelectItem(string nameOrId) => false;
+        public bool TryInvoke() => false;
         public System.Collections.Generic.IEnumerable<JerrettDavis.Flawright.Backends.IElementBackend> FindAll(JerrettDavis.Flawright.Backends.IElementCondition condition)
             => System.Linq.Enumerable.Empty<JerrettDavis.Flawright.Backends.IElementBackend>();
         public JerrettDavis.Flawright.Backends.IElementBackend? FindFirst(JerrettDavis.Flawright.Backends.IElementCondition condition) => null;

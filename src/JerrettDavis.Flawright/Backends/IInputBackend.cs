@@ -12,7 +12,7 @@ namespace JerrettDavis.Flawright.Backends;
 /// This interface backs the <c>IFlawrightMouse</c> and
 /// <c>IFlawrightKeyboard</c> public sub-APIs defined in §2.6 of the blueprint.
 /// </summary>
-internal interface IInputBackend
+public interface IInputBackend
 {
     // ── Mouse ─────────────────────────────────────────────────────────────────
 

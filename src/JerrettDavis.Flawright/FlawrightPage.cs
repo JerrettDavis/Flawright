@@ -86,6 +86,7 @@ internal sealed class FlawrightPage : IFlawrightPage
         {
             Root = _windowBackend,
             Input = _input,
+            InputMode = Options.InputMode,
             Translator = _translator,
             Selector = selector,
             Pipeline = pipeline,
@@ -217,6 +218,7 @@ internal sealed class FlawrightPage : IFlawrightPage
         {
             Root = _windowBackend,
             Input = _input,
+            InputMode = Options.InputMode,
             Translator = _translator,
             Selector = string.Empty,
             Pipeline = new SelectorPipeline(Array.Empty<IElementCondition>()),

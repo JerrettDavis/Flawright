@@ -1,9 +1,51 @@
 using System.Drawing;
 using JerrettDavis.Flawright.Backends;
 using JerrettDavis.Flawright.Backends.Uia;
+using JerrettDavis.Flawright.InputModes;
 using JerrettDavis.Flawright.Locator;
 
 namespace JerrettDavis.Flawright;
+
+/// <summary>
+/// Forwards all <see cref="IElementBackend"/> members to an inner backend, but
+/// overrides <see cref="BoundingRectangle"/> with a 1×1 rectangle at the given
+/// point. Used by <see cref="FlawrightElement.HoverAsync"/> to translate a
+/// position-override offset into a form that
+/// <see cref="JerrettDavis.Flawright.InputModes.IInputMode.Hover"/> can consume.
+/// </summary>
+file sealed class SinglePointBackend : IElementBackend
+{
+    private readonly IElementBackend _inner;
+    private readonly Rectangle _rect;
+
+    internal SinglePointBackend(IElementBackend inner, int x, int y)
+    {
+        _inner = inner;
+        _rect = new Rectangle(x, y, 1, 1);
+    }
+
+    public string? AutomationId => _inner.AutomationId;
+    public string? Name => _inner.Name;
+    public string? ClassName => _inner.ClassName;
+    public string ControlTypeName => _inner.ControlTypeName;
+    public bool IsEnabled => _inner.IsEnabled;
+    public bool IsOffscreen => _inner.IsOffscreen;
+    public Rectangle BoundingRectangle => _rect;
+    public void Click() => _inner.Click();
+    public void DoubleClick() => _inner.DoubleClick();
+    public void Focus() => _inner.Focus();
+    public bool TryInvoke() => _inner.TryInvoke();
+    public bool TrySetValue(string text) => _inner.TrySetValue(text);
+    public string? TryGetValue() => _inner.TryGetValue();
+    public string? TryGetDocumentText() => _inner.TryGetDocumentText();
+    public bool TryToggleOn() => _inner.TryToggleOn();
+    public bool TryToggleOff() => _inner.TryToggleOff();
+    public bool? GetToggleState() => _inner.GetToggleState();
+    public bool TryScrollIntoView() => _inner.TryScrollIntoView();
+    public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
+    public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);
+    public IElementBackend? FindFirst(IElementCondition condition) => _inner.FindFirst(condition);
+}
 
 /// <summary>
 /// A resolved UI element with async action methods.  Instances are produced by
@@ -27,16 +69,18 @@ internal sealed class FlawrightElement : IFlawrightElement
 {
     private readonly IElementBackend _backend;
     private readonly IInputBackend _input;
+    private readonly IInputMode _inputMode;
 
     // ── Constructors ──────────────────────────────────────────────────────────
 
     /// <summary>
     /// New constructor — used by Wave C locator and all unit tests.
     /// </summary>
-    internal FlawrightElement(IElementBackend backend, IInputBackend input)
+    internal FlawrightElement(IElementBackend backend, IInputBackend input, IInputMode? inputMode = null)
     {
         _backend = backend;
         _input = input;
+        _inputMode = inputMode ?? new RealInputMode();
     }
 
     /// <summary>
@@ -45,7 +89,7 @@ internal sealed class FlawrightElement : IFlawrightElement
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "Legacy shim")]
     internal FlawrightElement(FlaUI.Core.AutomationElements.AutomationElement element, IFlawrightLocator locator)
-        : this(new UiaElementBackend(element), new FlaUiInputBackend())
+        : this(new UiaElementBackend(element), new FlaUiInputBackend(), new RealInputMode())
     {
         // Stash the locator for the legacy Locator property.
         _legacyLocator = locator;
@@ -237,7 +281,7 @@ internal sealed class FlawrightElement : IFlawrightElement
     public Task ClickAsync(LocatorClickOptions? options = null, CancellationToken ct = default)
     {
         // Wave D: honor options.Button, options.Position, options.Modifiers, options.Delay.
-        _backend.Click();
+        _inputMode.Click(_backend, _input);
         return Task.CompletedTask;
     }
 
@@ -245,7 +289,7 @@ internal sealed class FlawrightElement : IFlawrightElement
     public Task DoubleClickAsync(LocatorDoubleClickOptions? options = null, CancellationToken ct = default)
     {
         // Wave D: honor options.
-        _backend.DoubleClick();
+        _inputMode.DoubleClick(_backend, _input);
         return Task.CompletedTask;
     }
 
@@ -277,25 +321,14 @@ internal sealed class FlawrightElement : IFlawrightElement
     /// <inheritdoc/>
     public Task HoverAsync(LocatorHoverOptions? options = null, CancellationToken ct = default)
     {
-        var rect = _backend.BoundingRectangle;
+        // Always route through the input mode so VirtualInputMode throws appropriately.
+        // For position-override hover, pass a backend with a synthetic single-point
+        // bounding rectangle so RealInputMode moves to the right coordinates.
+        IElementBackend target = options?.Position is { } pos
+            ? new SinglePointBackend(_backend, _backend.BoundingRectangle.X + (int)pos.X, _backend.BoundingRectangle.Y + (int)pos.Y)
+            : _backend;
 
-        int x;
-        int y;
-
-        if (options?.Position is { } pos)
-        {
-            // Caller-specified offset relative to the element's top-left corner.
-            x = rect.X + (int)pos.X;
-            y = rect.Y + (int)pos.Y;
-        }
-        else
-        {
-            // Default: element centre.
-            x = rect.X + rect.Width / 2;
-            y = rect.Y + rect.Height / 2;
-        }
-
-        _input.MouseMove(x, y, steps: 0);
+        _inputMode.Hover(target, _input);
         return Task.CompletedTask;
     }
 

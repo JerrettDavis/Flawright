@@ -10,7 +10,7 @@ namespace JerrettDavis.Flawright.Backends;
 /// <c>UiaElementBackend</c> in the <c>Backends.Uia</c> namespace.
 /// Unit tests use <c>FakeElementBackend</c> from the test project.
 /// </summary>
-internal interface IElementBackend
+public interface IElementBackend
 {
     // ── Identity ──────────────────────────────────────────────────────────────
 
@@ -106,6 +106,14 @@ internal interface IElementBackend
     /// <param name="nameOrId">The <c>Name</c> or <c>AutomationId</c> of the item to select.</param>
     /// <returns><see langword="true"/> if the item was found and selected; <see langword="false"/> otherwise.</returns>
     bool TrySelectItem(string nameOrId);
+
+    /// <summary>
+    /// Attempts to invoke the element's default action via UIA patterns
+    /// (<c>InvokePattern</c>, falling back to <c>LegacyIAccessiblePattern.DoDefaultAction</c>).
+    /// Returns <see langword="true"/> if a pattern was found and the invocation succeeded;
+    /// <see langword="false"/> if no suitable pattern is implemented by the element.
+    /// </summary>
+    bool TryInvoke();
 
     // ── Tree traversal ────────────────────────────────────────────────────────
 

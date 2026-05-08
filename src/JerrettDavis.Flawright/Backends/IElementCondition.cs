@@ -4,13 +4,10 @@ namespace JerrettDavis.Flawright.Backends;
 /// Opaque condition abstraction that both carries a backend-native query
 /// (e.g. a FlaUI <c>ConditionBase</c>) and an optional in-memory post-filter.
 ///
-/// The tight coupling between <see cref="IElementBackend"/> and
-/// <see cref="IElementCondition"/> is intentional: both are <c>internal</c> and
-/// versioned together.  <see cref="IElementBackend.FindAll"/> implementations
-/// cast the condition to their concrete type, run the native query, then apply
-/// the post-filter.
+/// <see cref="IElementBackend.FindAll"/> implementations cast the condition to
+/// their concrete type, run the native query, then apply the post-filter.
 /// </summary>
-internal interface IElementCondition
+public interface IElementCondition
 {
     /// <summary>
     /// Finds all elements reachable from <paramref name="root"/> that satisfy

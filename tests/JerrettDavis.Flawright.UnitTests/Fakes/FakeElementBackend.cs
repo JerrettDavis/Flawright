@@ -65,6 +65,15 @@ internal sealed class FakeElementBackend : IElementBackend
     /// <summary>Number of double-clicks recorded on this element.</summary>
     public int DoubleClickCount { get; private set; }
 
+    /// <summary>Number of <see cref="TryInvoke"/> calls recorded on this element.</summary>
+    public int InvokeCount { get; private set; }
+
+    /// <summary>
+    /// Controls the return value of <see cref="TryInvoke"/>.
+    /// Defaults to <see langword="true"/> (invoke succeeds).
+    /// </summary>
+    public bool TryInvokeResult { get; set; } = true;
+
     /// <summary>Number of focus operations recorded on this element.</summary>
     public int FocusCount { get; private set; }
 
@@ -113,6 +122,13 @@ internal sealed class FakeElementBackend : IElementBackend
 
     /// <inheritdoc/>
     public void Focus() => FocusCount++;
+
+    /// <inheritdoc/>
+    public bool TryInvoke()
+    {
+        InvokeCount++;
+        return TryInvokeResult;
+    }
 
     // ── IElementBackend: Pattern operations ───────────────────────────────────
 

@@ -384,6 +384,34 @@ var options = new FlawrightOptions
 };
 ```
 
+### Input mode
+
+`IFlawrightLocator` and `IFlawrightElement` actions (clicks, typing, key presses, hover, drag) can operate in two modes configured on `FlawrightOptions`:
+
+| Mode | Focus-steal | Cursor | Concurrent tests | Unsupported actions |
+|---|---|---|---|---|
+| `RealInputMode` | Yes | Moves | No | None |
+| `VirtualInputMode` | No | Stationary | Yes | Hover, drag, double-click, key chords |
+
+**`RealInputMode` (default)** sends real OS-level mouse and keyboard input via Win32 `SendInput`. Matches a user driving the application manually. Required for any action that depends on OS-level focus or cursor position.
+
+**`VirtualInputMode`** drives the application via UIA patterns (`InvokePattern`, `ValuePattern`, etc.) — no focus-steal, no cursor movement. Recommended for CI runs and bulk test suites. Actions without a UIA equivalent throw `NotSupportedException` with an actionable message.
+
+```csharp
+using JerrettDavis.Flawright.InputModes;
+
+var options = new FlawrightOptions
+{
+    InputMode = new VirtualInputMode() // no focus-steal, supports concurrent tests
+};
+
+await using var fw = await Flawright.LaunchAsync(
+    new LaunchOptions { ApplicationPath = "myapp.exe" },
+    options);
+```
+
+Implement `IInputMode` to define custom input dispatch — for example, routing actions through accessibility APIs specific to your app framework.
+
 ## Differences from Playwright (web)
 
 | Concept | Playwright (web) | Flawright (desktop) |

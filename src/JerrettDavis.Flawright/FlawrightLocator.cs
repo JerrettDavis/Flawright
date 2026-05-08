@@ -4,6 +4,7 @@
 using System.Text.RegularExpressions;
 using JerrettDavis.Flawright.Backends;
 using JerrettDavis.Flawright.Input;
+using JerrettDavis.Flawright.InputModes;
 using JerrettDavis.Flawright.Internals;
 using JerrettDavis.Flawright.Locator;
 using JerrettDavis.Flawright.Selectors;
@@ -240,7 +241,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         // Now return all (re-query to get the current snapshot).
         var all = await RunPipelineAsync().ConfigureAwait(false);
         var allFiltered = await ApplyFilters(all).ConfigureAwait(false);
-        return allFiltered.Select(b => (IFlawrightElement)new FlawrightElement(b, _ctx.Input)).ToList().AsReadOnly();
+        return allFiltered.Select(b => (IFlawrightElement)new FlawrightElement(b, _ctx.Input, _ctx.InputMode)).ToList().AsReadOnly();
     }
 
     /// <inheritdoc/>
@@ -252,7 +253,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var texts = new List<string>(filtered.Count);
         foreach (var b in filtered)
         {
-            var el = new FlawrightElement(b, _ctx.Input);
+            var el = new FlawrightElement(b, _ctx.Input, _ctx.InputMode);
             texts.Add(await el.InnerTextAsync(ct).ConfigureAwait(false));
         }
         return texts.AsReadOnly();
@@ -267,7 +268,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var texts = new List<string>(filtered.Count);
         foreach (var b in filtered)
         {
-            var el = new FlawrightElement(b, _ctx.Input);
+            var el = new FlawrightElement(b, _ctx.Input, _ctx.InputMode);
             texts.Add(await el.TextContentAsync(ct).ConfigureAwait(false) ?? string.Empty);
         }
         return texts.AsReadOnly();
@@ -279,7 +280,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task ClickAsync(LocatorClickOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.ClickAsync(options, ct).ConfigureAwait(false);
     }
 
@@ -287,7 +288,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task DoubleClickAsync(LocatorDoubleClickOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.DoubleClickAsync(options, ct).ConfigureAwait(false);
     }
 
@@ -295,7 +296,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task FillAsync(string text, LocatorFillOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.FillAsync(text, options, ct).ConfigureAwait(false);
     }
 
@@ -303,7 +304,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task ClearAsync(LocatorClearOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.ClearAsync(options, ct).ConfigureAwait(false);
     }
 
@@ -311,8 +312,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task TypeAsync(string text, LocatorTypeOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        backend.Focus();
-        _ctx.Input.KeyboardType(text);
+        _ctx.InputMode.Type(backend, text, _ctx.Input);
     }
 
     /// <inheritdoc/>
@@ -323,17 +323,14 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task PressAsync(string key, LocatorPressOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        backend.Focus();
-        // Parse the key and dispatch via the input backend.
-        var vk = KeyParser.ParseKey(key.Split('+')[^1].Trim());
-        _ctx.Input.KeyboardTap(vk);
+        _ctx.InputMode.Press(backend, key, _ctx.Input);
     }
 
     /// <inheritdoc/>
     public async Task CheckAsync(LocatorCheckOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.CheckAsync(options, ct).ConfigureAwait(false);
     }
 
@@ -341,7 +338,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task UncheckAsync(LocatorUncheckOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.UncheckAsync(options, ct).ConfigureAwait(false);
     }
 
@@ -349,7 +346,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task SetCheckedAsync(bool @checked, LocatorSetCheckedOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.SetCheckedAsync(@checked, options, ct).ConfigureAwait(false);
     }
 
@@ -357,7 +354,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task SelectOptionAsync(string value, LocatorSelectOptionOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.SelectOptionAsync(value, options, ct).ConfigureAwait(false);
     }
 
@@ -366,7 +363,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     {
         ArgumentNullException.ThrowIfNull(value);
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
 
         // Resolve the SelectOptionValue to a string identifier.
         var identifier = value.Label ?? value.Value;
@@ -398,7 +395,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task HoverAsync(LocatorHoverOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.HoverAsync(options, ct).ConfigureAwait(false);
     }
 
@@ -425,44 +422,25 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var sourceBackend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
         var targetBackend = await ResolveLocatorSingleAsync(target, options?.Timeout, ct).ConfigureAwait(false);
 
-        var sourceRect = sourceBackend.BoundingRectangle;
-        var targetRect = targetBackend.BoundingRectangle;
+        // When position overrides are specified, wrap the backends so that
+        // IInputMode.DragTo sees single-point bounding rectangles at the desired
+        // coordinates.  VirtualInputMode will throw before reading them anyway.
+        IElementBackend effectiveSource = options?.SourcePosition is { } srcPos
+            ? new PointElementBackend(sourceBackend, sourceBackend.BoundingRectangle.X + (int)srcPos.X, sourceBackend.BoundingRectangle.Y + (int)srcPos.Y)
+            : sourceBackend;
 
-        int srcX, srcY;
-        if (options?.SourcePosition is { } srcPos)
-        {
-            srcX = sourceRect.X + (int)srcPos.X;
-            srcY = sourceRect.Y + (int)srcPos.Y;
-        }
-        else
-        {
-            srcX = sourceRect.X + sourceRect.Width / 2;
-            srcY = sourceRect.Y + sourceRect.Height / 2;
-        }
+        IElementBackend effectiveTarget = options?.TargetPosition is { } tgtPos
+            ? new PointElementBackend(targetBackend, targetBackend.BoundingRectangle.X + (int)tgtPos.X, targetBackend.BoundingRectangle.Y + (int)tgtPos.Y)
+            : targetBackend;
 
-        int tgtX, tgtY;
-        if (options?.TargetPosition is { } tgtPos)
-        {
-            tgtX = targetRect.X + (int)tgtPos.X;
-            tgtY = targetRect.Y + (int)tgtPos.Y;
-        }
-        else
-        {
-            tgtX = targetRect.X + targetRect.Width / 2;
-            tgtY = targetRect.Y + targetRect.Height / 2;
-        }
-
-        _ctx.Input.MouseMove(srcX, srcY, steps: 0);
-        _ctx.Input.MouseDown(MouseButton.Left);
-        _ctx.Input.MouseMove(tgtX, tgtY, steps: 10);
-        _ctx.Input.MouseUp(MouseButton.Left);
+        _ctx.InputMode.DragTo(effectiveSource, effectiveTarget, _ctx.Input);
     }
 
     /// <inheritdoc/>
     public async Task ScrollIntoViewIfNeededAsync(CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         await el.ScrollIntoViewIfNeededAsync(ct).ConfigureAwait(false);
     }
 
@@ -552,7 +530,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task<string> InnerTextAsync(CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         return await el.InnerTextAsync(ct).ConfigureAwait(false);
     }
 
@@ -560,7 +538,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task<string?> TextContentAsync(CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         return await el.TextContentAsync(ct).ConfigureAwait(false);
     }
 
@@ -568,7 +546,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task<string?> InputValueAsync(CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         return await el.InputValueAsync(ct).ConfigureAwait(false);
     }
 
@@ -576,7 +554,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task<string?> GetAttributeAsync(string name, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         return await el.GetAttributeAsync(name, ct).ConfigureAwait(false);
     }
 
@@ -584,7 +562,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task<BoundingBox?> BoundingBoxAsync(CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
-        var el = new FlawrightElement(backend, _ctx.Input);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
         return await el.BoundingBoxAsync(ct).ConfigureAwait(false);
     }
 
@@ -677,7 +655,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task<IFlawrightElement> ElementHandleAsync(TimeSpan? timeout = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(timeout, ct).ConfigureAwait(false);
-        return new FlawrightElement(backend, _ctx.Input);
+        return new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
     }
 
     // ── IFlawrightLocator: Assertions ─────────────────────────────────────────
@@ -1038,4 +1016,46 @@ file sealed class IndexBasedCondition : IElementCondition
 {
     public IEnumerable<IElementBackend> FindAllFrom(IElementBackend root)
         => root.FindAll(this);
+}
+
+/// <summary>
+/// Forwards all <see cref="IElementBackend"/> members to an inner backend, but
+/// overrides <see cref="BoundingRectangle"/> with a 1×1 rectangle at the given
+/// point.  Used by <see cref="FlawrightLocator.DragToAsync"/> to translate
+/// <c>LocatorDragToOptions.SourcePosition</c> / <c>TargetPosition</c> offsets
+/// into a form that <see cref="JerrettDavis.Flawright.InputModes.IInputMode.DragTo"/>
+/// can understand.
+/// </summary>
+file sealed class PointElementBackend : IElementBackend
+{
+    private readonly IElementBackend _inner;
+    private readonly System.Drawing.Rectangle _rect;
+
+    internal PointElementBackend(IElementBackend inner, int x, int y)
+    {
+        _inner = inner;
+        _rect = new System.Drawing.Rectangle(x, y, 1, 1);
+    }
+
+    public string? AutomationId => _inner.AutomationId;
+    public string? Name => _inner.Name;
+    public string? ClassName => _inner.ClassName;
+    public string ControlTypeName => _inner.ControlTypeName;
+    public bool IsEnabled => _inner.IsEnabled;
+    public bool IsOffscreen => _inner.IsOffscreen;
+    public System.Drawing.Rectangle BoundingRectangle => _rect;
+    public void Click() => _inner.Click();
+    public void DoubleClick() => _inner.DoubleClick();
+    public void Focus() => _inner.Focus();
+    public bool TryInvoke() => _inner.TryInvoke();
+    public bool TrySetValue(string text) => _inner.TrySetValue(text);
+    public string? TryGetValue() => _inner.TryGetValue();
+    public string? TryGetDocumentText() => _inner.TryGetDocumentText();
+    public bool TryToggleOn() => _inner.TryToggleOn();
+    public bool TryToggleOff() => _inner.TryToggleOff();
+    public bool? GetToggleState() => _inner.GetToggleState();
+    public bool TryScrollIntoView() => _inner.TryScrollIntoView();
+    public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
+    public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);
+    public IElementBackend? FindFirst(IElementCondition condition) => _inner.FindFirst(condition);
 }

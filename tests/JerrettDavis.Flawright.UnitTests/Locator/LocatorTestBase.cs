@@ -1,4 +1,5 @@
 using JerrettDavis.Flawright.Backends;
+using JerrettDavis.Flawright.InputModes;
 using JerrettDavis.Flawright.Locator;
 using JerrettDavis.Flawright.UnitTests.Fakes;
 
@@ -24,19 +25,22 @@ internal static class LocatorTestBase
         FakeElementBackend root,
         FakeInputBackend? input = null,
         FakeConditionTranslator? translator = null,
-        FlawrightOptions? options = null)
+        FlawrightOptions? options = null,
+        IInputMode? inputMode = null)
     {
         var t = translator ?? new FakeConditionTranslator();
         var ast = JerrettDavis.Flawright.Selectors.SelectorParser.Parse(selector);
         var pipeline = t.Translate(ast);
+        var resolvedOptions = options ?? FastOptions;
         var ctx = new LocatorContext
         {
             Root = root,
             Input = input ?? new FakeInputBackend(),
+            InputMode = inputMode ?? resolvedOptions.InputMode,
             Translator = t,
             Selector = selector,
             Pipeline = pipeline,
-            Options = options ?? FastOptions,
+            Options = resolvedOptions,
         };
         return new FlawrightLocator(ctx);
     }

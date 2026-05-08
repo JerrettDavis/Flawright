@@ -1,4 +1,5 @@
 using JerrettDavis.Flawright.Backends;
+using JerrettDavis.Flawright.InputModes;
 
 namespace JerrettDavis.Flawright.Locator;
 
@@ -35,6 +36,9 @@ internal sealed record LocatorContext
 
     /// <summary>Input backend for mouse/keyboard actions.</summary>
     public required IInputBackend Input { get; init; }
+
+    /// <summary>Strategy for performing input actions (real OS input or UIA virtual input).</summary>
+    public required IInputMode InputMode { get; init; }
 
     /// <summary>Translates parsed AST nodes into backend-native conditions.</summary>
     public required IConditionTranslator Translator { get; init; }

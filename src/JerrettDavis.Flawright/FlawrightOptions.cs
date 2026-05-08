@@ -1,4 +1,5 @@
 using JerrettDavis.Flawright.CloseBehaviors;
+using JerrettDavis.Flawright.InputModes;
 
 namespace JerrettDavis.Flawright;
 
@@ -49,4 +50,13 @@ public sealed record FlawrightOptions
     /// (<see cref="KillCloseBehavior"/>).
     /// </summary>
     public ICloseBehavior CloseBehavior { get; init; } = new WindowMessageCloseBehavior();
+
+    /// <summary>
+    /// Strategy for performing input actions. Defaults to <see cref="RealInputMode"/>
+    /// (uses real OS mouse/keyboard input — steals focus and the cursor). Set to
+    /// <see cref="VirtualInputMode"/> to drive the app via UIA patterns only — no
+    /// focus-steal, supports concurrent tests, but some actions (hover, drag, key
+    /// chords, double-click) throw <see cref="NotSupportedException"/>.
+    /// </summary>
+    public IInputMode InputMode { get; init; } = new RealInputMode();
 }
