@@ -98,9 +98,32 @@ await fw.Browser.CloseAsync();
 >
 > When in doubt, inspect the live UI tree with [Accessibility Insights for Windows](https://accessibilityinsights.io/) or [FlaUI Inspect](https://github.com/FlaUI/FlaUI/wiki/Tools#flauiinspect) to find the right selector for your system.
 >
-> On Windows 11, `ApplicationPath = "notepad.exe"` is automatically redirected to
-> `Application.LaunchStoreApp("Microsoft.WindowsNotepad_8wekyb3d8bbwe!App")` so FlaUI
-> binds to the real packaged app instead of the short-lived alias stub.
+> **App Execution Alias detection (Windows 11)**
+>
+> On Windows 11, several inbox apps (`notepad.exe`, `calc.exe`, `mspaint.exe`) are packaged
+> WinUI 3 applications whose command-line entries are App Execution Alias stubs — 0-byte
+> reparse points under `%LOCALAPPDATA%\Microsoft\WindowsApps\`.  When launched via
+> `Process.Start`, the stub exits immediately after activating the real packaged app, so
+> FlaUI would track a dead PID.
+>
+> Flawright detects this automatically.  When `ApplicationPath` resolves to a known alias
+> stub (or the alias stub is absent but the corresponding package is installed), Flawright
+> internally calls `Application.LaunchStoreApp(aumid)` — binding FlaUI to the real packaged
+> app process — instead of `Application.Launch`.  No change to your test code is required;
+> `ApplicationPath = "notepad.exe"` simply works on both Windows 10 and Windows 11.
+>
+> The detection uses two tiers:
+> 1. File check — if `%LOCALAPPDATA%\Microsoft\WindowsApps\<name>.exe` exists, the alias stub is present.
+> 2. Registry probe — if the stub is absent (some Win11 builds ship `calc.exe` as a System32 redirect), the per-user package registry (`HKCU\...\AppModel\Repository\Packages`) is checked; if the package is installed, the AUMID is used.
+>
+> To override the resolver (e.g. to inject a fake in unit tests, or to add an app not in the
+> built-in table), set `LaunchOptions.AumidResolver`:
+>
+> ```csharp
+> var fake = new FakeAumidResolver();
+> fake.RegisterAumid("myapp.exe", "Contoso.MyApp_abc123!App");
+> var opts = new LaunchOptions { ApplicationPath = "myapp.exe", AumidResolver = fake };
+> ```
 
 To attach to an already-running process instead of launching a new one:
 

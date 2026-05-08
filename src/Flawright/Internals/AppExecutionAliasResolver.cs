@@ -28,7 +28,7 @@ internal static class AppExecutionAliasResolver
     /// common Windows-shipped packaged apps.  Keyed by the <c>.exe</c>
     /// filename (case-insensitive).
     /// </summary>
-    private static readonly Dictionary<string, string> KnownAliases =
+    internal static readonly Dictionary<string, string> KnownAliases =
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["notepad.exe"] = "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App",

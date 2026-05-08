@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using FlaUI.Core;
 using FlaUI.UIA3;
+using Flawright.AumidResolver;
 using Flawright.Internals;
 
 namespace Flawright.Backends.Uia;
@@ -18,13 +19,18 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
     {
         ArgumentNullException.ThrowIfNull(opts);
 
-        // Pre-flight: detect Windows AppExecutionAlias stubs (e.g. notepad.exe on
-        // Windows 11 points to a packaged WinUI3 app) and transparently redirect
-        // to LaunchStoreApp so FlaUI binds to the real application process.
-        if (AppExecutionAliasResolver.TryResolve(opts.ApplicationPath!, out var aumid))
+        // Pre-flight: resolve the application path.  The resolver detects
+        // Windows AppExecutionAlias stubs and System32 shell-launcher shims
+        // (e.g. notepad.exe, calc.exe on Windows 11) and redirects them to
+        // LaunchStoreApp so FlaUI binds to the real packaged-app process
+        // instead of the short-lived stub/broker PID.
+        var resolver = opts.AumidResolver ?? new WindowsAumidResolver();
+        var target = resolver.Resolve(opts.ApplicationPath!);
+
+        if (target.Kind == LaunchKind.Aumid)
         {
             var aliasArgs = opts.Arguments == null ? "" : string.Join(' ', opts.Arguments);
-            return LaunchStoreApp(aumid, aliasArgs, ct);
+            return LaunchStoreApp(target.Value, aliasArgs, ct);
         }
 
         var psi = new System.Diagnostics.ProcessStartInfo(opts.ApplicationPath!)
@@ -62,8 +68,11 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
 #pragma warning disable CA1031 // Best-effort re-attach: fallback to activator if Attach fails
             try
             {
-                // Re-attach to the real packaged app process.
-                app = Application.Attach(realPid);
+                // Re-attach to the real packaged app process, preserving IsStoreApp=true.
+                // Application.Attach(int) defaults IsStoreApp to false, which would lose the
+                // packaged-app semantics needed by FlaUiApplicationHandle.  Use the public
+                // Application(int, bool) constructor directly to keep IsStoreApp=true.
+                app = new Application(realPid, isStoreApp: true);
             }
             catch
             {

@@ -1,3 +1,5 @@
+using Flawright.AumidResolver;
+
 namespace Flawright;
 
 /// <summary>
@@ -70,4 +72,18 @@ public sealed record LaunchOptions
     /// after launch.  <see langword="null"/> uses the default of 30 seconds.
     /// </summary>
     public TimeSpan? StartupTimeout { get; init; }
+
+    /// <summary>
+    /// Custom AUMID resolver used to detect whether
+    /// <see cref="ApplicationPath"/> refers to an AppExecutionAlias stub or
+    /// shell-launcher shim and map it to a packaged-app AUMID.
+    /// <see langword="null"/> uses <see cref="WindowsAumidResolver"/> (the
+    /// recommended default).
+    /// </summary>
+    /// <remarks>
+    /// Override this in unit tests to inject a <c>FakeAumidResolver</c> that
+    /// returns predetermined <see cref="LaunchTarget"/> values without touching
+    /// the file system or registry.
+    /// </remarks>
+    public IAumidResolver? AumidResolver { get; init; }
 }

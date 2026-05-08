@@ -1,3 +1,5 @@
+using Flawright.AumidResolver;
+using Flawright.UnitTests.Fakes;
 using Xunit;
 
 namespace Flawright.UnitTests.Browser;
@@ -112,5 +114,33 @@ public sealed class LaunchOptionsTests
         // Records are sealed value-equality types — verify ToString doesn't throw.
         var opts = new LaunchOptions { ApplicationPath = "a.exe", Aumid = null };
         Assert.Contains("LaunchOptions", opts.ToString());
+    }
+
+    [Fact]
+    public void AumidResolver_DefaultsToNull()
+    {
+        var opts = new LaunchOptions();
+        Assert.Null(opts.AumidResolver);
+    }
+
+    [Fact]
+    public void AumidResolver_CanBeSet()
+    {
+        var fake = new FakeAumidResolver();
+        var opts = new LaunchOptions { AumidResolver = fake };
+        Assert.Same(fake, opts.AumidResolver);
+    }
+
+    [Fact]
+    public void AumidResolver_WithExpression_CanBeOverridden()
+    {
+        var fake1 = new FakeAumidResolver();
+        var fake2 = new FakeAumidResolver();
+
+        var original = new LaunchOptions { ApplicationPath = "app.exe", AumidResolver = fake1 };
+        var modified = original with { AumidResolver = fake2 };
+
+        Assert.Same(fake1, original.AumidResolver);
+        Assert.Same(fake2, modified.AumidResolver);
     }
 }
