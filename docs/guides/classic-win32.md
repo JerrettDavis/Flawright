@@ -109,10 +109,12 @@ public class ClassicNotepadTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Classic Notepad: the editor is a raw "Edit" class control
-        await page.FillAsync("controltype:Edit", "Hello from classic Notepad!");
+        // Classic Notepad: the Win32 class name is "Edit", so use class:Edit.
+        // Note: the UIA ControlType for this multi-line edit is Document, not Edit —
+        // use class:Edit (ClassName) here, not controltype:Edit (UIA ControlType).
+        await page.FillAsync("class:Edit", "Hello from classic Notepad!");
 
-        var text = await page.Locator("controltype:Edit").InnerTextAsync();
+        var text = await page.Locator("class:Edit").InnerTextAsync();
         Assert.Equal("Hello from classic Notepad!", text);
     }
 
@@ -138,6 +140,9 @@ public class ClassicNotepadTests : IAsyncLifetime
 ```
 
 ## Gotchas
+
+**`class:` vs `controltype:` for multi-line edit controls**
+Classic Notepad's textarea has Win32 ClassName `Edit`, so `class:Edit` targets it correctly. However, UIA promotes multi-line edit controls to `ControlType.Document` — their UIA ControlType is **not** `Edit`. Using `controltype:Edit` will silently match nothing (or the wrong element). When in doubt, open Accessibility Insights and check both the `ClassName` property (use `class:`) and the `ControlType` property (use `controltype:`) separately.
 
 **Many Win32 apps have no AutomationId**
 Win32 apps built without accessibility in mind often expose no AutomationId. Fall back to `class:` + `.Nth()`, or `name:` if the control has an accessible name. Use Accessibility Insights or `inspect.exe` to discover what UIA properties are available.

@@ -38,7 +38,7 @@ public class NotepadTests : IAsyncLifetime
         var page = await _fw!.Browser.NewPageAsync();
 
 #pragma warning disable CS0618
-        var textBox = await page.Locator("controltype:Edit").First.ElementHandleAsync();
+        var textBox = await page.Locator("class:Edit").First.ElementHandleAsync();
 #pragma warning restore CS0618
         Assert.NotNull(textBox);
     }
@@ -48,8 +48,8 @@ public class NotepadTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        await page.FillAsync("controltype:Edit", "Hello Flawright!");
-        var text = await page.Locator("controltype:Edit").First.InputValueAsync();
+        await page.FillAsync("class:Edit", "Hello Flawright!");
+        var text = await page.Locator("class:Edit").First.InputValueAsync();
         Assert.Equal("Hello Flawright!", text);
     }
 
@@ -79,7 +79,7 @@ public class NotepadTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        await page.Locator("controltype:Edit").Expect().ToBeVisibleAsync();
+        await page.Locator("class:Edit").Expect().ToBeVisibleAsync();
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class NotepadTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        await page.Locator("controltype:Edit").Expect().ToBeEnabledAsync();
+        await page.Locator("class:Edit").Expect().ToBeEnabledAsync();
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class NotepadTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        var count = await page.Locator("controltype:Edit").CountAsync();
+        var count = await page.Locator("class:Edit").CountAsync();
         Assert.Equal(1, count);
     }
 

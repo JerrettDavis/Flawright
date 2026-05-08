@@ -88,7 +88,8 @@ public class NotepadTests : IAsyncLifetime
         var page = await _fw!.Browser.NewPageAsync();
 
         // Win11 Notepad (WinUI3) uses AutomationId "RichEditBox" for the editor.
-        // On classic Win10 Notepad use "controltype:Edit" instead.
+        // On classic Win10 Notepad use "class:Edit" instead (the Win32 ClassName is
+        // "Edit", but its UIA ControlType is Document — so class:Edit, not controltype:Edit).
         await page.FillAsync("#RichEditBox", "Hello from Flawright!");
 
         var text = await page.Locator("#RichEditBox").InnerTextAsync();
@@ -127,7 +128,7 @@ public class NotepadTests : IAsyncLifetime
 > | Version | Editor selector | Notes |
 > |---------|----------------|-------|
 > | Windows 11 Notepad (WinUI3) | `#RichEditBox` | AutomationId-based; reliable across Win11 builds |
-> | Classic Windows 10 Notepad (Win32) | `controltype:Edit` | ControlType-based |
+> | Classic Windows 10 Notepad (Win32) | `class:Edit` | ClassName-based; use `class:` not `controltype:` — the UIA ControlType for this multi-line edit is `Document`, not `Edit` |
 >
 > When in doubt, use [Accessibility Insights for Windows](https://accessibilityinsights.io/) or `inspect.exe` to browse the live UIA tree and find the right selector.
 

@@ -129,7 +129,7 @@ page.Locator("[controltype=Edit]")
 | `header` | `ControlType.Header` |
 | `headeritem` | `ControlType.HeaderItem` |
 
-Any unrecognized value maps to `ControlType.Custom`.
+Any unrecognized value throws `ArgumentException` with a message listing the bad value and suggesting valid options. There is no `Custom` fallback — misspelled or unsupported values are surfaced immediately so the developer can correct them.
 
 ## Fallback Rules
 
@@ -171,6 +171,10 @@ var first = saveItems.First;
 Filters compose: chaining multiple `Filter` calls ANDs the predicates.
 
 ## Common Gotchas
+
+**`class:` vs `controltype:` are different properties**
+
+`class:` (or `classname:`) matches the Win32 `ClassName` property of the automation element — the window class name registered with `RegisterClass`. `controltype:` matches the UIA `ControlType`. These are not the same. For example, classic Notepad's textarea has Win32 ClassName `Edit` (so `class:Edit` works), but UIA promotes it to `ControlType.Document` because it is a multi-line edit (so `controltype:Edit` does not match). When targeting Win32 controls, inspect both properties with Accessibility Insights or `inspect.exe` and choose the selector prefix that matches what you see.
 
 **Localized control names**
 

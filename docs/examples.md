@@ -53,8 +53,9 @@ Launches Notepad, types a multi-line document, takes a screenshot, and verifies 
 > **Windows 10 vs Windows 11 selectors**
 >
 > Windows 11 ships a packaged WinUI3 Notepad. Its text editor has `AutomationId = "RichEditBox"`.
-> Classic Windows 10 Notepad uses `ControlType.Edit`. Use the appropriate selector for your OS, or
-> inspect with [Accessibility Insights](https://accessibilityinsights.io/) to confirm.
+> Classic Windows 10 Notepad's textarea has Win32 ClassName `Edit`, so use `class:Edit`.
+> Its UIA ControlType is `Document` (not `Edit`) — `controltype:Edit` will not match it.
+> Inspect with [Accessibility Insights](https://accessibilityinsights.io/) to confirm.
 
 ```csharp
 [Fact]
@@ -69,7 +70,7 @@ public async Task Notepad_TypeAndVerify()
     const string content = "Line 1\nLine 2\nLine 3";
 
     // Win11 Notepad (WinUI3): use "#RichEditBox"
-    // Classic Win10 Notepad:  use "controltype:Edit"
+    // Classic Win10 Notepad:  use "class:Edit"  (ClassName = Edit; UIA ControlType = Document)
     await page.FillAsync("#RichEditBox", content);
 
     // Verify the text landed
@@ -140,7 +141,7 @@ public async Task AttachToRunningNotepad()
     });
     var page = await fw.Browser.NewPageAsync();
 
-    // Win11 Notepad: "#RichEditBox"; classic Win10: "controltype:Edit"
+    // Win11 Notepad: "#RichEditBox"; classic Win10: "class:Edit"
     await page.Locator("#RichEditBox").Expect().ToBeVisibleAsync();
 }
 ```
@@ -160,7 +161,7 @@ public async Task Notepad_SaveAsDialog_Opens()
     var page = await fw.Browser.NewPageAsync();
 
     // Open the Save As dialog via keyboard shortcut
-    // Win11 Notepad: "#RichEditBox"; classic Win10: "controltype:Edit"
+    // Win11 Notepad: "#RichEditBox"; classic Win10: "class:Edit"
     await page.PressAsync("#RichEditBox", "Ctrl+Shift+S");
 
     // Wait for the Save As dialog to appear
@@ -183,7 +184,7 @@ public async Task Notepad_KeyboardInput()
     });
     var page = await fw.Browser.NewPageAsync();
 
-    // Win11 Notepad (WinUI3): "#RichEditBox"; classic Win10: "controltype:Edit"
+    // Win11 Notepad (WinUI3): "#RichEditBox"; classic Win10: "class:Edit"
     // Type character-by-character (key events fire for each character)
     await page.TypeAsync("#RichEditBox", "Hello");
 

@@ -215,12 +215,7 @@ internal sealed class UiaConditionTranslator : IConditionTranslator
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static ControlType ParseControlTypeName(string value) =>
-        Enum.TryParse<ControlType>(value, ignoreCase: true, out var ct)
-            ? ct
-            : throw new ArgumentException(
-                $"'{value}' is not a recognised ControlType. " +
-                $"Use a valid FlaUI ControlType name (e.g. Button, Edit, List).",
-                nameof(value));
+        ControlTypeParser.Parse(value);
 
     /// <summary>
     /// Gets the FrameworkId string of an element via its underlying
