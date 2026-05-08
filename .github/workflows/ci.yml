@@ -195,6 +195,58 @@ jobs:
           --no-restore
           /p:ContinuousIntegrationBuild=true
 
+      - name: Diagnostic — dump runner AUMID state
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "=== Get-AppxPackage *Calculator* *Notepad* *Paint* ==="
+          Get-AppxPackage *Calculator*, *Notepad*, *Paint* | Select-Object Name, PackageFamilyName, PackageFullName, InstallLocation | Format-List
+          Write-Host ""
+          Write-Host "=== Get-AppxPackage -AllUsers *Calculator* (machine-wide) ==="
+          Get-AppxPackage -AllUsers *Calculator* | Select-Object Name, PackageFamilyName, PackageFullName, IsFramework, IsResourcePackage | Format-List
+          Write-Host ""
+          Write-Host "=== %LOCALAPPDATA%\Microsoft\WindowsApps contents ==="
+          $windowsApps = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps"
+          if (Test-Path $windowsApps) {
+            Get-ChildItem -Path $windowsApps -Force -ErrorAction SilentlyContinue | Select-Object Name, Length, Mode | Format-Table -AutoSize
+          } else {
+            Write-Host "WindowsApps folder does not exist at: $windowsApps"
+          }
+          Write-Host ""
+          Write-Host "=== where.exe notepad.exe / calc.exe / mspaint.exe ==="
+          foreach ($exe in @('notepad.exe', 'calc.exe', 'mspaint.exe')) {
+            Write-Host "where.exe $exe ->"
+            try { & where.exe $exe } catch { Write-Host "  not found" }
+            Write-Host ""
+          }
+          Write-Host "=== HKCU AppModel\Repository\Packages (Calculator/Notepad/Paint matches) ==="
+          $hkcuPath = "HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages"
+          if (Test-Path $hkcuPath) {
+            Get-ChildItem -Path $hkcuPath -ErrorAction SilentlyContinue |
+              Where-Object { $_.PSChildName -match 'Calculator|Notepad|Paint' } |
+              Select-Object PSChildName |
+              Format-Table -AutoSize
+          } else {
+            Write-Host "HKCU package repository key not found"
+          }
+          Write-Host ""
+          Write-Host "=== HKLM AppModel\Repository\Packages (Calculator/Notepad/Paint matches) ==="
+          $hklmPath = "HKLM:\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages"
+          if (Test-Path $hklmPath) {
+            Get-ChildItem -Path $hklmPath -ErrorAction SilentlyContinue |
+              Where-Object { $_.PSChildName -match 'Calculator|Notepad|Paint' } |
+              Select-Object PSChildName |
+              Format-Table -AutoSize
+          } else {
+            Write-Host "HKLM package repository key not found"
+          }
+          Write-Host ""
+          Write-Host "=== Runner identity ==="
+          Write-Host "USERNAME = $env:USERNAME"
+          Write-Host "USERPROFILE = $env:USERPROFILE"
+          Write-Host "LOCALAPPDATA = $env:LOCALAPPDATA"
+          [System.Environment]::OSVersion | Format-List
+
       - name: Run E2E tests
         run: >
           dotnet test tests/Flawright.E2ETests/Flawright.E2ETests.csproj
