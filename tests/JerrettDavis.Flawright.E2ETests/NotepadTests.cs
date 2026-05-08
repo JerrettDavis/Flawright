@@ -1,5 +1,6 @@
 using JerrettDavis.Flawright;
 using JerrettDavis.Flawright.CloseBehaviors;
+using JerrettDavis.Flawright.InputModes;
 using Xunit;
 
 namespace JerrettDavis.Flawright.E2ETests;
@@ -8,6 +9,12 @@ namespace JerrettDavis.Flawright.E2ETests;
 /// E2E tests for Notepad.  Uses <see cref="IAsyncLifetime"/> so that
 /// <c>DisposeAsync</c> is guaranteed to run even when a test throws.
 /// </summary>
+/// <remarks>
+/// Uses <see cref="VirtualInputMode"/> — all actions in this fixture use
+/// <c>FillAsync</c>, <c>InputValueAsync</c>, <c>CountAsync</c>,
+/// <c>TitleAsync</c>, and <c>ScreenshotAsync</c>, which are all UIA-pattern
+/// compatible.  No hover, drag, double-click, or key chords are used.
+/// </remarks>
 public class NotepadTests : IAsyncLifetime
 {
     private IFlawright? _fw;
@@ -16,10 +23,13 @@ public class NotepadTests : IAsyncLifetime
     {
         // Configure DismissDialogCloseBehavior so CloseAsync handles
         // the "save changes?" dialog that Notepad shows on exit.
+        // VirtualInputMode: drives Notepad via UIA patterns — no focus-steal,
+        // no cursor movement, safe for CI runners.
         _fw = await Flawright.LaunchAsync(
             new LaunchOptions { ApplicationPath = "notepad.exe" },
             new FlawrightOptions
             {
+                InputMode = new VirtualInputMode(),
                 CloseBehavior = new DismissDialogCloseBehavior() // handles Win10 + Win11 Notepad
             });
     }

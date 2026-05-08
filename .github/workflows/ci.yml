@@ -61,14 +61,9 @@ jobs:
           --no-restore
           /p:ContinuousIntegrationBuild=true
 
-      # E2E tests (JerrettDavis.Flawright.E2ETests) require a real desktop session
-      # with applications like calc.exe and notepad.exe that behave as UI targets.
-      # GitHub-hosted windows-latest runners do not provide a full interactive
-      # desktop session, so those tests are excluded here via the FullyQualifiedName
-      # filter. Run them locally or on a self-hosted runner with a desktop session.
-      # E2E tests require a full desktop session — run unit tests only.
-      # Targeting the UnitTests project directly avoids the "no tests found"
-      # failure that occurs when the E2ETests assembly yields zero filter matches.
+      # Unit tests only — E2E tests run in the separate e2e-tests job below.
+      # Targeting the UnitTests project directly keeps coverage collection clean
+      # (E2E tests run real apps and have different coverage characteristics).
       - name: Test with coverage
         run: >
           dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj
@@ -155,6 +150,67 @@ jobs:
             ${{ env.COVERAGE_SUMMARY }}
             ```
 
+  e2e-tests:
+    name: E2E Tests (Windows)
+    # Run on the same conditions as pr-checks so E2E results are visible on PRs
+    # and branch pushes. windows-latest runs as a real user (Session 1) and
+    # supports UIA + GUI apps. VirtualInputMode means no focus-steal or cursor
+    # movement is needed — the runner display quirks are irrelevant.
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
+    runs-on: windows-latest
+    needs: pr-checks
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}-
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj
+
+      - name: Build E2E
+        run: >
+          dotnet build tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Run E2E tests
+        run: >
+          dotnet test tests/JerrettDavis.Flawright.E2ETests/JerrettDavis.Flawright.E2ETests.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=e2e-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory ./TestResults
+        timeout-minutes: 12
+
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-results
+          path: ./TestResults/**/*.trx
+          retention-days: 7
+
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: windows-latest
@@ -198,9 +254,8 @@ jobs:
           --no-restore
           /p:ContinuousIntegrationBuild=true
 
-      # E2E tests require a full desktop session — run unit tests only.
-      # Running against the full solution with a FullyQualifiedName filter causes
-      # dotnet test to exit non-zero when the E2ETests assembly yields zero matches.
+      # Unit tests only — E2E tests run in the separate e2e-tests job.
+      # Targeting the UnitTests project directly keeps coverage collection clean.
       - name: Test (Release)
         run: >
           dotnet test tests/JerrettDavis.Flawright.UnitTests/JerrettDavis.Flawright.UnitTests.csproj

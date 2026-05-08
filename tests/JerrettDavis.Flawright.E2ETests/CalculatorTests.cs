@@ -1,4 +1,5 @@
 using JerrettDavis.Flawright;
+using JerrettDavis.Flawright.InputModes;
 using Xunit;
 
 namespace JerrettDavis.Flawright.E2ETests;
@@ -9,16 +10,26 @@ namespace JerrettDavis.Flawright.E2ETests;
 /// <see cref="Flawright.DisposeAsync"/> closes the process and kills it
 /// if it has not yet exited.
 /// </summary>
+/// <remarks>
+/// Uses <see cref="VirtualInputMode"/> — all actions in this fixture use
+/// <c>ClickAsync</c> (via <c>InvokePattern</c>), <c>CountAsync</c>, and
+/// <c>ScreenshotAsync</c>, which are all UIA-pattern compatible.  No hover,
+/// drag, double-click, or key chords are used.
+/// </remarks>
 public class CalculatorTests : IAsyncLifetime
 {
     private IFlawright? _fw;
 
     public async Task InitializeAsync()
     {
-        _fw = await Flawright.LaunchAsync(new LaunchOptions
-        {
-            ApplicationPath = "calc.exe"
-        });
+        // VirtualInputMode: drives Calculator via UIA patterns — no focus-steal,
+        // no cursor movement, safe for CI runners.
+        _fw = await Flawright.LaunchAsync(
+            new LaunchOptions { ApplicationPath = "calc.exe" },
+            new FlawrightOptions
+            {
+                InputMode = new VirtualInputMode()
+            });
     }
 
     public async Task DisposeAsync()
