@@ -78,7 +78,7 @@ public class NotepadTests : IAsyncLifetime
     {
         _fw = await Flawright.LaunchAsync(new LaunchOptions
         {
-            ApplicationPath = "notepad.exe"
+            ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
         });
     }
 
@@ -87,9 +87,11 @@ public class NotepadTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        await page.FillAsync("controltype:Edit", "Hello from Flawright!");
+        // Win11 Notepad (WinUI3) uses AutomationId "RichEditBox" for the editor.
+        // On classic Win10 Notepad use "controltype:Edit" instead.
+        await page.FillAsync("#RichEditBox", "Hello from Flawright!");
 
-        var text = await page.Locator("controltype:Edit").InnerTextAsync();
+        var text = await page.Locator("#RichEditBox").InnerTextAsync();
         Assert.Equal("Hello from Flawright!", text);
     }
 
@@ -120,6 +122,15 @@ public class NotepadTests : IAsyncLifetime
 }
 ```
 
+> **Windows 10 vs Windows 11 selector differences**
+>
+> | Version | Editor selector | Notes |
+> |---------|----------------|-------|
+> | Windows 11 Notepad (WinUI3) | `#RichEditBox` | AutomationId-based; reliable across Win11 builds |
+> | Classic Windows 10 Notepad (Win32) | `controltype:Edit` | ControlType-based |
+>
+> When in doubt, use [Accessibility Insights for Windows](https://accessibilityinsights.io/) or `inspect.exe` to browse the live UIA tree and find the right selector.
+
 **Run the tests**
 
 ```bash
@@ -130,9 +141,9 @@ The test runner launches Notepad, drives it, and closes it. Tests run sequential
 
 ## What just happened
 
-1. `Flawright.LaunchAsync(options)` is a single static call that starts `notepad.exe` using `Application.AttachOrLaunch` under the hood and wraps it in a `Flawright` instance whose `Browser` is ready to use.
+1. `Flawright.LaunchAsync(options)` is a single static call that starts `notepad.exe`. On Windows 11, Flawright detects that `notepad.exe` is a packaged WinUI3 app and automatically calls `Application.LaunchStoreApp("Microsoft.WindowsNotepad_8wekyb3d8bbwe!App")` so FlaUI binds to the real application instead of the short-lived alias stub.
 2. `Browser.NewPageAsync()` calls `GetMainWindow` on the FlaUI `Application` and wraps the resulting `Window` in a `FlawrightPage`.
-3. `FillAsync` finds the first `ControlType.Edit` element, auto-waiting up to 5 seconds (the default timeout), and sets its value via `ValuePattern.SetValue`.
+3. `FillAsync("#RichEditBox", ...)` finds the element with `AutomationId = "RichEditBox"` (the Win11 WinUI3 editor), auto-waiting up to 5 seconds, and sets its value via `ValuePattern.SetValue`.
 4. `Expect().ToBeVisibleAsync()` resolves the locator and polls until the element is not offscreen, or throws `FlawrightTimeoutException` after the timeout.
 5. `IAsyncLifetime.DisposeAsync()` calls `Flawright.DisposeAsync()`, which closes the Notepad process and releases UIA resources.
 

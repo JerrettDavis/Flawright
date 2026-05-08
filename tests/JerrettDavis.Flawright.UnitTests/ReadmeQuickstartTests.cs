@@ -21,21 +21,21 @@ internal static class ReadmeQuickstartCompileCheck
 {
     // ── README: Quickstart ────────────────────────────────────────────────────
 
-    /// <summary>README quickstart — the exact snippet that triggered the bug report.</summary>
+    /// <summary>README quickstart — the exact snippet that triggered the bug report (updated for Win11).</summary>
     public static async Task ReadmeQuickstart()
     {
         await using var fw = await Flawright.LaunchAsync(new LaunchOptions
         {
-            ApplicationPath = "notepad.exe"
+            ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
         });
 
         var page = await fw.Browser.NewPageAsync();
 
-        // Fill the editor
-        await page.FillAsync("controltype:Edit", "Hello from Flawright!");
+        // Fill the editor — Win11 Notepad (WinUI3) uses AutomationId "RichEditBox"
+        await page.FillAsync("#RichEditBox", "Hello from Flawright!");
 
         // Assert the text is present
-        await page.Locator("controltype:Edit").Expect().ToBeVisibleAsync();
+        await page.Locator("#RichEditBox").Expect().ToBeVisibleAsync();
 
         // Take a screenshot — string-path overload (the bug that was reported)
         byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
@@ -139,14 +139,16 @@ internal static class ReadmeQuickstartCompileCheck
     {
         await using var fw = await Flawright.LaunchAsync(new LaunchOptions
         {
-            ApplicationPath = "notepad.exe"
+            ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
         });
 
         var page = await fw.Browser.NewPageAsync();
-        await page.FillAsync("controltype:Edit", "Hello from Flawright!");
+
+        // Win11 Notepad (WinUI3): "#RichEditBox"; classic Win10: "controltype:Edit"
+        await page.FillAsync("#RichEditBox", "Hello from Flawright!");
 
         // v0.2 API: read text via InnerTextAsync on the locator (not FirstAsync)
-        var text = await page.Locator("controltype:Edit").InnerTextAsync();
+        var text = await page.Locator("#RichEditBox").InnerTextAsync();
 
         await page.Locator("controltype:MenuBar").Expect().ToBeVisibleAsync();
 
@@ -180,15 +182,17 @@ internal static class ReadmeQuickstartCompileCheck
     {
         await using var fw = await Flawright.LaunchAsync(new LaunchOptions
         {
-            ApplicationPath = "notepad.exe"
+            ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
         });
         var page = await fw.Browser.NewPageAsync();
 
         const string Content = "Line 1\nLine 2\nLine 3";
-        await page.FillAsync("controltype:Edit", Content);
+
+        // Win11 Notepad (WinUI3): "#RichEditBox"; classic Win10: "controltype:Edit"
+        await page.FillAsync("#RichEditBox", Content);
 
         // v0.2 API: read text via InnerTextAsync
-        var text = await page.Locator("controltype:Edit").InnerTextAsync();
+        var text = await page.Locator("#RichEditBox").InnerTextAsync();
 
         // String-path convenience overload
         byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad-test.png");
@@ -209,7 +213,8 @@ internal static class ReadmeQuickstartCompileCheck
         });
         var page = await fw.Browser.NewPageAsync();
 
-        await page.Locator("controltype:Edit").Expect().ToBeVisibleAsync();
+        // Win11 Notepad (WinUI3): "#RichEditBox"; classic Win10: "controltype:Edit"
+        await page.Locator("#RichEditBox").Expect().ToBeVisibleAsync();
     }
 
     // ── docs/examples.md: Multi-window ───────────────────────────────────────
@@ -218,11 +223,12 @@ internal static class ReadmeQuickstartCompileCheck
     {
         await using var fw = await Flawright.LaunchAsync(new LaunchOptions
         {
-            ApplicationPath = "notepad.exe"
+            ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
         });
         var page = await fw.Browser.NewPageAsync();
 
-        await page.PressAsync("controltype:Edit", "Ctrl+Shift+S");
+        // Win11 Notepad (WinUI3): "#RichEditBox"; classic Win10: "controltype:Edit"
+        await page.PressAsync("#RichEditBox", "Ctrl+Shift+S");
 
         var dialog = await fw.Browser.WaitForPageAsync("Save As", timeout: TimeSpan.FromSeconds(10));
     }

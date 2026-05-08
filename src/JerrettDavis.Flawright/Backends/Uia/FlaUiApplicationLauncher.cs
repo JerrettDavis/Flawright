@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using FlaUI.Core;
 using FlaUI.UIA3;
+using JerrettDavis.Flawright.Internals;
 
 namespace JerrettDavis.Flawright.Backends.Uia;
 
@@ -16,6 +17,15 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
     public IApplicationHandle Launch(LaunchOptions opts)
     {
         ArgumentNullException.ThrowIfNull(opts);
+
+        // Pre-flight: detect Windows AppExecutionAlias stubs (e.g. notepad.exe on
+        // Windows 11 points to a packaged WinUI3 app) and transparently redirect
+        // to LaunchStoreApp so FlaUI binds to the real application process.
+        if (AppExecutionAliasResolver.TryResolve(opts.ApplicationPath!, out var aumid))
+        {
+            var aliasArgs = opts.Arguments == null ? "" : string.Join(' ', opts.Arguments);
+            return LaunchStoreApp(aumid, aliasArgs);
+        }
 
         var psi = new System.Diagnostics.ProcessStartInfo(opts.ApplicationPath!)
         {

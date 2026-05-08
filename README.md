@@ -39,20 +39,33 @@ using JerrettDavis.Flawright;
 
 await using var fw = await Flawright.LaunchAsync(new LaunchOptions
 {
-    ApplicationPath = "notepad.exe"
+    ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
 });
 
 var page = await fw.Browser.NewPageAsync();
 
-// Fill the editor
-await page.FillAsync("controltype:Edit", "Hello from Flawright!");
+// Fill the editor — use the AutomationId of the editor control
+await page.FillAsync("#RichEditBox", "Hello from Flawright!");
 
 // Assert the text is present
-await page.Locator("controltype:Edit").Expect().ToBeVisibleAsync();
+await page.Locator("#RichEditBox").Expect().ToBeVisibleAsync();
 
 // Take a screenshot — returns PNG bytes; also saves to file if path is given
 byte[] png = await page.ScreenshotAsync(@"C:\temp\notepad.png");
 ```
+
+> **Windows 10 vs Windows 11 Notepad**
+>
+> Different Windows versions ship different Notepad implementations:
+>
+> - **Windows 11 Notepad** (WinUI3, packaged app): editor `AutomationId` is `RichEditBox` — use `#RichEditBox`.
+> - **Classic Windows 10 Notepad** (Win32): editor `ControlType` is `Edit` — use `controltype:Edit`.
+>
+> When in doubt, inspect the live UI tree with [Accessibility Insights for Windows](https://accessibilityinsights.io/) or [FlaUI Inspect](https://github.com/FlaUI/FlaUI/wiki/Tools#flauiinspect) to find the right selector for your system.
+>
+> On Windows 11, `ApplicationPath = "notepad.exe"` is automatically redirected to
+> `Application.LaunchStoreApp("Microsoft.WindowsNotepad_8wekyb3d8bbwe!App")` so FlaUI
+> binds to the real packaged app instead of the short-lived alias stub.
 
 To attach to an already-running process instead of launching a new one:
 

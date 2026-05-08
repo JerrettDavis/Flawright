@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9] - 2026-05-07
+
+### Added
+- Transparent AppExecutionAlias auto-resolution: `LaunchOptions.ApplicationPath = "notepad.exe"` on Windows 11 now automatically launches the packaged Notepad via `LaunchStoreApp("Microsoft.WindowsNotepad_8wekyb3d8bbwe!App")`, eliminating the need to manually specify `Aumid` and preventing FlaUI from binding to the dead alias-stub process.
+- New internal `AppExecutionAliasResolver` with a curated lookup for the most common Windows-shipped packaged-app aliases (`notepad.exe`, `calc.exe`, `mspaint.exe`).
+- New internal `SafeProcessQueries` helper that wraps `HasExited` in a tolerant try/catch; covered by unit tests that document the contract.
+
+### Fixed
+- `FlaUiApplicationHandle.HasExited` no longer throws `InvalidOperationException` when the underlying `Process` handle has been disposed or was never associated with a real process — it now returns `true` (the safe default for dispose paths). Fixes `InvalidOperationException: No process is associated with this object.` on second run.
+- README and `/docs` Notepad examples updated to use selectors that work on Windows 11 Notepad (WinUI3 `#RichEditBox` AutomationId), with a note documenting the Win10 classic Notepad difference (`controltype:Edit`).
+- `ReadmeQuickstartTests.cs` compile-time snapshots updated to match the new Win11-friendly selectors so CI continues to catch API drift.
+
 ## [0.2.8] - 2026-05-07
 
 ### Added

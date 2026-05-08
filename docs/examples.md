@@ -50,21 +50,30 @@ public async Task Calculator_HasButtons()
 
 Launches Notepad, types a multi-line document, takes a screenshot, and verifies the editor is populated.
 
+> **Windows 10 vs Windows 11 selectors**
+>
+> Windows 11 ships a packaged WinUI3 Notepad. Its text editor has `AutomationId = "RichEditBox"`.
+> Classic Windows 10 Notepad uses `ControlType.Edit`. Use the appropriate selector for your OS, or
+> inspect with [Accessibility Insights](https://accessibilityinsights.io/) to confirm.
+
 ```csharp
 [Fact]
 public async Task Notepad_TypeAndVerify()
 {
     await using var fw = await Flawright.LaunchAsync(new LaunchOptions
     {
-        ApplicationPath = "notepad.exe"
+        ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
     });
     var page = await fw.Browser.NewPageAsync();
 
     const string content = "Line 1\nLine 2\nLine 3";
-    await page.FillAsync("controltype:Edit", content);
+
+    // Win11 Notepad (WinUI3): use "#RichEditBox"
+    // Classic Win10 Notepad:  use "controltype:Edit"
+    await page.FillAsync("#RichEditBox", content);
 
     // Verify the text landed
-    var text = await page.Locator("controltype:Edit").InnerTextAsync();
+    var text = await page.Locator("#RichEditBox").InnerTextAsync();
     Assert.Equal(content, text);
 
     // Capture a screenshot for the test report
@@ -77,7 +86,7 @@ public async Task Notepad_MenuBarIsPresent()
 {
     await using var fw = await Flawright.LaunchAsync(new LaunchOptions
     {
-        ApplicationPath = "notepad.exe"
+        ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
     });
     var page = await fw.Browser.NewPageAsync();
 
@@ -131,7 +140,8 @@ public async Task AttachToRunningNotepad()
     });
     var page = await fw.Browser.NewPageAsync();
 
-    await page.Locator("controltype:Edit").Expect().ToBeVisibleAsync();
+    // Win11 Notepad: "#RichEditBox"; classic Win10: "controltype:Edit"
+    await page.Locator("#RichEditBox").Expect().ToBeVisibleAsync();
 }
 ```
 
@@ -145,12 +155,13 @@ public async Task Notepad_SaveAsDialog_Opens()
 {
     await using var fw = await Flawright.LaunchAsync(new LaunchOptions
     {
-        ApplicationPath = "notepad.exe"
+        ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
     });
     var page = await fw.Browser.NewPageAsync();
 
     // Open the Save As dialog via keyboard shortcut
-    await page.PressAsync("controltype:Edit", "Ctrl+Shift+S");
+    // Win11 Notepad: "#RichEditBox"; classic Win10: "controltype:Edit"
+    await page.PressAsync("#RichEditBox", "Ctrl+Shift+S");
 
     // Wait for the Save As dialog to appear
     var dialog = await fw.Browser.WaitForPageAsync("Save As", timeout: TimeSpan.FromSeconds(10));
@@ -168,21 +179,22 @@ public async Task Notepad_KeyboardInput()
 {
     await using var fw = await Flawright.LaunchAsync(new LaunchOptions
     {
-        ApplicationPath = "notepad.exe"
+        ApplicationPath = "notepad.exe"   // auto-resolves to AUMID on Windows 11
     });
     var page = await fw.Browser.NewPageAsync();
 
+    // Win11 Notepad (WinUI3): "#RichEditBox"; classic Win10: "controltype:Edit"
     // Type character-by-character (key events fire for each character)
-    await page.TypeAsync("controltype:Edit", "Hello");
+    await page.TypeAsync("#RichEditBox", "Hello");
 
     // Press Enter
-    await page.PressAsync("controltype:Edit", "Enter");
+    await page.PressAsync("#RichEditBox", "Enter");
 
     // Type more
-    await page.TypeAsync("controltype:Edit", "World");
+    await page.TypeAsync("#RichEditBox", "World");
 
     // Select all and copy with a chord
-    await page.PressAsync("controltype:Edit", "Ctrl+A");
+    await page.PressAsync("#RichEditBox", "Ctrl+A");
 }
 ```
 
