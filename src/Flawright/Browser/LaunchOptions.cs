@@ -74,6 +74,33 @@ public sealed record LaunchOptions
     public TimeSpan? StartupTimeout { get; init; }
 
     /// <summary>
+    /// Maximum time to wait for the launched process to finish loading its DLL
+    /// modules before handing control to FlaUI.  Defaults to 10 seconds when
+    /// <see langword="null"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// After <c>Process.Start</c> / <c>Application.AttachOrLaunch</c> returns,
+    /// the Win32 loader maps DLL modules asynchronously.  On a loaded runner,
+    /// FlaUI's internal <c>EnumProcessModules</c> calls (used during
+    /// <c>WaitWhileMainHandleIsMissing</c> and window discovery) can race against
+    /// the loader, producing a <see cref="System.ComponentModel.Win32Exception"/>
+    /// with the message "Only part of a ReadProcessMemory or WriteProcessMemory
+    /// request was completed" (Win32 error 299).
+    /// </para>
+    /// <para>
+    /// Flawright gates the FlaUI call behind
+    /// <see cref="Internals.ProcessReadyGuard.WaitForProcessReady"/> which first
+    /// tries <c>Process.WaitForInputIdle</c> (the standard Win32 readiness signal
+    /// for GUI apps) and falls back to polling <c>Process.Modules</c> until the
+    /// read succeeds without a partial-read error.  Set this to a shorter value
+    /// in integration tests where you want to fail fast, or to a longer value on
+    /// very slow machines.
+    /// </para>
+    /// </remarks>
+    public TimeSpan? LaunchReadyTimeout { get; init; }
+
+    /// <summary>
     /// Custom AUMID resolver used to detect whether
     /// <see cref="ApplicationPath"/> refers to an AppExecutionAlias stub or
     /// shell-launcher shim and map it to a packaged-app AUMID.

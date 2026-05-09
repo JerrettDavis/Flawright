@@ -51,6 +51,28 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
         var sw = Stopwatch.StartNew();
         var app = Application.AttachOrLaunch(psi);
 
+        // Wait for the process to finish loading its DLL modules before handing
+        // control to FlaUI.  On a busy CI runner the Win32 loader can still be
+        // mapping DLLs when FlaUI calls EnumProcessModules, which produces:
+        //   Win32Exception (299): Only part of a ReadProcessMemory or
+        //   WriteProcessMemory request was completed.
+        // ProcessReadyGuard first tries WaitForInputIdle (canonical for GUI apps)
+        // then falls back to polling Process.Modules until the read succeeds.
+        // The call is best-effort: if it times out or the process has already
+        // exited, we fall through to the normal broker-exit check below.
+#pragma warning disable CA1031 // Best-effort: don't let a guard failure mask the real launch error
+        try
+        {
+            using var proc = Process.GetProcessById(app.ProcessId);
+            ProcessReadyGuard.WaitForProcessReady(proc, opts.LaunchReadyTimeout);
+        }
+        catch (Exception)
+        {
+            // Process may have exited (broker stub), or GetProcessById may fail
+            // on a race — fall through to the broker-exit check.
+        }
+#pragma warning restore CA1031
+
         // Detect the broker-stub-exits scenario: if the launched process exits
         // almost immediately without producing a main window, it is almost
         // certainly an App Execution Alias stub for a UWP package that is not
