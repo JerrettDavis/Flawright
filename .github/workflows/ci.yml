@@ -161,7 +161,7 @@ jobs:
     # main pushes (where pr-checks is skipped) and provides parallel signal
     # when unit-test failures don't necessarily invalidate E2E results.
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
 
@@ -186,7 +186,10 @@ jobs:
             nuget-${{ runner.os }}-
 
       - name: Restore
-        run: dotnet restore tests/Flawright.E2ETests/Flawright.E2ETests.csproj
+        run: |
+          dotnet restore tests/Flawright.E2ETests/Flawright.E2ETests.csproj
+          dotnet restore samples/Flawright.Reqnroll.NotepadDemo/Flawright.Reqnroll.NotepadDemo.csproj
+          dotnet restore samples/Flawright.Reqnroll.CalculatorDemo/Flawright.Reqnroll.CalculatorDemo.csproj
 
       # Build the WPF test app explicitly so CI output makes it clear that the
       # deterministic test target was compiled successfully before the test run.
@@ -219,6 +222,46 @@ jobs:
           --logger "console;verbosity=normal"
           --results-directory ./TestResults
         timeout-minutes: 12
+
+      # ── Reqnroll BDD sample tests ─────────────────────────────────────────────
+      # These samples exercise the Flawright.Reqnroll companion package end-to-end.
+      # Each sample has a prerequisite hook that skips scenarios when the required
+      # system app (Notepad, Calculator) is not installed on the runner.
+      # NotepadDemo: Notepad is available on windows-latest — scenarios run.
+      # CalculatorDemo: Calculator UWP is absent on windows-latest — scenarios skip.
+      - name: Build Reqnroll NotepadDemo
+        run: >
+          dotnet build samples/Flawright.Reqnroll.NotepadDemo/Flawright.Reqnroll.NotepadDemo.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Run Reqnroll NotepadDemo
+        run: >
+          dotnet test samples/Flawright.Reqnroll.NotepadDemo/Flawright.Reqnroll.NotepadDemo.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=notepad-bdd-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory ./TestResults
+        timeout-minutes: 5
+
+      - name: Build Reqnroll CalculatorDemo
+        run: >
+          dotnet build samples/Flawright.Reqnroll.CalculatorDemo/Flawright.Reqnroll.CalculatorDemo.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Run Reqnroll CalculatorDemo
+        run: >
+          dotnet test samples/Flawright.Reqnroll.CalculatorDemo/Flawright.Reqnroll.CalculatorDemo.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=calculator-bdd-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory ./TestResults
+        timeout-minutes: 5
 
       - name: Upload E2E test results
         uses: actions/upload-artifact@v7
