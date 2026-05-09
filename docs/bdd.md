@@ -23,9 +23,14 @@ Create `reqnroll.json` at your project root:
 {
   "$schema": "https://reqnroll.net/schemas/reqnroll-config-2.0.json",
   "bindingCulture": { "name": "en-US" },
-  "trace": { "traceSuccessfulSteps": false }
+  "trace": { "traceSuccessfulSteps": false },
+  "bindingAssemblies": [
+    { "assembly": "Flawright.Reqnroll" }
+  ]
 }
 ```
+
+> The `bindingAssemblies` entry tells Reqnroll to discover the 25 built-in step bindings from the `Flawright.Reqnroll` assembly. Without it, Reqnroll will not find any of the built-in steps and every scenario will fail with "step not found".
 
 ### 3. Write a feature file
 
@@ -237,9 +242,14 @@ Any scenario without an explicit tag will then use `DefaultApplicationPath` as t
 {
   "$schema": "https://reqnroll.net/schemas/reqnroll-config-2.0.json",
   "bindingCulture": { "name": "en-US" },
-  "trace": { "traceSuccessfulSteps": false }
+  "trace": { "traceSuccessfulSteps": false },
+  "bindingAssemblies": [
+    { "assembly": "Flawright.Reqnroll" }
+  ]
 }
 ```
+
+The `bindingAssemblies` entry is required. Without it Reqnroll only scans the test project assembly and will not find the built-in steps from `Flawright.Reqnroll`.
 
 ---
 

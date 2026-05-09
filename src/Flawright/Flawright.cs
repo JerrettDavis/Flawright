@@ -98,10 +98,23 @@ public sealed class Flawright : IFlawright
     /// <returns>
     /// A <see cref="Flawright"/> instance whose <see cref="Browser"/> is ready to use.
     /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Attach-aware dispose:</b> Because Flawright did not launch the process, it
+    /// does not own its lifecycle.  Disposing the returned instance (or calling
+    /// <see cref="IFlawrightBrowser.CloseAsync"/>) will <em>not</em> terminate the
+    /// attached process — only framework resources (UIA handles, FlaUI wrappers) are
+    /// released.  This preserves external process ownership and prevents accidental
+    /// kill of production processes under test.
+    /// </para>
+    /// </remarks>
     /// <example>
     /// <code>
     /// await using var fw = await Flawright.AttachAsync(
     ///     new AttachOptions { ProcessId = 12345 });
+    /// var page = await fw.Browser.NewPageAsync();
+    /// // ... interact with the running process ...
+    /// // Disposing does NOT kill the process — it only releases UIA handles.
     /// </code>
     /// </example>
     [ExcludeFromCodeCoverage] // Requires real FlaUI/UIA — covered by E2E tests only
