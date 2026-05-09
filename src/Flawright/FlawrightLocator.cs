@@ -125,10 +125,20 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var roleSelector = BuildRoleSelector(controlTypeName.ToString());
         var locator = CreateChild(roleSelector);
 
-        // If a Name filter is requested, apply it as a LocatorFilterOptions so that
-        // the filter tests the element's own Name property rather than searching descendants.
-        // This mirrors Playwright's {name:} accessible-name matching.
-        if (options?.Name is { } name && !string.IsNullOrEmpty(name))
+        // Name filtering: prefer NameRegex over Name when both are supplied
+        // (regex is the more specific contract). This mirrors Playwright's
+        // {name: /regex/} taking precedence over {name: 'text'}. Both forms
+        // narrow by the element's own Name property via Filter().
+        if (options?.NameRegex is { } nameRegex)
+        {
+            var filterOptions = new LocatorFilterOptions { HasTextRegex = nameRegex };
+            locator = (FlawrightLocator)locator.Filter(filterOptions);
+
+            // Update the selector string to reflect the name regex for diagnostics.
+            var combinedSelector = $"{locator.Selector} >> [name=~/{nameRegex}/]";
+            locator = new FlawrightLocator(locator._ctx with { Selector = combinedSelector });
+        }
+        else if (options?.Name is { } name && !string.IsNullOrEmpty(name))
         {
             LocatorFilterOptions filterOptions;
             if (options.Exact)
@@ -448,9 +458,20 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     public async Task<byte[]> ScreenshotAsync(LocatorScreenshotOptions? options = null, CancellationToken ct = default)
     {
         // Wave C stub: Wave D will add real screenshot capture via IElementBackend.Capture().
-        if (options?.Path != null)
-            await System.IO.File.WriteAllBytesAsync(options.Path, [], ct).ConfigureAwait(false);
-        return Array.Empty<byte>();
+        // For now, return empty bytes but still write to disk if a path is resolved.
+        var bytes = Array.Empty<byte>();
+        var path = FlawrightPage.ResolveScreenshotPath(
+            options?.Path,
+            _ctx.Options.ScreenshotDirectory,
+            options?.Type ?? ScreenshotType.Png);
+        if (path != null)
+        {
+            var directory = System.IO.Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+                System.IO.Directory.CreateDirectory(directory);
+            await System.IO.File.WriteAllBytesAsync(path, bytes, ct).ConfigureAwait(false);
+        }
+        return bytes;
     }
 
     /// <inheritdoc/>

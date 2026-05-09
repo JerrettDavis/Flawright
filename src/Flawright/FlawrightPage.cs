@@ -191,10 +191,33 @@ internal sealed class FlawrightPage : IFlawrightPage
     {
         var bytes = _windowBackend.CaptureScreenshot();
 
-        if (options?.Path != null)
-            await System.IO.File.WriteAllBytesAsync(options.Path, bytes, ct).ConfigureAwait(false);
+        var path = ResolveScreenshotPath(options?.Path, Options.ScreenshotDirectory, options?.Type ?? ScreenshotType.Png);
+        if (path != null)
+            await System.IO.File.WriteAllBytesAsync(path, bytes, ct).ConfigureAwait(false);
 
         return bytes;
+    }
+
+    /// <summary>
+    /// Resolves the on-disk path a screenshot should be written to.
+    /// </summary>
+    /// <param name="explicitPath">Path supplied by the caller via options. When set, used verbatim.</param>
+    /// <param name="directory">Configured <see cref="FlawrightOptions.ScreenshotDirectory"/>.</param>
+    /// <param name="type">Image format used to derive the file extension when generating a filename.</param>
+    /// <returns>
+    /// The path to write to, or <see langword="null"/> when neither an explicit path
+    /// nor a directory is configured (in-memory only).
+    /// </returns>
+    internal static string? ResolveScreenshotPath(string? explicitPath, string? directory, ScreenshotType type)
+    {
+        if (!string.IsNullOrEmpty(explicitPath))
+            return explicitPath;
+        if (string.IsNullOrEmpty(directory))
+            return null;
+
+        var ext = type == ScreenshotType.Jpeg ? "jpg" : "png";
+        var fileName = $"screenshot-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.{ext}";
+        return System.IO.Path.Combine(directory, fileName);
     }
 
     /// <inheritdoc/>

@@ -37,9 +37,15 @@ public sealed record FlawrightOptions
 
     /// <summary>
     /// Directory in which screenshots are saved when a path is not supplied to
-    /// <c>ScreenshotAsync</c>.  <see langword="null"/> means the current
-    /// working directory is used.
+    /// <c>ScreenshotAsync</c>.  <see langword="null"/> (the default) means
+    /// no auto-save is performed and the screenshot is returned in-memory only.
     /// </summary>
+    /// <remarks>
+    /// When set and <c>ScreenshotAsync</c> is called without an explicit path,
+    /// the screenshot is written to this directory under a generated filename of
+    /// the form <c>screenshot-{timestamp}-{guid}.{png|jpg}</c>. The directory
+    /// must already exist; Flawright does not create it.
+    /// </remarks>
     public string? ScreenshotDirectory { get; init; }
 
     /// <summary>

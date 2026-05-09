@@ -361,9 +361,17 @@ public sealed record LocatorFilterOptions
 public sealed record LocatorGetByRoleOptions
 {
     /// <summary>Accessible name to match (exact string).</summary>
+    /// <remarks>
+    /// When both <see cref="Name"/> and <see cref="NameRegex"/> are set,
+    /// <see cref="NameRegex"/> takes precedence and <see cref="Name"/> is ignored.
+    /// </remarks>
     public string? Name { get; init; }
 
     /// <summary>Accessible name regex to match.</summary>
+    /// <remarks>
+    /// When both <see cref="Name"/> and <see cref="NameRegex"/> are set,
+    /// <see cref="NameRegex"/> takes precedence and <see cref="Name"/> is ignored.
+    /// </remarks>
     public Regex? NameRegex { get; init; }
 
     /// <summary>Whether the name match is exact (vs contains). Default is <see langword="false"/>.</summary>

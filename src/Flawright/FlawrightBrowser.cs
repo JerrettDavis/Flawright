@@ -24,6 +24,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     private readonly LaunchOptions? _launchOptions;
     private readonly AttachOptions? _attachOptions;
     private readonly FlawrightOptions _opts;
+    private readonly bool _wasAttached;
 
     private IApplicationHandle? _app;
     private bool _disposed;
@@ -41,6 +42,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
         _translator = translator;
         _launchOptions = launchOptions;
         _opts = opts;
+        _wasAttached = false;
     }
 
     internal FlawrightBrowser(
@@ -55,6 +57,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
         _translator = translator;
         _attachOptions = attachOptions;
         _opts = opts;
+        _wasAttached = true;
     }
 
     // ── IFlawrightBrowser ─────────────────────────────────────────────────────
@@ -112,8 +115,9 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
 
         var graceful = await _opts.CloseBehavior.CloseAsync(context).ConfigureAwait(false);
 
-        // Safety net: if the behavior returned false (app still running), force-kill.
-        if (!graceful && !_app.HasExited && !_app.IsStoreApp)
+        // Safety net: if the behavior returned false (app still running), force-kill —
+        // unless we attached to the process (we do not own its lifecycle).
+        if (!graceful && !_app.HasExited && !_app.IsStoreApp && !_wasAttached)
         {
 #pragma warning disable CA1031
             try { _app.KillProcessTree(); }
@@ -132,6 +136,10 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     /// multiple times (idempotent).
     /// </summary>
     /// <remarks>
+    /// When the browser was created via <see cref="Flawright.AttachAsync(AttachOptions, FlawrightOptions?, CancellationToken)"/>,
+    /// the attached process will not be terminated on dispose — only framework
+    /// resources are released. This preserves external process ownership.
+    /// <para>
     /// When <see cref="CloseAsync"/> has already been called, this method only
     /// releases handles — it does not re-run the close/kill loop.  This preserves
     /// backward-compatible behavior: callers who rely on <c>await using</c> without
@@ -139,6 +147,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     /// DisposeAsync does NOT invoke the configured <see cref="FlawrightOptions.CloseBehavior"/>
     /// — it is a force-kill safety net. Call <see cref="CloseAsync"/> first for
     /// graceful, behavior-driven teardown.
+    /// </para>
     /// </remarks>
     public async ValueTask DisposeAsync()
     {
@@ -149,6 +158,17 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
 
         if (_app == null)
             return;
+
+        // For attached processes, skip close/kill and only release framework resources.
+        if (_wasAttached)
+        {
+#pragma warning disable CA1031
+            try { _app.Dispose(); }
+            catch (Exception) { /* best-effort */ }
+#pragma warning restore CA1031
+            _app = null;
+            return;
+        }
 
         // Only run close/kill if CloseAsync has not already handled teardown.
         if (!_closeAlreadyHandled)
