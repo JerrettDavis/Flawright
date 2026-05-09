@@ -50,6 +50,24 @@ public partial class MainWindow : Window
         dialog.ShowDialog();
     }
 
+    // ── btnSpawnWindow ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Opens a second top-level <see cref="SpawnedWindow"/> in the same process
+    /// so multi-window tests can exercise <c>GetAllPagesAsync</c> and
+    /// <c>WaitForPageAsync(title)</c>.
+    /// </summary>
+    /// <remarks>
+    /// The spawned window has a deterministic <see cref="Window.Title"/>
+    /// (<c>"Flawright Spawned Window"</c>) and is shown without an owner so it
+    /// appears as a separate top-level window in the UIA tree.
+    /// </remarks>
+    private void BtnSpawnWindow_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new SpawnedWindow();
+        window.Show();
+    }
+
     // ── btnExit ───────────────────────────────────────────────────────────────
 
     private void BtnExit_Click(object sender, RoutedEventArgs e)

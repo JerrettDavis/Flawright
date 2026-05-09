@@ -115,6 +115,57 @@
                 Margin="0,0,0,8"
                 Click="BtnShowDialog_Click" />
 
+        <!-- ── Spawn Window (multi-window E2E target) ────────────────────────── -->
+        <Button x:Name="btnSpawnWindow"
+                Content="Spawn Window"
+                AutomationProperties.AutomationId="btnSpawnWindow"
+                AutomationProperties.Name="Spawn Window"
+                Height="32"
+                Margin="0,0,0,8"
+                Click="BtnSpawnWindow_Click" />
+
+        <!--
+            Nested control hierarchy used by LocatorChainTests.
+            Three levels of UIA-visible nesting (outer GroupBox → inner GroupBox
+            → Buttons) so multi-level Locator(...).Locator(...).Locator(...)
+            chains can be exercised. WPF's panels (StackPanel, Grid) do not
+            appear in the UIA tree by default, so we use nested GroupBoxes
+            which always do.
+
+            Button names follow a regular pattern so HasTextRegex and
+            HasNotTextRegex filters can be validated deterministically.
+        -->
+        <GroupBox x:Name="nestedGroup"
+                  Header="Nested"
+                  AutomationProperties.AutomationId="nestedGroup"
+                  AutomationProperties.Name="nestedGroup"
+                  Margin="0,0,0,8">
+            <GroupBox x:Name="innerGroup"
+                      Header="Inner"
+                      AutomationProperties.AutomationId="innerGroup"
+                      AutomationProperties.Name="innerGroup">
+                <StackPanel Orientation="Vertical">
+                    <Button x:Name="btnInnerAlpha1"
+                            Content="Inner Alpha 1"
+                            AutomationProperties.AutomationId="btnInnerAlpha1"
+                            AutomationProperties.Name="Inner Alpha 1"
+                            Height="24"
+                            Margin="0,0,0,4" />
+                    <Button x:Name="btnInnerAlpha2"
+                            Content="Inner Alpha 2"
+                            AutomationProperties.AutomationId="btnInnerAlpha2"
+                            AutomationProperties.Name="Inner Alpha 2"
+                            Height="24"
+                            Margin="0,0,0,4" />
+                    <Button x:Name="btnInnerBeta1"
+                            Content="Inner Beta 1"
+                            AutomationProperties.AutomationId="btnInnerBeta1"
+                            AutomationProperties.Name="Inner Beta 1"
+                            Height="24" />
+                </StackPanel>
+            </GroupBox>
+        </GroupBox>
+
         <!-- ── Exit ──────────────────────────────────────────────────────────── -->
         <Button x:Name="btnExit"
                 Content="Exit"

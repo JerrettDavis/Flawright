@@ -1,0 +1,32 @@
+<Window x:Class="Flawright.E2ETests.TestApp.SpawnedWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Flawright Spawned Window"
+        AutomationProperties.AutomationId="SpawnedWindow"
+        AutomationProperties.Name="Flawright Spawned Window"
+        Width="320"
+        Height="180"
+        ResizeMode="CanResize"
+        ShowInTaskbar="True">
+
+    <StackPanel Margin="16" VerticalAlignment="Top">
+        <TextBlock Text="This is the spawned window."
+                   Margin="0,0,0,12" />
+
+        <TextBox x:Name="txtSpawned"
+                 AutomationProperties.AutomationId="txtSpawned"
+                 AutomationProperties.Name="txtSpawned"
+                 Height="28"
+                 Margin="0,0,0,8" />
+
+        <TextBox x:Name="lblSpawnedOutput"
+                 AutomationProperties.AutomationId="lblSpawnedOutput"
+                 AutomationProperties.Name="lblSpawnedOutput"
+                 IsReadOnly="True"
+                 IsTabStop="False"
+                 BorderThickness="0"
+                 Background="Transparent"
+                 Text=""
+                 Height="24" />
+    </StackPanel>
+</Window>
