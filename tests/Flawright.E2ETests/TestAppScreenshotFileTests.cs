@@ -108,23 +108,24 @@ public class TestAppScreenshotFileTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// <see cref="IFlawrightPage.ScreenshotAsync(LocatorScreenshotOptions, CancellationToken)"/>
-    /// with <see cref="LocatorScreenshotOptions.Path"/> set to a path inside a
-    /// directory that does not yet exist must fail (the API does not silently
-    /// auto-create intermediate directories). We assert this so the contract
-    /// is captured by E2E coverage.
+    /// <see cref="IFlawrightPage.ScreenshotAsync(string, CancellationToken)"/>
+    /// with a path inside a directory that does not yet exist must create the
+    /// directory automatically (matching <c>FlawrightLocator.ScreenshotAsync</c>
+    /// behavior) and successfully write the file.
     /// </summary>
     [Fact]
-    public async Task ScreenshotAsync_PathInMissingDirectory_Throws()
+    public async Task ScreenshotAsync_PathInMissingDirectory_CreatesDirectoryAndWritesFile()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        var missingDir = Path.Combine(_scratchDir!, "does-not-exist");
+        var missingDir = Path.Combine(_scratchDir!, "does-not-exist-" + Guid.NewGuid().ToString("N"));
         var path = Path.Combine(missingDir, "out.png");
 
-        await Assert.ThrowsAsync<DirectoryNotFoundException>(
-            async () => await page.ScreenshotAsync(path));
+        Assert.False(Directory.Exists(missingDir), "Pre-condition: directory must not exist.");
 
-        Assert.False(File.Exists(path));
+        await page.ScreenshotAsync(path);
+
+        Assert.True(Directory.Exists(missingDir), "ScreenshotAsync must create the directory.");
+        Assert.True(File.Exists(path), "Screenshot file must exist after directory creation.");
     }
 }
