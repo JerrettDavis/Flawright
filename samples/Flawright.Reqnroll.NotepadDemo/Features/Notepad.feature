@@ -7,15 +7,15 @@ Feature: Notepad BDD Automation
 
     @launch:notepad.exe
     Scenario: Type and verify text in Notepad
-        When I fill "[name=\"Text editor\"]" with "Hello from Flawright!"
-        Then "[name=\"Text editor\"]" should contain "Hello"
-        And "[name=\"Text editor\"]" should contain "Flawright"
+        When I fill "class:Edit" with "Hello from Flawright!"
+        Then "class:Edit" should contain "Hello"
+        And "class:Edit" should contain "Flawright"
 
     @launch:notepad.exe
     Scenario: Clear text in Notepad
-        When I fill "[name=\"Text editor\"]" with "Some initial text"
-        And  I clear "[name=\"Text editor\"]"
-        Then "[name=\"Text editor\"]" should be empty
+        When I fill "class:Edit" with "Some initial text"
+        And  I clear "class:Edit"
+        Then "class:Edit" should be empty
 
     @launch:notepad.exe
     Scenario: Verify window title contains Notepad
@@ -23,10 +23,10 @@ Feature: Notepad BDD Automation
 
     @launch:notepad.exe
     Scenario: Type character-by-character into Notepad
-        When I type "BDD rocks!" into "[name=\"Text editor\"]"
-        Then "[name=\"Text editor\"]" should contain "BDD rocks"
+        When I type "BDD rocks!" into "class:Edit"
+        Then "class:Edit" should contain "BDD rocks"
 
     @launch:notepad.exe
     Scenario: Screenshot after typing
-        When I fill "[name=\"Text editor\"]" with "Flawright screenshot test"
-        Then "[name=\"Text editor\"]" should be visible
+        When I fill "class:Edit" with "Flawright screenshot test"
+        Then "class:Edit" should be visible
