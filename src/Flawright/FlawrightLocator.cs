@@ -490,33 +490,26 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     /// <inheritdoc/>
     public async Task<bool> IsVisibleAsync(CancellationToken ct = default)
     {
-        // Short timeout (1s): return false rather than throw if not found.
-        var shortTimeout = TimeSpan.FromSeconds(1);
-        try
-        {
-            var backend = await ResolveSingleAsync(shortTimeout, ct).ConfigureAwait(false);
-            return !backend.IsOffscreen;
-        }
-        catch (Exception)
-        {
+        // Instant probe — no auto-wait.  Matches Playwright semantics: IsVisible()
+        // returns immediately; if the element is not in the tree, returns false.
+        // Callers that need auto-waiting should use Expect().ToBeVisibleAsync() or
+        // WaitForAsync(WaitForState.Visible), which retry this probe on an interval.
+        var element = await TryFindFirstAsync().ConfigureAwait(false);
+        if (element == null)
             return false;
-        }
+        return await element.IsVisibleAsync(ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<bool> IsHiddenAsync(CancellationToken ct = default)
     {
-        // Short timeout (1s): return true (hidden) if not found.
-        var shortTimeout = TimeSpan.FromSeconds(1);
-        try
-        {
-            var backend = await ResolveSingleAsync(shortTimeout, ct).ConfigureAwait(false);
-            return backend.IsOffscreen;
-        }
-        catch (Exception)
-        {
+        // Instant probe — no auto-wait.  Matches Playwright semantics: IsHidden()
+        // returns immediately; if the element is not in the tree, returns true
+        // (because a missing element is treated as hidden).
+        var element = await TryFindFirstAsync().ConfigureAwait(false);
+        if (element == null)
             return true;
-        }
+        return await element.IsHiddenAsync(ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>

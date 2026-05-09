@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Flawright.Locator;
 using Flawright.Selectors;
 using Flawright.UnitTests.Fakes;
@@ -116,5 +117,85 @@ public sealed class GetByRoleTests
         var locator = LocatorTestBase.CreateLocator("controltype:Button", root);
         var roleLocator = locator.GetByRole(AriaRole.Button);
         Assert.NotSame(locator, roleLocator);
+    }
+
+    // ── NameRegex option ──────────────────────────────────────────────────────
+
+    [Fact]
+    public void GetByRole_WithNameRegex_SelectorContainsRegex()
+    {
+        var root = UiaTree.Window("App").Build();
+        var locator = LocatorTestBase.CreateLocator("controltype:Button", root);
+
+        var regex = new Regex("^Save", RegexOptions.None, TimeSpan.FromSeconds(1));
+        var roleLocator = locator.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { NameRegex = regex });
+        // Selector should encode the regex pattern for diagnostics
+        Assert.Contains("Save", roleLocator.Selector);
+    }
+
+    [Fact]
+    public async Task GetByRole_WithNameRegex_FiltersElementsByRegex()
+    {
+        // Structure: root > Container > Save, Save Draft, Delete
+        // Regex "^Save" should match "Save" and "Save Draft" only.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Pane("Container")
+                .WithChild(UiaTree.Button("Save"))
+                .WithChild(UiaTree.Button("Save Draft"))
+                .WithChild(UiaTree.Button("Delete")))
+            .Build();
+
+        var container = LocatorTestBase.CreateLocator("name:Container", root);
+        var regex = new Regex(@"^Save", RegexOptions.None, TimeSpan.FromSeconds(1));
+        var buttons = container.GetByRole(
+            AriaRole.Button,
+            new LocatorGetByRoleOptions { NameRegex = regex });
+
+        var count = await buttons.CountAsync();
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    public async Task GetByRole_NameRegex_TakesPrecedenceOverName_WhenBothSet()
+    {
+        // Name="Save" and NameRegex="^Save Draft$" are both set.
+        // NameRegex should win, matching only "Save Draft".
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Pane("Container")
+                .WithChild(UiaTree.Button("Save"))
+                .WithChild(UiaTree.Button("Save Draft"))
+                .WithChild(UiaTree.Button("Delete")))
+            .Build();
+
+        var container = LocatorTestBase.CreateLocator("name:Container", root);
+        var regex = new Regex(@"^Save Draft$", RegexOptions.None, TimeSpan.FromSeconds(1));
+        var buttons = container.GetByRole(
+            AriaRole.Button,
+            new LocatorGetByRoleOptions { Name = "Save", NameRegex = regex });
+
+        var count = await buttons.CountAsync();
+        // NameRegex=^Save Draft$ wins → only "Save Draft" matches
+        Assert.Equal(1, count);
+        var text = await buttons.First.InnerTextAsync();
+        Assert.Equal("Save Draft", text);
+    }
+
+    [Fact]
+    public async Task GetByRole_WithNameRegex_NoMatch_ReturnsZero()
+    {
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Pane("Container")
+                .WithChild(UiaTree.Button("OK"))
+                .WithChild(UiaTree.Button("Cancel")))
+            .Build();
+
+        var container = LocatorTestBase.CreateLocator("name:Container", root);
+        var regex = new Regex(@"^NonExistent$", RegexOptions.None, TimeSpan.FromSeconds(1));
+        var buttons = container.GetByRole(
+            AriaRole.Button,
+            new LocatorGetByRoleOptions { NameRegex = regex });
+
+        var count = await buttons.CountAsync();
+        Assert.Equal(0, count);
     }
 }

@@ -399,4 +399,62 @@ public sealed class FlawrightBrowserTests
         Assert.Equal(0, handle.KillCount);
         Assert.False(handle.IsDisposed);
     }
+
+    // ── Attached-process dispose tests ────────────────────────────────────────
+
+    [Fact]
+    public async Task DisposeAsync_AttachedBrowser_DisposesHandleWithoutKillingProcess()
+    {
+        // An attach-mode browser must NOT close or kill the external process on dispose.
+        var handle = new FakeApplicationHandle(waitResult: true, hasExited: false, isStoreApp: false);
+        var opts = new AttachOptions { ProcessId = 9999 };
+        var (browser, _, _) = MakeAttachBrowser(opts, handle);
+
+        await browser.EnsureInitializedAsync();
+        await browser.DisposeAsync();
+
+        // Must NOT call Close or Kill — we don't own the process.
+        Assert.Equal(0, handle.CloseCount);
+        Assert.Equal(0, handle.KillCount);
+        // The handle itself is disposed (framework resources released).
+        Assert.True(handle.IsDisposed);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_AttachedBrowser_CalledTwice_IsIdempotent()
+    {
+        var handle = new FakeApplicationHandle(waitResult: true);
+        var opts = new AttachOptions { ProcessId = 9999 };
+        var (browser, _, _) = MakeAttachBrowser(opts, handle);
+
+        await browser.EnsureInitializedAsync();
+        await browser.DisposeAsync();
+        await browser.DisposeAsync(); // second call must be a no-op
+
+        Assert.Equal(0, handle.CloseCount);
+        Assert.Equal(0, handle.KillCount);
+    }
+
+    // ── CloseAsync with attached process ──────────────────────────────────────
+
+    [Fact]
+    public async Task CloseAsync_AttachedBrowser_DoesNotKillEvenWhenGracefulIsFalse()
+    {
+        // Configured CloseBehavior returns false (could not close gracefully), but
+        // because this is an attached process, the safety-net kill must NOT fire.
+        var handle = new FakeApplicationHandle(waitResult: true, hasExited: false, isStoreApp: false);
+        var opts = new AttachOptions { ProcessId = 9999 };
+        // Use KillCloseBehavior which will signal but return graceful=false after kill attempt.
+        // We'll test that the _wasAttached guard suppresses the fallback KillProcessTree.
+        // Use default (WindowMessage) close behavior — the fake Close() doesn't actually exit
+        // the process so HasExited stays false, triggering the safety-net path.
+        var (browser, _, _) = MakeAttachBrowser(opts, handle);
+
+        await browser.EnsureInitializedAsync();
+        await browser.CloseAsync();
+
+        // Close behavior ran (it always calls Close on the handle), but KillProcessTree
+        // must not be called because _wasAttached == true suppresses the safety-net kill.
+        Assert.Equal(0, handle.KillCount);
+    }
 }

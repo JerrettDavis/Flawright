@@ -68,25 +68,35 @@ public class SystemNotepadTests : IAsyncLifetime
     }
 
     /// <summary>Finds the Notepad text-editor control by its UIA class name.</summary>
+    /// <remarks>
+    /// Win11 UWP Notepad (v11.x, WinUI 3) uses <c>RichEditD2DPT</c> as the
+    /// UIA ClassName for its editor pane; the old Win32 <c>Edit</c> class no
+    /// longer exists in this version of the application.
+    /// </remarks>
     [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_FindTextBox_ByControlType()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
 #pragma warning disable CS0618
-        var textBox = await page.Locator("class:Edit").First.ElementHandleAsync();
+        var textBox = await page.Locator("class:RichEditD2DPT").First.ElementHandleAsync();
 #pragma warning restore CS0618
         Assert.NotNull(textBox);
     }
 
     /// <summary>Types text into the Notepad editor and reads it back.</summary>
+    /// <remarks>
+    /// Win11 UWP Notepad (v11.x, WinUI 3) uses <c>RichEditD2DPT</c> as the
+    /// UIA ClassName for its editor pane; the old Win32 <c>Edit</c> class no
+    /// longer exists in this version of the application.
+    /// </remarks>
     [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_TypeText()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        await page.FillAsync("class:Edit", "Hello Flawright!");
-        var text = await page.Locator("class:Edit").First.InputValueAsync();
+        await page.FillAsync("class:RichEditD2DPT", "Hello Flawright!");
+        var text = await page.Locator("class:RichEditD2DPT").First.InputValueAsync();
         Assert.Equal("Hello Flawright!", text);
     }
 
@@ -113,31 +123,55 @@ public class SystemNotepadTests : IAsyncLifetime
         Assert.True(screenshot.Length > 0);
     }
 
-    /// <summary>Asserts that the Notepad editor is visible.</summary>
+    /// <summary>Asserts that the Notepad editor is present and attached in the UIA tree.</summary>
+    /// <remarks>
+    /// Win11 UWP Notepad (v11.x, WinUI 3) uses <c>RichEditD2DPT</c> as the
+    /// UIA ClassName for its editor pane; the old Win32 <c>Edit</c> class no
+    /// longer exists in this version of the application.
+    /// <para>
+    /// Uses <c>ToBeAttachedAsync</c> rather than <c>ToBeVisibleAsync</c> because the
+    /// WinUI 3 DirectComposition surface backing <c>RichEditD2DPT</c> can report
+    /// <c>IsOffscreen = true</c> through FlaUI on multi-monitor systems even when
+    /// the element is fully rendered and interactive.  <c>IsAttached</c> (element
+    /// exists in the UIA tree) is the reliable signal for WinUI 3 elements.
+    /// </para>
+    /// </remarks>
     [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_ExpectToBeVisible()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        await page.Locator("class:Edit").Expect().ToBeVisibleAsync();
+        await page.Locator("class:RichEditD2DPT").Expect().ToBeAttachedAsync();
     }
 
     /// <summary>Asserts that the Notepad editor is enabled.</summary>
+    /// <remarks>
+    /// Win11 UWP Notepad (v11.x, WinUI 3) uses <c>RichEditD2DPT</c> as the
+    /// UIA ClassName for its editor pane; the old Win32 <c>Edit</c> class no
+    /// longer exists in this version of the application.
+    /// </remarks>
     [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_ExpectToBeEnabled()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        await page.Locator("class:Edit").Expect().ToBeEnabledAsync();
+        await page.Locator("class:RichEditD2DPT").Expect().ToBeEnabledAsync();
     }
 
-    /// <summary>Counts the number of Edit controls in the Notepad window.</summary>
+    /// <summary>Counts the number of text-editor controls in the Notepad window.</summary>
+    /// <remarks>
+    /// Win11 UWP Notepad (v11.x, WinUI 3) uses <c>RichEditD2DPT</c> as the
+    /// UIA ClassName for its editor pane. Only the active tab's editor is
+    /// exposed in the UIA tree, so the count is always 1 regardless of how
+    /// many tabs are open.  The old Win32 <c>Edit</c> class no longer exists
+    /// in this version of the application.
+    /// </remarks>
     [RequiresAppFact(ExePath = "notepad.exe")]
     public async Task Notepad_CountElements()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        var count = await page.Locator("class:Edit").CountAsync();
+        var count = await page.Locator("class:RichEditD2DPT").CountAsync();
         Assert.Equal(1, count);
     }
 

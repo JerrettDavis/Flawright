@@ -424,6 +424,111 @@ public sealed class FlawrightPageTests
         }
     }
 
+    [Fact]
+    public async Task ScreenshotAsync_WritesFileToDisk_WhenScreenshotDirectorySet()
+    {
+        var customBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 }; // PNG magic bytes
+        var root = new FakeElementBackend(name: "TestWindow") { ScreenshotBytes = customBytes };
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(dir);
+        try
+        {
+            var opts = new FlawrightOptions
+            {
+                DefaultTimeout = TimeSpan.FromMilliseconds(200),
+                DefaultRetryInterval = TimeSpan.FromMilliseconds(10),
+                ScreenshotDirectory = dir,
+            };
+            var page = MakePage(root: root, opts: opts);
+            var bytes = await page.ScreenshotAsync(); // no explicit path — uses ScreenshotDirectory
+
+            // Bytes returned from backend
+            Assert.Equal(customBytes, bytes);
+
+            // Exactly one file written under the configured directory
+            var files = System.IO.Directory.GetFiles(dir);
+            Assert.Single(files);
+            Assert.StartsWith("screenshot-", System.IO.Path.GetFileName(files[0]));
+            Assert.EndsWith(".png", files[0]);
+        }
+        finally
+        {
+            System.IO.Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ScreenshotAsync_WritesJpgExtension_WhenTypeIsJpeg()
+    {
+        var root = new FakeElementBackend(name: "TestWindow") { ScreenshotBytes = [0xFF, 0xD8] };
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(dir);
+        try
+        {
+            var opts = new FlawrightOptions
+            {
+                DefaultTimeout = TimeSpan.FromMilliseconds(200),
+                DefaultRetryInterval = TimeSpan.FromMilliseconds(10),
+                ScreenshotDirectory = dir,
+            };
+            var page = MakePage(root: root, opts: opts);
+            await page.ScreenshotAsync(new LocatorScreenshotOptions { Type = ScreenshotType.Jpeg });
+
+            var files = System.IO.Directory.GetFiles(dir);
+            Assert.Single(files);
+            Assert.EndsWith(".jpg", files[0]);
+        }
+        finally
+        {
+            System.IO.Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    // ── ResolveScreenshotPath (static helper) ─────────────────────────────────
+
+    [Fact]
+    public void ResolveScreenshotPath_BothNull_ReturnsNull()
+    {
+        var path = FlawrightPage.ResolveScreenshotPath(null, null, ScreenshotType.Png);
+        Assert.Null(path);
+    }
+
+    [Fact]
+    public void ResolveScreenshotPath_ExplicitPathSet_ReturnsItVerbatim()
+    {
+        const string explicit_ = @"C:\tmp\shot.png";
+        var path = FlawrightPage.ResolveScreenshotPath(explicit_, @"C:\some\dir", ScreenshotType.Png);
+        Assert.Equal(explicit_, path);
+    }
+
+    [Fact]
+    public void ResolveScreenshotPath_DirectoryOnly_GeneratesPngFilename()
+    {
+        var dir = @"C:\screenshots";
+        var path = FlawrightPage.ResolveScreenshotPath(null, dir, ScreenshotType.Png);
+        Assert.NotNull(path);
+        Assert.StartsWith(dir + System.IO.Path.DirectorySeparatorChar + "screenshot-", path);
+        Assert.EndsWith(".png", path);
+    }
+
+    [Fact]
+    public void ResolveScreenshotPath_DirectoryOnly_GeneratesJpgFilenameForJpeg()
+    {
+        var dir = @"C:\screenshots";
+        var path = FlawrightPage.ResolveScreenshotPath(null, dir, ScreenshotType.Jpeg);
+        Assert.NotNull(path);
+        Assert.EndsWith(".jpg", path);
+    }
+
+    [Fact]
+    public void ResolveScreenshotPath_EmptyExplicitPath_FallsBackToDirectory()
+    {
+        var dir = @"C:\screenshots";
+        var path = FlawrightPage.ResolveScreenshotPath("", dir, ScreenshotType.Png);
+        Assert.NotNull(path);
+        Assert.StartsWith(dir, path);
+    }
+
     // ── DisposeAsync ──────────────────────────────────────────────────────────
 
     [Fact]

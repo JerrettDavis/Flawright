@@ -466,14 +466,20 @@ public interface IFlawrightLocator
     // ── Read methods ──────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Returns <see langword="true"/> if the first matching element is visible.
-    /// Uses a short (1 second) timeout; returns <see langword="false"/> if not found.
+    /// Returns <see langword="true"/> if the first matching element is currently
+    /// visible (present in the UIA tree and not off-screen).
+    /// This is an instant probe with no auto-wait — returns <see langword="false"/>
+    /// immediately if the element is not found.  For auto-waiting visibility checks
+    /// use <c>Expect().ToBeVisibleAsync()</c> or
+    /// <c>WaitForAsync(WaitForState.Visible)</c>.
     /// </summary>
     Task<bool> IsVisibleAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Returns <see langword="true"/> if the first matching element is hidden or absent.
-    /// Uses a short (1 second) timeout; returns <see langword="true"/> if not found.
+    /// This is an instant probe with no auto-wait — returns <see langword="true"/>
+    /// immediately if the element is not in the UIA tree (missing elements are
+    /// treated as hidden, consistent with Playwright semantics).
     /// </summary>
     Task<bool> IsHiddenAsync(CancellationToken ct = default);
 

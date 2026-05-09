@@ -61,6 +61,14 @@ public class TestAppLocatorChainTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
+        // Gate on the outermost nested container being present in the UIA tree
+        // before diving three levels deep.  Without this wait, FlaUI can start
+        // reading the WPF automation tree before the nested GroupBox subtree is
+        // fully materialised, causing ReadProcessMemory failures on loaded CI
+        // runners.  WaitForAsync is a non-mouse/keyboard probe — safe on headless
+        // runners and compliant with the no-E2E-locally rule.
+        await page.Locator("#nestedGroup").WaitForAsync();
+
         var nestedButtons = page
             .Locator("#nestedGroup")
             .Locator("#innerGroup")

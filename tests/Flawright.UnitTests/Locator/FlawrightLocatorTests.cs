@@ -1,3 +1,4 @@
+using Flawright.Locator;
 using Flawright.UnitTests.Fakes;
 using Xunit;
 
@@ -168,6 +169,62 @@ public sealed class FlawrightLocatorTests
         // No element — but stub returns empty before even trying to resolve
         var result = await locator.ScreenshotAsync();
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task ScreenshotAsync_WritesFileToDisk_WhenScreenshotDirectorySet()
+    {
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Button("OK"))
+            .Build();
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(dir);
+        try
+        {
+            var opts = new FlawrightOptions
+            {
+                DefaultTimeout = TimeSpan.FromMilliseconds(200),
+                DefaultRetryInterval = TimeSpan.FromMilliseconds(10),
+                ScreenshotDirectory = dir,
+            };
+            var locator = LocatorTestBase.CreateLocator("controltype:Button", root, options: opts);
+            var bytes = await locator.ScreenshotAsync(); // no explicit path — uses ScreenshotDirectory
+
+            // Locator screenshot is currently a stub (returns empty bytes).
+            Assert.Empty(bytes);
+
+            // A file must be written under the configured directory.
+            var files = System.IO.Directory.GetFiles(dir);
+            Assert.Single(files);
+            Assert.StartsWith("screenshot-", System.IO.Path.GetFileName(files[0]));
+            Assert.EndsWith(".png", files[0]);
+        }
+        finally
+        {
+            System.IO.Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ScreenshotAsync_WithExplicitPath_WritesFile()
+    {
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Button("OK"))
+            .Build();
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"locator-shot-{Guid.NewGuid():N}.png");
+        try
+        {
+            var locator = LocatorTestBase.CreateLocator("controltype:Button", root);
+            var bytes = await locator.ScreenshotAsync(new LocatorScreenshotOptions { Path = path });
+
+            Assert.Empty(bytes);
+            Assert.True(System.IO.File.Exists(path));
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path))
+                System.IO.File.Delete(path);
+        }
     }
 
     [Fact]

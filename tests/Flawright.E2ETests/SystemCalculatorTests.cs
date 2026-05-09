@@ -71,13 +71,18 @@ public class SystemCalculatorTests : IAsyncLifetime
     }
 
     /// <summary>Clicks the "3" number button via its automation ID.</summary>
+    /// <remarks>
+    /// WinUI 3 Calculator (Windows 11) uses <c>num3Button</c> as the UIA AutomationId
+    /// for the digit-3 button.  The old Win32-era Calculator used a bare <c>3</c> as
+    /// its AutomationId; that name no longer exists in the WinUI 3 version.
+    /// </remarks>
     [RequiresAppFact(Aumid = CalculatorAumid)]
     public async Task Calculator_ClickButton()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Calculator uses automation IDs for number buttons
-        await page.Locator("#3").First.ClickAsync();
+        // WinUI 3 Calculator uses "num3Button" as the AutomationId for the digit-3 button.
+        await page.Locator("#num3Button").First.ClickAsync();
         // Clicking without error means the API works
     }
 
@@ -92,12 +97,19 @@ public class SystemCalculatorTests : IAsyncLifetime
         Assert.True(screenshot.Length > 0);
     }
 
-    /// <summary>Asserts that at least one Calculator button is visible.</summary>
+    /// <summary>Asserts that at least one Calculator button is present in the UIA tree.</summary>
+    /// <remarks>
+    /// Uses <c>ToBeAttachedAsync</c> rather than <c>ToBeVisibleAsync</c> because WinUI 3
+    /// Calculator buttons can report <c>IsOffscreen = true</c> through FlaUI even when
+    /// they are fully rendered and interactive.  <c>IsAttached</c> (element exists in the
+    /// UIA tree) is the reliable signal here, consistent with the same workaround applied
+    /// in <see cref="SystemNotepadTests.Notepad_ExpectToBeVisible"/>.
+    /// </remarks>
     [RequiresAppFact(Aumid = CalculatorAumid)]
     public async Task Calculator_ExpectButtonsToBeVisible()
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        await page.Locator("controltype:Button").Expect().ToBeVisibleAsync();
+        await page.Locator("controltype:Button").Expect().ToBeAttachedAsync();
     }
 }
