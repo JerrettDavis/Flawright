@@ -350,6 +350,21 @@ public sealed record LocatorFilterOptions
     /// <summary>Narrows results to elements whose visible text does <em>not</em> match this regex.</summary>
     public Regex? HasNotTextRegex { get; init; }
 
+    /// <summary>
+    /// Narrows results to elements whose accessible <c>Name</c> property contains this substring
+    /// (case-insensitive).  Unlike <see cref="HasText"/>, this matches against the UIA
+    /// <c>Name</c> property directly and does <em>not</em> fall back to the element's value or
+    /// document text.
+    /// </summary>
+    public string? HasName { get; init; }
+
+    /// <summary>
+    /// Narrows results to elements whose accessible <c>Name</c> property matches this regex.
+    /// Unlike <see cref="HasTextRegex"/>, this matches against the UIA <c>Name</c> property
+    /// directly and does <em>not</em> fall back to the element's value or document text.
+    /// </summary>
+    public Regex? HasNameRegex { get; init; }
+
     /// <summary>When set, narrows to visible (<see langword="true"/>) or hidden (<see langword="false"/>) elements only.</summary>
     public bool? Visible { get; init; }
 }

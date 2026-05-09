@@ -97,7 +97,7 @@ public sealed class FlawrightBrowserTests
     }
 
     [Fact]
-    public void LaunchApp_BothPathAndAumidSet_ThrowsArgumentException()
+    public async Task LaunchApp_BothPathAndAumidSet_ThrowsArgumentException()
     {
         var opts = new LaunchOptions
         {
@@ -106,8 +106,7 @@ public sealed class FlawrightBrowserTests
         };
         var (browser, _, _) = MakeLaunchBrowser(opts);
 
-        var ex = Assert.ThrowsAsync<ArgumentException>(() => browser.EnsureInitializedAsync());
-        Assert.NotNull(ex);
+        await Assert.ThrowsAsync<ArgumentException>(() => browser.EnsureInitializedAsync());
     }
 
     [Fact]

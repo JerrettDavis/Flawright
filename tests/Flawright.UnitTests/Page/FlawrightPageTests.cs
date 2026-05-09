@@ -484,6 +484,38 @@ public sealed class FlawrightPageTests
         }
     }
 
+    [Fact]
+    public async Task ScreenshotAsync_CreatesDirectory_WhenScreenshotDirectoryDoesNotExist()
+    {
+        // Regression: FlawrightPage.ScreenshotAsync must create the configured
+        // ScreenshotDirectory if it doesn't exist (matching FlawrightLocator's behavior).
+        var customBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47 }; // PNG magic bytes
+        var root = new FakeElementBackend(name: "TestWindow") { ScreenshotBytes = customBytes };
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        // Do NOT pre-create the directory — the SUT must create it.
+        Assert.False(System.IO.Directory.Exists(dir), "Pre-condition: directory must not exist.");
+        try
+        {
+            var opts = new FlawrightOptions
+            {
+                DefaultTimeout = TimeSpan.FromMilliseconds(200),
+                DefaultRetryInterval = TimeSpan.FromMilliseconds(10),
+                ScreenshotDirectory = dir,
+            };
+            var page = MakePage(root: root, opts: opts);
+            await page.ScreenshotAsync();
+
+            Assert.True(System.IO.Directory.Exists(dir), "ScreenshotAsync must create the directory.");
+            var files = System.IO.Directory.GetFiles(dir);
+            Assert.Single(files);
+        }
+        finally
+        {
+            if (System.IO.Directory.Exists(dir))
+                System.IO.Directory.Delete(dir, recursive: true);
+        }
+    }
+
     // ── ResolveScreenshotPath (static helper) ─────────────────────────────────
 
     [Fact]

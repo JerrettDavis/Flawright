@@ -44,7 +44,7 @@ public sealed record FlawrightOptions
     /// When set and <c>ScreenshotAsync</c> is called without an explicit path,
     /// the screenshot is written to this directory under a generated filename of
     /// the form <c>screenshot-{timestamp}-{guid}.{png|jpg}</c>. The directory
-    /// must already exist; Flawright does not create it.
+    /// will be created if it does not already exist.
     /// </remarks>
     public string? ScreenshotDirectory { get; init; }
 

@@ -180,11 +180,7 @@ internal static class ProcessReadyGuard
             // Treat as "ready" so callers can proceed to the exit check.
             return true;
         }
-#pragma warning disable CA1031 // Any other failure: treat as ready and let FlaUI surface the real error
-        catch (Exception)
-        {
-            return true;
-        }
-#pragma warning restore CA1031
+        // All other exceptions (access denied, process not found, etc.) propagate so the
+        // caller sees the real error rather than silently treating a broken process as ready.
     }
 }

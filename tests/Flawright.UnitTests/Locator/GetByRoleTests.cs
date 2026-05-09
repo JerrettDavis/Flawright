@@ -198,4 +198,67 @@ public sealed class GetByRoleTests
         var count = await buttons.CountAsync();
         Assert.Equal(0, count);
     }
+
+    // ── Non-Button controls: Name vs Value disambiguation ─────────────────────
+    // These tests guard against the regression where GetByRole matched against
+    // GetElementText (which falls back to Value for Edit controls) instead of the
+    // accessible Name property directly.
+
+    [Fact]
+    public async Task GetByRole_Edit_WithName_MatchesAccessibleNameNotValue()
+    {
+        // "Username" is the accessible Name; "admin" is the Value.
+        // NameRegex "Username" should find the edit, but "admin" should not.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Pane("Form")
+                .WithChild(UiaTree.Edit("Username").WithValue("admin"))
+                .WithChild(UiaTree.Edit("Password").WithValue("secret")))
+            .Build();
+
+        var form = LocatorTestBase.CreateLocator("name:Form", root);
+
+        // Matching by accessible name "Username" must find exactly one edit.
+        var byName = form.GetByRole(
+            AriaRole.Textbox,
+            new LocatorGetByRoleOptions { Name = "Username" });
+        var countByName = await byName.CountAsync();
+        Assert.Equal(1, countByName);
+
+        // Matching by the VALUE "admin" must NOT find anything — values are not names.
+        var byValue = form.GetByRole(
+            AriaRole.Textbox,
+            new LocatorGetByRoleOptions { Name = "admin" });
+        var countByValue = await byValue.CountAsync();
+        Assert.Equal(0, countByValue);
+    }
+
+    [Fact]
+    public async Task GetByRole_Edit_WithNameRegex_MatchesAccessibleNameNotValue()
+    {
+        // "SearchBox" is the accessible Name; "Enter search terms" is the Value.
+        // The regex /^Search/ should match the Name, not the Value.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Pane("Toolbar")
+                .WithChild(UiaTree.Edit("SearchBox").WithValue("Enter search terms"))
+                .WithChild(UiaTree.Edit("FilterBox").WithValue("Enter filter")))
+            .Build();
+
+        var toolbar = LocatorTestBase.CreateLocator("name:Toolbar", root);
+        var regex = new Regex(@"^Search", RegexOptions.None, TimeSpan.FromSeconds(1));
+
+        // Should match by Name "SearchBox", not by the Value content.
+        var byNameRegex = toolbar.GetByRole(
+            AriaRole.Textbox,
+            new LocatorGetByRoleOptions { NameRegex = regex });
+        var countByNameRegex = await byNameRegex.CountAsync();
+        Assert.Equal(1, countByNameRegex);
+
+        // Confirm: a regex that would only match the Value does NOT find anything.
+        var valueRegex = new Regex(@"^Enter", RegexOptions.None, TimeSpan.FromSeconds(1));
+        var byValueRegex = toolbar.GetByRole(
+            AriaRole.Textbox,
+            new LocatorGetByRoleOptions { NameRegex = valueRegex });
+        var countByValueRegex = await byValueRegex.CountAsync();
+        Assert.Equal(0, countByValueRegex);
+    }
 }

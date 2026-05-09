@@ -193,7 +193,12 @@ internal sealed class FlawrightPage : IFlawrightPage
 
         var path = ResolveScreenshotPath(options?.Path, Options.ScreenshotDirectory, options?.Type ?? ScreenshotType.Png);
         if (path != null)
+        {
+            var directory = System.IO.Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directory))
+                System.IO.Directory.CreateDirectory(directory);
             await System.IO.File.WriteAllBytesAsync(path, bytes, ct).ConfigureAwait(false);
+        }
 
         return bytes;
     }

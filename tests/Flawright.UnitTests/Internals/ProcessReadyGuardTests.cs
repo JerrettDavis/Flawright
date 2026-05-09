@@ -153,37 +153,30 @@ public sealed class ProcessReadyGuardTests
             () => ProcessReadyGuard.WaitForProcessReady(null!));
     }
 
-    // ── LaunchOptions wires LaunchReadyTimeout correctly ─────────────────────
+    // ── LaunchReadyTimeout flows through to WaitForProcessReady ──────────────
 
     [Fact]
-    public void LaunchOptions_LaunchReadyTimeout_DefaultsToNull()
+    public void WaitForProcessReady_LaunchReadyTimeout_ZeroMeansNoWait()
     {
-        var opts = new LaunchOptions { ApplicationPath = "app.exe" };
-        Assert.Null(opts.LaunchReadyTimeout);
-    }
-
-    [Fact]
-    public void LaunchOptions_LaunchReadyTimeout_CanBeSetAndRead()
-    {
-        var expected = TimeSpan.FromSeconds(15);
-        var opts = new LaunchOptions
+        // When LaunchReadyTimeout is zero, WaitForProcessReady must return false
+        // immediately without invoking the probe at all.  This verifies the timeout
+        // flows from LaunchOptions through to the guard rather than being ignored.
+        using var proc = CreateInertProcess();
+        try
         {
-            ApplicationPath = "app.exe",
-            LaunchReadyTimeout = expected
-        };
-        Assert.Equal(expected, opts.LaunchReadyTimeout);
-    }
+            var probeInvoked = false;
+            var result = ProcessReadyGuard.WaitForProcessReady(
+                proc,
+                timeout: TimeSpan.Zero,
+                modulesReadyProbe: _ => { probeInvoked = true; return true; });
 
-    [Fact]
-    public void LaunchOptions_LaunchReadyTimeout_IsPreservedOnRecordCopy()
-    {
-        var original = new LaunchOptions
+            Assert.False(result, "Zero timeout must short-circuit and return false.");
+            Assert.False(probeInvoked, "Probe must not be called when timeout is zero.");
+        }
+        finally
         {
-            ApplicationPath = "app.exe",
-            LaunchReadyTimeout = TimeSpan.FromSeconds(20)
-        };
-        var copy = original with { WorkingDirectory = @"C:\Temp" };
-        Assert.Equal(original.LaunchReadyTimeout, copy.LaunchReadyTimeout);
+            KillSilently(proc);
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

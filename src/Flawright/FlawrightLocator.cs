@@ -128,10 +128,11 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         // Name filtering: prefer NameRegex over Name when both are supplied
         // (regex is the more specific contract). This mirrors Playwright's
         // {name: /regex/} taking precedence over {name: 'text'}. Both forms
-        // narrow by the element's own Name property via Filter().
+        // narrow by the element's own UIA Name property — NOT by GetElementText,
+        // which falls back to Value and DocumentText for Edit/Document controls.
         if (options?.NameRegex is { } nameRegex)
         {
-            var filterOptions = new LocatorFilterOptions { HasTextRegex = nameRegex };
+            var filterOptions = new LocatorFilterOptions { HasNameRegex = nameRegex };
             locator = (FlawrightLocator)locator.Filter(filterOptions);
 
             // Update the selector string to reflect the name regex for diagnostics.
@@ -143,10 +144,10 @@ internal sealed class FlawrightLocator : IFlawrightLocator
             LocatorFilterOptions filterOptions;
             if (options.Exact)
             {
-                // Exact match: use a regex anchored to start and end.
+                // Exact match: anchor the regex to start and end, matching Name directly.
                 filterOptions = new LocatorFilterOptions
                 {
-                    HasTextRegex = new Regex(
+                    HasNameRegex = new Regex(
                         "^" + Regex.Escape(name) + "$",
                         RegexOptions.IgnoreCase,
                         TimeSpan.FromSeconds(1))
@@ -154,8 +155,8 @@ internal sealed class FlawrightLocator : IFlawrightLocator
             }
             else
             {
-                // Partial/case-insensitive match via HasText.
-                filterOptions = new LocatorFilterOptions { HasText = name };
+                // Partial/case-insensitive match against Name directly.
+                filterOptions = new LocatorFilterOptions { HasName = name };
             }
 
             locator = (FlawrightLocator)locator.Filter(filterOptions);
@@ -878,6 +879,20 @@ internal sealed class FlawrightLocator : IFlawrightLocator
             {
                 var regex = filter.HasNotTextRegex;
                 result = result.Where(b => !regex.IsMatch(GetElementText(b))).ToList();
+            }
+
+            // HasName filter — matches the UIA Name property directly (not value/document fallback)
+            if (filter.HasName != null)
+            {
+                var name = filter.HasName;
+                result = result.Where(b => (b.Name ?? string.Empty).Contains(name, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            // HasNameRegex filter — matches the UIA Name property directly (not value/document fallback)
+            if (filter.HasNameRegex != null)
+            {
+                var regex = filter.HasNameRegex;
+                result = result.Where(b => regex.IsMatch(b.Name ?? string.Empty)).ToList();
             }
 
             // Has(innerLocator) filter
