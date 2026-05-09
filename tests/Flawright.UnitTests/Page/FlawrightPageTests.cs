@@ -496,9 +496,9 @@ public sealed class FlawrightPageTests
     [Fact]
     public void ResolveScreenshotPath_ExplicitPathSet_ReturnsItVerbatim()
     {
-        const string explicit_ = @"C:\tmp\shot.png";
-        var path = FlawrightPage.ResolveScreenshotPath(explicit_, @"C:\some\dir", ScreenshotType.Png);
-        Assert.Equal(explicit_, path);
+        const string Explicit_ = @"C:\tmp\shot.png";
+        var path = FlawrightPage.ResolveScreenshotPath(Explicit_, @"C:\some\dir", ScreenshotType.Png);
+        Assert.Equal(Explicit_, path);
     }
 
     [Fact]
