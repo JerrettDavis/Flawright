@@ -69,8 +69,7 @@ internal static class TagParser
             {
                 aumid ??= tag[AumidPrefix.Length..];
             }
-            else if (tag.StartsWith(AttachPrefix, StringComparison.OrdinalIgnoreCase)
-                     && !tag.StartsWith(AttachPidPrefix, StringComparison.OrdinalIgnoreCase))
+            else if (tag.StartsWith(AttachPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 attachProcessName ??= tag[AttachPrefix.Length..];
             }

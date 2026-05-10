@@ -136,7 +136,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
             locator = (FlawrightLocator)locator.Filter(filterOptions);
 
             // Update the selector string to reflect the name regex for diagnostics.
-            var combinedSelector = $"{locator.Selector} >> [name=~/{nameRegex}/]";
+            var combinedSelector = $"{locator.Selector} >> [name=~/{nameRegex.ToString()}/]";
             locator = new FlawrightLocator(locator._ctx with { Selector = combinedSelector });
         }
         else if (options?.Name is { } name && !string.IsNullOrEmpty(name))

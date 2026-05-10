@@ -87,12 +87,25 @@ public sealed class FlawrightReqnrollHooks
         _container.RegisterInstanceAs<IFlawright>(fw);
         _container.RegisterInstanceAs<IFlawrightBrowser>(browser);
         _container.RegisterInstanceAs<IFlawrightPage>(page);
+
+        // Store the launch config so TeardownAsync can determine whether
+        // this scenario attached to an existing process (vs. launched one).
+        _container.RegisterInstanceAs<FlawrightLaunchConfig>(config);
     }
 
     /// <summary>
     /// Disposes the Flawright instance after each scenario, ensuring the target
     /// application is closed (for launch scenarios) or detached (for attach scenarios).
     /// </summary>
+    /// <remarks>
+    /// For scenarios that attached to an existing process (via <c>@attach:</c> or
+    /// <c>@attachpid:</c> tags), <see cref="IFlawrightBrowser.CloseAsync"/> is intentionally
+    /// skipped.  The scenario does not own the process lifecycle — calling <c>CloseAsync</c>
+    /// would send WM_CLOSE (or the configured close behavior) to a process we did not launch,
+    /// which is incorrect.  <see cref="IAsyncDisposable.DisposeAsync"/> is still called so
+    /// that framework resources (UIA handles, etc.) are released; its internal
+    /// <c>_wasAttached</c> guard suppresses any force-kill attempt.
+    /// </remarks>
     [AfterScenario(Order = int.MaxValue)]
     public async Task TeardownAsync()
     {
@@ -109,10 +122,27 @@ public sealed class FlawrightReqnrollHooks
         try
         {
             var fw = _container.Resolve<IFlawright>();
-            // Runs the CloseBehavior configured in FlawrightReqnrollOptions.FlawrightOptions.
-            // Default is WindowMessageCloseBehavior; configure DismissDialogCloseBehavior
-            // for apps that show a save-changes dialog on exit.
-            await fw.Browser.CloseAsync().ConfigureAwait(false);
+
+            // Determine whether this scenario attached to an existing process.
+            // If so, skip CloseAsync — we do not own the process and must not
+            // send WM_CLOSE or any other close signal to it.
+            var wasAttached = false;
+            try
+            {
+                var launchConfig = _container.Resolve<FlawrightLaunchConfig>();
+                wasAttached = launchConfig.AttachProcessId.HasValue
+                    || launchConfig.AttachProcessName is { Length: > 0 };
+            }
+            catch (ObjectContainerException) { /* config not registered — treat as launch */ }
+
+            if (!wasAttached)
+            {
+                // Runs the CloseBehavior configured in FlawrightReqnrollOptions.FlawrightOptions.
+                // Default is WindowMessageCloseBehavior; configure DismissDialogCloseBehavior
+                // for apps that show a save-changes dialog on exit.
+                await fw.Browser.CloseAsync().ConfigureAwait(false);
+            }
+
             await fw.DisposeAsync().ConfigureAwait(false);
         }
         catch (ObjectContainerException) { /* never registered — InitializeAsync must have failed */ }
