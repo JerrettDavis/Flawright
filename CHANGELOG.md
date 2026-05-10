@@ -5,7 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — namespace consistency rename
+## [0.5.0] - 2026-05-08
+
+### Added
+
+- Multi-window APIs on `IFlawrightBrowser`: `NewPageAsync`, `GetAllPagesAsync`, and `WaitForPageAsync(title)` for waiting until a named top-level window appears (`423946a`).
+- `Flawright.AttachAsync` validated end-to-end with attach-aware dispose; new `_wasAttached` flag in `FlawrightBrowser` short-circuits process termination on dispose for attached browsers (`f7aab35`).
+- `LocatorGetByRoleOptions.NameRegex` now properly wired — regex wins over `Name` when both are set (`f7aab35`).
+- `FlawrightOptions.ScreenshotDirectory` honored: when no explicit path is given, screenshots are written to this directory with auto-generated `screenshot-{timestamp}-{guid}.{ext}` filenames; both `FlawrightPage.ScreenshotAsync` and `FlawrightLocator.ScreenshotAsync` create the directory if it is missing (`f7aab35`, `0cd3589`).
+- `LocatorFilterOptions.HasName` and `HasNameRegex` — name-only filters that bypass the value/document fallback chain (`0cd3589`).
+- `LaunchOptions.LaunchReadyTimeout` — bounds the new `ProcessReadyGuard` wait introduced to fix a CI launch race (`aafeea2`).
+- `Flawright.Reqnroll` companion package validated end-to-end: `FlawrightSteps` (25 step bindings), `FlawrightReqnrollHooks`, `FlawrightReqnrollOptions`, tag conventions `@launch:`, `@aumid:`, `@attach:`, `@attachpid:`; two sample projects `Flawright.Reqnroll.NotepadDemo` and `Flawright.Reqnroll.CalculatorDemo` wired into CI (`d10c373`, `73301fa`).
+
+### Fixed
+
+- E2E launch-path race on busy CI runners: `FlaUI.EnumProcessModules` could fail with `Win32Exception` error 299. New `ProcessReadyGuard` waits for `Process.WaitForInputIdle` then polls `Process.Modules` until enumeration succeeds (`aafeea2`).
+- E2E flake on deep locator chains (`TestAppLocatorChainTests.Locator_ThreeLevelChain_ResolvesNestedButtons`): added a `WaitForAsync` gate to allow the nested WPF tree to materialize before chain navigation (`cf8ee47`).
+- Attached scenarios in Reqnroll teardown no longer send `WM_CLOSE` to the attached process; teardown skips `CloseAsync` entirely when the scenario was attached, and `_wasAttached` in dispose guards the rest (`182adc1`).
+- `Reqnroll.json` BDD samples now include the required `bindingAssemblies` entry; docs updated to match (`73301fa`, `aee242a`).
+- Coverage gate restored to ≥ 90% with focused unit tests for new code paths (`cf8ee47`, `0510a6a`).
+
+### Changed
+
+- `ProcessReadyGuard.DefaultModulesProbe` narrows exception catch — no longer masks unexpected errors beyond the known `Win32Exception` race (`0cd3589`).
+- `LaunchApp_BothPathAndAumidSet_ThrowsArgumentException` test made truly async (was passing for the wrong reason) (`0cd3589`).
+- TagParser redundant guard removed; `FlawrightLocator` selector interpolation made explicit (`182adc1`).
+- `dotnet format` cleanup: line endings and naming convention fixes across the codebase (`b3b5068`).
+
+[0.5.0]: https://github.com/JerrettDavis/Flawright/compare/v0.4.33...v0.5.0
+
+## [0.4.0] - 2026-05-07
 
 ### Breaking Changes
 
@@ -22,8 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | `using JerrettDavis.Flawright.Reqnroll;` | `using Flawright.Reqnroll;` |
 
 **NuGet package IDs are unchanged** (`Flawright`, `Flawright.Reqnroll`) — no package reference updates required.
-
-This is a source-level breaking change. A major version bump is recommended at release time.
 
 ## [0.3.0] - 2026-05-07
 
