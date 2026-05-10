@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2026-05-08
+## [0.5.1] - 2026-05-10
 
 ### Added
 
@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TagParser redundant guard removed; `FlawrightLocator` selector interpolation made explicit (`182adc1`).
 - `dotnet format` cleanup: line endings and naming convention fixes across the codebase (`b3b5068`).
 
-[0.5.0]: https://github.com/JerrettDavis/Flawright/compare/v0.4.33...v0.5.0
+[0.5.1]: https://github.com/JerrettDavis/Flawright/compare/v0.4.33...v0.5.1
 
 ## [0.4.0] - 2026-05-07
 
