@@ -12,7 +12,9 @@
                    [*]Flawright.Launching.FlaUi*,
                    [*]Flawright.Input.FlaUi*,
                    [Flawright.UnitTests]*,
-                   [JerrettDavis.Flawright.UnitTests]*</Exclude>
+                   [JerrettDavis.Flawright.UnitTests]*,
+                   [Flawright.Reqnroll]*,
+                   [JerrettDavis.Flawright.Reqnroll]*</Exclude>
           <ExcludeByAttribute>GeneratedCodeAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
           <SingleHit>false</SingleHit>
           <UseSourceLink>true</UseSourceLink>
