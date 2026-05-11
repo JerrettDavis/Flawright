@@ -319,7 +319,7 @@ public sealed class PackagedAppResolverTests
         IEnumerable<(int, string?)> Snapshot() => [];
 
         var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         await Assert.ThrowsAsync<OperationCanceledException>(
             () => PackagedAppResolver.WaitForPackagedAppProcessAsync(
