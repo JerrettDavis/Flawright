@@ -469,12 +469,10 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     }
 
     /// <inheritdoc/>
-    public async Task BlurAsync(CancellationToken ct = default)
+    public Task BlurAsync(CancellationToken ct = default)
     {
-        // UIA has no direct "blur" API — focus another element or press Tab.
-        // We resolve to ensure the element exists, then do nothing further.
-        // Wave D can wire this to a proper blur mechanism if available.
-        _ = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
+        throw new NotSupportedException(
+            "BlurAsync has no UIA equivalent. Use FocusAsync on another element to move focus away.");
     }
 
     /// <inheritdoc/>
