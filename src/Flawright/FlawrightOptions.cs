@@ -65,4 +65,18 @@ public sealed record FlawrightOptions
     /// chords, double-click) throw <see cref="NotSupportedException"/>.
     /// </summary>
     public IInputMode InputMode { get; init; } = new RealInputMode();
+
+    /// <summary>
+    /// When <see langword="true"/>, the <see cref="IFlawrightBrowserEvents.WindowDetected"/>
+    /// event is raised for each top-level window discovered during
+    /// <see cref="IFlawrightBrowser.GetAllPagesAsync"/> and
+    /// <see cref="IFlawrightBrowser.WaitForPageAsync"/>.
+    /// Defaults to <see langword="false"/> (no window events).
+    /// </summary>
+    /// <remarks>
+    /// Set this to <see langword="true"/> only if you need detailed visibility
+    /// into window discovery; the default <see langword="false"/> avoids event-handler
+    /// overhead in production code.
+    /// </remarks>
+    public bool EnableWindowEvents { get; init; } = false;
 }

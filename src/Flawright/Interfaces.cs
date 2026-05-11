@@ -23,7 +23,7 @@ public interface IFlawright : IAsyncDisposable
 /// Represents a launched or attached desktop application.  Mirrors
 /// Playwright's <c>Browser</c> concept.
 /// </summary>
-public interface IFlawrightBrowser : IAsyncDisposable
+public interface IFlawrightBrowser : IFlawrightBrowserEvents, IAsyncDisposable
 {
     /// <summary>
     /// Returns the main (first) window of the application.
