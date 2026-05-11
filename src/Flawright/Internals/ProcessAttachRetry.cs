@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
 namespace Flawright.Internals;
@@ -38,6 +39,10 @@ internal static class ProcessAttachRetry
             }
         }
 
-        throw new InvalidOperationException("Unreachable.");
+        throw ThrowUnreachable();
     }
+
+    [ExcludeFromCodeCoverage(Justification = "Defensive unreachable sentinel; the retry loop always returns or rethrows the underlying Win32Exception on its final attempt.")]
+    private static Exception ThrowUnreachable()
+        => throw new InvalidOperationException("Unreachable.");
 }

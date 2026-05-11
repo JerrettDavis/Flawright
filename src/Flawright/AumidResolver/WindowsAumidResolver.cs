@@ -147,6 +147,7 @@ public sealed class WindowsAumidResolver : IAumidResolver
     /// Exposed as <c>internal</c> so <c>Flawright.E2ETests.RequiresAppFactAttribute</c>
     /// can reuse the same registry-walk logic without duplication.
     /// </remarks>
+    [ExcludeFromCodeCoverage(Justification = "Entry point for registry-backed check; E2E only.")]
     internal static bool IsPackageAumidInstalled(string aumid)
     {
         var pfn = GetPackageFamilyName(aumid);

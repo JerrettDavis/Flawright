@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FlaUI.Core.Input;
 using FlaUI.Core.WindowsAPI;
 
@@ -25,6 +26,7 @@ internal static class KeyParser
     /// <exception cref="ArgumentException">
     /// Thrown when a modifier or key name cannot be resolved.
     /// </exception>
+    [ExcludeFromCodeCoverage(Justification = "Dispatches real keyboard I/O; covered by E2E tests only.")]
     internal static void Send(string key)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);

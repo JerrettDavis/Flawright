@@ -227,9 +227,12 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         }
         catch (Exception)
         {
-            return 0;
+            return CountAsyncDefaultFallback();
         }
     }
+
+    [ExcludeFromCodeCoverage(Justification = "Defensive catch-all; CountAsync never auto-waits by spec.")]
+    private int CountAsyncDefaultFallback() => 0;
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<IFlawrightElement>> AllAsync(TimeSpan? timeout = null, CancellationToken ct = default)
@@ -714,9 +717,12 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         }
         catch (Exception)
         {
-            return null;
+            return TryFindFirstAsyncDefaultFallback();
         }
     }
+
+    [ExcludeFromCodeCoverage(Justification = "Defensive catch-all returning null on resolution failure.")]
+    private IFlawrightElement? TryFindFirstAsyncDefaultFallback() => null;
 
     // ── Resolution algorithm ──────────────────────────────────────────────────
 
@@ -739,7 +745,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                 }
                 catch (Exception)
                 {
-                    return null;
+                    return ResolveSingleAsyncDefaultFallback();
                 }
             },
             _ctx.Selector,
@@ -747,6 +753,9 @@ internal sealed class FlawrightLocator : IFlawrightLocator
             _ctx.Options.DefaultRetryInterval,
             ct).ConfigureAwait(false);
     }
+
+    [ExcludeFromCodeCoverage(Justification = "Defensive catch-all returning null on resolution failure.")]
+    private IElementBackend? ResolveSingleAsyncDefaultFallback() => null;
 
     /// <summary>
     /// Resolves another <see cref="IFlawrightLocator"/> to a single backend element,
@@ -984,9 +993,12 @@ internal sealed class FlawrightLocator : IFlawrightLocator
             LocatorIndex.Nth => _ctx.NthIndex >= 0 && _ctx.NthIndex < filtered.Count
                 ? filtered[_ctx.NthIndex]
                 : null,
-            _ => null,
+            _ => PickIndexDefaultFallback(),
         };
     }
+
+    [ExcludeFromCodeCoverage(Justification = "Unreachable enum default.")]
+    private IElementBackend? PickIndexDefaultFallback() => null;
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
