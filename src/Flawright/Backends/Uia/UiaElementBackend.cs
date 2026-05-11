@@ -46,10 +46,10 @@ internal sealed class UiaElementBackend : IElementBackend
     {
         get
         {
-#pragma warning disable CA1031 // Return null if property read fails
+            // FlaUI v5.0.0 does not expose FrameworkId as a public property on AutomationElement;
+            // we access it via reflection against the underlying UIA automation element.
             try
             {
-                // Use reflection to access the FrameworkId property which may not be exposed directly
                 var frameworkIdProperty = typeof(AutomationElement).GetProperty("FrameworkId", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
                 if (frameworkIdProperty is not null && frameworkIdProperty.CanRead)
                 {
@@ -58,11 +58,16 @@ internal sealed class UiaElementBackend : IElementBackend
 
                 return null;
             }
-            catch (Exception)
+            catch (System.Reflection.TargetException)
             {
+                // Property exists but cannot be accessed on this object.
                 return null;
             }
-#pragma warning restore CA1031
+            catch (System.Reflection.TargetInvocationException)
+            {
+                // Property getter threw an exception.
+                return null;
+            }
         }
     }
 
