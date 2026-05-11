@@ -164,25 +164,49 @@ public sealed class FlawrightAssertionsTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // ToBeFocusedAsync — not yet supported (Wave D)
+    // ToBeFocusedAsync
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void ToBeFocusedAsync_ThrowsNotSupportedException()
+    public async Task ToBeFocusedAsync_Passes_WhenFocused()
     {
+        var fe = new FakeElementBackend { HasKeyboardFocus = true };
         var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new[] { fe });
 
-        Assert.Throws<NotSupportedException>(
-            () => { _ = Make(loc).ToBeFocusedAsync(); });
+        await Make(loc).ToBeFocusedAsync();
     }
 
     [Fact]
-    public void ToBeFocusedAsync_Negated_ThrowsNotSupportedException()
+    public async Task ToBeFocusedAsync_Fails_WhenNotFocused()
     {
+        var fe = new FakeElementBackend { HasKeyboardFocus = false };
         var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new[] { fe });
 
-        Assert.Throws<NotSupportedException>(
-            () => { _ = Make(loc, negated: true).ToBeFocusedAsync(); });
+        await Assert.ThrowsAsync<AssertionException>(
+            () => Make(loc).ToBeFocusedAsync());
+    }
+
+    [Fact]
+    public async Task ToBeFocusedAsync_Negated_Passes_WhenNotFocused()
+    {
+        var fe = new FakeElementBackend { HasKeyboardFocus = false };
+        var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new[] { fe });
+
+        await Make(loc, negated: true).ToBeFocusedAsync();
+    }
+
+    [Fact]
+    public async Task ToBeFocusedAsync_Negated_Fails_WhenFocused()
+    {
+        var fe = new FakeElementBackend { HasKeyboardFocus = true };
+        var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new[] { fe });
+
+        await Assert.ThrowsAsync<AssertionException>(
+            () => Make(loc, negated: true).ToBeFocusedAsync());
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
