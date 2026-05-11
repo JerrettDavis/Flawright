@@ -315,9 +315,17 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
 
         var args = lo.Arguments == null ? "" : string.Join(' ', lo.Arguments);
 
+        // Wire the OnAttachRetry callback to fire ProcessAttachRetried events
+        var loWithCallback = lo with
+        {
+            OnAttachRetry = (attemptNumber, delayMs, errorCode) =>
+                RaiseEvent(ProcessAttachRetried, new ProcessAttachRetriedEventArgs(
+                    attemptNumber, delayMs, errorCode))
+        };
+
         return hasAumid
             ? await _launcher.LaunchStoreApp(lo.Aumid!, args, ct).ConfigureAwait(false)
-            : await _launcher.Launch(lo, ct).ConfigureAwait(false);
+            : await _launcher.Launch(loWithCallback, ct).ConfigureAwait(false);
     }
 
     private async Task<IApplicationHandle> AttachAppAsync(AttachOptions ao, CancellationToken ct)

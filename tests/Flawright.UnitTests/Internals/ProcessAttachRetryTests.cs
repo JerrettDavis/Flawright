@@ -96,4 +96,30 @@ public class ProcessAttachRetryTests
 
         Assert.Equal(1, attempts);
     }
+
+    [Fact]
+    public void Invoke_TransientPartialCopyTwice_FiresOnRetryTwice()
+    {
+        var attempts = 0;
+        var retryEvents = new List<(int AttemptNumber, int DelayMs, int ErrorCode)>();
+
+        var result = ProcessAttachRetry.Invoke(
+            attach: () =>
+            {
+                attempts++;
+                if (attempts < 3)
+                    throw new Win32Exception(299, "Only part of a ReadProcessMemory or WriteProcessMemory request was completed.");
+                return "ok";
+            },
+            sleep: _ => { },
+            onRetry: (attemptNumber, delayMs, errorCode) =>
+            {
+                retryEvents.Add((attemptNumber, delayMs, errorCode));
+            });
+
+        Assert.Equal("ok", result);
+        Assert.Equal(2, retryEvents.Count);
+        Assert.Equal((1, 10, 299), retryEvents[0]);
+        Assert.Equal((2, 20, 299), retryEvents[1]);
+    }
 }

@@ -20,7 +20,8 @@ internal static class ProcessAttachRetry
         Func<T> attach,
         int maxAttempts = 5,
         int initialDelayMs = 10,
-        Action<int>? sleep = null)
+        Action<int>? sleep = null,
+        Action<int, int, int>? onRetry = null)
     {
         var delayMs = initialDelayMs;
         var doSleep = sleep ?? Thread.Sleep;
@@ -34,6 +35,7 @@ internal static class ProcessAttachRetry
             catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorPartialCopy
                                             && attempt < maxAttempts)
             {
+                onRetry?.Invoke(attempt, delayMs, ex.NativeErrorCode);
                 doSleep(delayMs);
                 delayMs *= 2;
             }

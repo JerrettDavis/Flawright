@@ -49,7 +49,9 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
             psi.WorkingDirectory = opts.WorkingDirectory;
 
         var sw = Stopwatch.StartNew();
-        var app = ProcessAttachRetry.Invoke(() => Application.AttachOrLaunch(psi));
+        var app = ProcessAttachRetry.Invoke(
+            () => Application.AttachOrLaunch(psi),
+            onRetry: opts.OnAttachRetry);
 
         // Wait for the process to finish loading its DLL modules before handing
         // control to FlaUI.  On a busy CI runner the Win32 loader can still be

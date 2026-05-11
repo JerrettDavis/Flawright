@@ -113,4 +113,12 @@ public sealed record LaunchOptions
     /// the file system or registry.
     /// </remarks>
     public IAumidResolver? AumidResolver { get; init; }
+
+    /// <summary>
+    /// Internal callback fired when <see cref="Internals.ProcessAttachRetry"/>
+    /// retries a failed attach operation due to a transient Win32 error.
+    /// Not intended for user code — used internally to fire the
+    /// <see cref="IFlawrightBrowserEvents.ProcessAttachRetried"/> event.
+    /// </summary>
+    internal Action<int, int, int>? OnAttachRetry { get; init; }
 }
