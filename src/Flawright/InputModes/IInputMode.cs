@@ -1,4 +1,5 @@
 using Flawright.Backends;
+using Flawright.Locator;
 
 namespace Flawright.InputModes;
 
@@ -26,12 +27,21 @@ public interface IInputMode
     /// <summary>Performs a single click on the element.</summary>
     /// <param name="element">The element to click.</param>
     /// <param name="input">The input backend to use for the click.</param>
-    void Click(IElementBackend element, IInputBackend input);
+    /// <param name="button">Which mouse button to click. Default is <see cref="MouseButton.Left"/>.</param>
+    /// <param name="position">Click position relative to the element's bounding box. <see langword="null"/> = centre.</param>
+    /// <param name="modifiers">Keyboard modifiers to hold during the click.</param>
+    /// <param name="clickCount">Number of clicks. Default is 1.</param>
+    /// <param name="delay">Delay between mouse down and mouse up. <see langword="null"/> = no delay.</param>
+    void Click(IElementBackend element, IInputBackend input, MouseButton button = MouseButton.Left, BoundingBox? position = null, KeyModifiers modifiers = KeyModifiers.None, int clickCount = 1, TimeSpan? delay = null);
 
     /// <summary>Performs a double-click on the element.</summary>
     /// <param name="element">The element to double-click.</param>
     /// <param name="input">The input backend to use for the double-click.</param>
-    void DoubleClick(IElementBackend element, IInputBackend input);
+    /// <param name="button">Which mouse button to double-click. Default is <see cref="MouseButton.Left"/>.</param>
+    /// <param name="position">Click position relative to the element's bounding box. <see langword="null"/> = centre.</param>
+    /// <param name="modifiers">Keyboard modifiers to hold during the double-click.</param>
+    /// <param name="delay">Delay between the two clicks. <see langword="null"/> = no delay.</param>
+    void DoubleClick(IElementBackend element, IInputBackend input, MouseButton button = MouseButton.Left, BoundingBox? position = null, KeyModifiers modifiers = KeyModifiers.None, TimeSpan? delay = null);
 
     /// <summary>Moves the mouse cursor over the element.</summary>
     /// <param name="element">The element to hover over.</param>

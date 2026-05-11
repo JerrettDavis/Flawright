@@ -1,6 +1,7 @@
 #pragma warning disable CA1725 // Parameter names intentionally use discard-style names for unused parameters in always-throwing methods
 
 using Flawright.Backends;
+using Flawright.Locator;
 
 namespace Flawright.InputModes;
 
@@ -22,8 +23,18 @@ public sealed class VirtualInputMode : IInputMode
     /// <c>LegacyIAccessiblePattern.DoDefaultAction()</c>. Throws
     /// <see cref="NotSupportedException"/> if neither pattern is available.
     /// </remarks>
-    public void Click(IElementBackend element, IInputBackend input)
+    public void Click(IElementBackend element, IInputBackend input, MouseButton button = MouseButton.Left, BoundingBox? position = null, KeyModifiers modifiers = KeyModifiers.None, int clickCount = 1, TimeSpan? delay = null)
     {
+        if (button != MouseButton.Left || position is not null || modifiers != KeyModifiers.None)
+        {
+            // Virtual mode doesn't support Button, Position, or Modifiers — silently log/ignore or throw.
+            // Best practice: throw so user gets actionable feedback.
+            throw new NotSupportedException(
+                "ClickAsync with Button, Position, or Modifiers is not supported in virtual input mode. " +
+                "UIA patterns have no coordinate concept. " +
+                "Configure FlawrightOptions { InputMode = new RealInputMode() } to use these features.");
+        }
+
         if (!element.TryInvoke())
             throw new NotSupportedException(
                 "ClickAsync target does not support InvokePattern or LegacyIAccessiblePattern. " +
@@ -33,11 +44,21 @@ public sealed class VirtualInputMode : IInputMode
 
     /// <inheritdoc/>
     /// <exception cref="NotSupportedException">Always thrown — UIA has no generic double-click equivalent.</exception>
-    public void DoubleClick(IElementBackend element, IInputBackend input)
-        => throw new NotSupportedException(
+    public void DoubleClick(IElementBackend element, IInputBackend input, MouseButton button = MouseButton.Left, BoundingBox? position = null, KeyModifiers modifiers = KeyModifiers.None, TimeSpan? delay = null)
+    {
+        if (button != MouseButton.Left || position is not null || modifiers != KeyModifiers.None)
+        {
+            throw new NotSupportedException(
+                "DoubleClickAsync with Button, Position, or Modifiers is not supported in virtual input mode. " +
+                "UIA patterns have no coordinate concept. " +
+                "Configure FlawrightOptions { InputMode = new RealInputMode() } to use these features.");
+        }
+
+        throw new NotSupportedException(
             "DoubleClickAsync is not supported in virtual input mode. " +
             "UIA has no generic double-click equivalent. " +
             "To use this action, configure FlawrightOptions { InputMode = new RealInputMode() }.");
+    }
 
     /// <inheritdoc/>
     /// <exception cref="NotSupportedException">Always thrown — UIA has no equivalent for cursor movement.</exception>

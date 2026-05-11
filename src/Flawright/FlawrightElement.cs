@@ -303,16 +303,16 @@ internal sealed class FlawrightElement : IFlawrightElement
     /// <inheritdoc/>
     public Task ClickAsync(LocatorClickOptions? options = null, CancellationToken ct = default)
     {
-        // Wave D: honor options.Button, options.Position, options.Modifiers, options.Delay.
-        _inputMode.Click(_backend, _input);
+        options ??= new LocatorClickOptions();
+        _inputMode.Click(_backend, _input, options.Button, options.Position, options.Modifiers, options.ClickCount, options.Delay);
         return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
     public Task DoubleClickAsync(LocatorDoubleClickOptions? options = null, CancellationToken ct = default)
     {
-        // Wave D: honor options.
-        _inputMode.DoubleClick(_backend, _input);
+        options ??= new LocatorDoubleClickOptions();
+        _inputMode.DoubleClick(_backend, _input, options.Button, options.Position, options.Modifiers, options.Delay);
         return Task.CompletedTask;
     }
 

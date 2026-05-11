@@ -1,5 +1,7 @@
 using Flawright.Backends;
 using Flawright.Input;
+using Flawright.Locator;
+using FlaUI.Core.WindowsAPI;
 
 namespace Flawright.InputModes;
 
@@ -14,15 +16,84 @@ namespace Flawright.InputModes;
 public sealed class RealInputMode : IInputMode
 {
     /// <inheritdoc/>
-    public void Click(IElementBackend element, IInputBackend input)
+    public void Click(IElementBackend element, IInputBackend input, MouseButton button = MouseButton.Left, BoundingBox? position = null, KeyModifiers modifiers = KeyModifiers.None, int clickCount = 1, TimeSpan? delay = null)
     {
-        element.Click();
+        var rect = element.BoundingRectangle;
+        var x = position is { X: var posX, Y: var posY }
+            ? (int)(rect.X + posX)
+            : rect.X + rect.Width / 2;
+        var y = position is { X: var _, Y: var posY2 }
+            ? (int)(rect.Y + posY2)
+            : rect.Y + rect.Height / 2;
+
+        PressModifiers(input, modifiers);
+        try
+        {
+            if (delay.HasValue)
+            {
+                input.MouseDown(button);
+                System.Threading.Thread.Sleep((int)delay.Value.TotalMilliseconds);
+                input.MouseUp(button);
+            }
+            else
+            {
+                input.MouseClick(x, y, button, clickCount);
+            }
+        }
+        finally
+        {
+            ReleaseModifiers(input, modifiers);
+        }
     }
 
     /// <inheritdoc/>
-    public void DoubleClick(IElementBackend element, IInputBackend input)
+    public void DoubleClick(IElementBackend element, IInputBackend input, MouseButton button = MouseButton.Left, BoundingBox? position = null, KeyModifiers modifiers = KeyModifiers.None, TimeSpan? delay = null)
     {
-        element.DoubleClick();
+        var rect = element.BoundingRectangle;
+        var x = position is { X: var posX, Y: var posY }
+            ? (int)(rect.X + posX)
+            : rect.X + rect.Width / 2;
+        var y = position is { X: var _, Y: var posY2 }
+            ? (int)(rect.Y + posY2)
+            : rect.Y + rect.Height / 2;
+
+        PressModifiers(input, modifiers);
+        try
+        {
+            input.MouseClick(x, y, button, 2);
+            if (delay.HasValue)
+            {
+                System.Threading.Thread.Sleep((int)delay.Value.TotalMilliseconds);
+            }
+        }
+        finally
+        {
+            ReleaseModifiers(input, modifiers);
+        }
+    }
+
+    private static void PressModifiers(IInputBackend input, KeyModifiers modifiers)
+    {
+        if ((modifiers & KeyModifiers.Control) != KeyModifiers.None)
+            input.KeyboardPress(VirtualKeyShort.CONTROL);
+        if ((modifiers & KeyModifiers.Shift) != KeyModifiers.None)
+            input.KeyboardPress(VirtualKeyShort.SHIFT);
+        if ((modifiers & KeyModifiers.Alt) != KeyModifiers.None)
+            input.KeyboardPress(VirtualKeyShort.ALT);
+        if ((modifiers & KeyModifiers.Meta) != KeyModifiers.None)
+            input.KeyboardPress(VirtualKeyShort.LWIN);
+    }
+
+    private static void ReleaseModifiers(IInputBackend input, KeyModifiers modifiers)
+    {
+        if ((modifiers & KeyModifiers.Control) != KeyModifiers.None)
+            input.KeyboardRelease(VirtualKeyShort.CONTROL);
+        if ((modifiers & KeyModifiers.Shift) != KeyModifiers.None)
+            input.KeyboardRelease(VirtualKeyShort.SHIFT);
+        if ((modifiers & KeyModifiers.Alt) != KeyModifiers.None)
+            input.KeyboardRelease(VirtualKeyShort.ALT);
+        if ((modifiers & KeyModifiers.Meta) != KeyModifiers.None)
+            input.KeyboardRelease(VirtualKeyShort.LWIN);
     }
 
     /// <inheritdoc/>
