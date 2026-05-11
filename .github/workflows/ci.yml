@@ -89,11 +89,13 @@ jobs:
           $lineRate = [double]$xml.coverage.'line-rate'
           $linePercent = [math]::Round($lineRate * 100, 2)
           Write-Host "Line coverage: $linePercent%"
-          if ($linePercent -lt 90) {
-            Write-Error "Coverage $linePercent% is below the minimum threshold of 90%"
+          # Gate raised to 92% to lock in coverage improvements from SelectOption/PackagedApp async tests
+          # and ExcludeFromCodeCoverage annotations on trivial delegation classes.
+          if ($linePercent -lt 92) {
+            Write-Error "Coverage $linePercent% is below the minimum threshold of 92%"
             exit 1
           }
-          Write-Host "Coverage gate passed: $linePercent% >= 90%"
+          Write-Host "Coverage gate passed: $linePercent% >= 92%"
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -340,11 +342,13 @@ jobs:
           $lineRate = [double]$xml.coverage.'line-rate'
           $linePercent = [math]::Round($lineRate * 100, 2)
           Write-Host "Line coverage: $linePercent%"
-          if ($linePercent -lt 90) {
-            Write-Error "Coverage $linePercent% is below the minimum threshold of 90%"
+          # Gate raised to 92% to lock in coverage improvements from SelectOption/PackagedApp async tests
+          # and ExcludeFromCodeCoverage annotations on trivial delegation classes.
+          if ($linePercent -lt 92) {
+            Write-Error "Coverage $linePercent% is below the minimum threshold of 92%"
             exit 1
           }
-          Write-Host "Coverage gate passed: $linePercent% >= 90%"
+          Write-Host "Coverage gate passed: $linePercent% >= 92%"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
