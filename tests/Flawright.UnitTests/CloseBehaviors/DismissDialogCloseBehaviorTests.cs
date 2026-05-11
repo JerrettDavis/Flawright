@@ -68,7 +68,8 @@ public sealed class DismissDialogCloseBehaviorTests
     {
         // "Don't Save" is the Win10 default
         var discardButton = new FakeElementBackend(name: "Don't Save", controlTypeName: "Button");
-        var element = new FlawrightElement(discardButton, new FakeInputBackend());
+        var input = new FakeInputBackend();
+        var element = new FlawrightElement(discardButton, input);
         var ctx = new FakeCloseContext(
             hasExited: false,
             waitForExitResults: [true],
@@ -77,7 +78,8 @@ public sealed class DismissDialogCloseBehaviorTests
         var behavior = new DismissDialogCloseBehavior();
         await behavior.CloseAsync(ctx);
 
-        Assert.Equal(1, discardButton.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]
@@ -86,7 +88,8 @@ public sealed class DismissDialogCloseBehaviorTests
         // "Don't save" (lowercase s) is the Win11 variant — use a behavior that
         // only looks for that name to confirm case-sensitive matching works.
         var discardButton = new FakeElementBackend(name: "Don't save", controlTypeName: "Button");
-        var element = new FlawrightElement(discardButton, new FakeInputBackend());
+        var input = new FakeInputBackend();
+        var element = new FlawrightElement(discardButton, input);
         var ctx = new FakeCloseContext(
             hasExited: false,
             waitForExitResults: [true],
@@ -96,14 +99,16 @@ public sealed class DismissDialogCloseBehaviorTests
 
         await win11Behavior.CloseAsync(ctx);
 
-        Assert.Equal(1, discardButton.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]
     public async Task CloseAsync_WithCustomButtonName_ClicksMatchingButton()
     {
         var discardButton = new FakeElementBackend(name: "Discard", controlTypeName: "Button");
-        var element = new FlawrightElement(discardButton, new FakeInputBackend());
+        var input = new FakeInputBackend();
+        var element = new FlawrightElement(discardButton, input);
         var ctx = new FakeCloseContext(
             hasExited: false,
             waitForExitResults: [true],
@@ -112,7 +117,8 @@ public sealed class DismissDialogCloseBehaviorTests
         var behavior = new DismissDialogCloseBehavior("Discard");
         await behavior.CloseAsync(ctx);
 
-        Assert.Equal(1, discardButton.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]

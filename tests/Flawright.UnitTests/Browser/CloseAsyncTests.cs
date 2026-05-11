@@ -17,7 +17,7 @@ public sealed class CloseAsyncTests
         DefaultRetryInterval = TimeSpan.FromMilliseconds(10),
     };
 
-    private static (FlawrightBrowser Browser, FakeApplicationHandle Handle)
+    private static (FlawrightBrowser Browser, FakeApplicationHandle Handle, FakeInputBackend Input)
         MakeBrowser(FakeApplicationHandle? handle = null, FlawrightOptions? opts = null)
     {
         var h = handle ?? new FakeApplicationHandle(waitResult: true);
@@ -26,7 +26,7 @@ public sealed class CloseAsyncTests
         var translator = new FakeConditionTranslator();
         var launchOpts = new LaunchOptions { ApplicationPath = "notepad.exe" };
         var browser = new FlawrightBrowser(launcher, input, translator, launchOpts, opts ?? FastOpts);
-        return (browser, h);
+        return (browser, h, input);
     }
 
     // ── Idempotency ───────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ public sealed class CloseAsyncTests
     public async Task CloseAsync_CalledTwice_IsIdempotent()
     {
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: true);
-        var (browser, _) = MakeBrowser(handle);
+        var (browser, _, _) = MakeBrowser(handle);
         await browser.EnsureInitializedAsync();
 
         var result1 = await browser.CloseAsync();
@@ -51,7 +51,7 @@ public sealed class CloseAsyncTests
     public async Task CloseAsync_ThenDisposeAsync_DoesNotRerunClosePath()
     {
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: true);
-        var (browser, _) = MakeBrowser(handle);
+        var (browser, _, _) = MakeBrowser(handle);
         await browser.EnsureInitializedAsync();
 
         await browser.CloseAsync();
@@ -75,7 +75,7 @@ public sealed class CloseAsyncTests
     {
         // With WindowMessageCloseBehavior (default), Close() on handle is called once.
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: true);
-        var (browser, _) = MakeBrowser(handle);
+        var (browser, _, _) = MakeBrowser(handle);
         await browser.EnsureInitializedAsync();
 
         await browser.CloseAsync();
@@ -87,7 +87,7 @@ public sealed class CloseAsyncTests
     public async Task CloseAsync_DefaultBehavior_ReturnsTrueOnCleanExit()
     {
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: true);
-        var (browser, _) = MakeBrowser(handle);
+        var (browser, _, _) = MakeBrowser(handle);
         await browser.EnsureInitializedAsync();
 
         var result = await browser.CloseAsync();
@@ -103,7 +103,7 @@ public sealed class CloseAsyncTests
         // Configure a KillCloseBehavior — it should call Kill, not Close.
         var opts = FastOpts with { CloseBehavior = new KillCloseBehavior() };
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: false);
-        var (browser, _) = MakeBrowser(handle, opts);
+        var (browser, _, _) = MakeBrowser(handle, opts);
         await browser.EnsureInitializedAsync();
 
         await browser.CloseAsync();
@@ -126,12 +126,13 @@ public sealed class CloseAsyncTests
 
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: false, mainWindow: mainWindow);
         var opts = FastOpts with { CloseBehavior = new DismissDialogCloseBehavior() };
-        var (browser, _) = MakeBrowser(handle, opts);
+        var (browser, _, input) = MakeBrowser(handle, opts);
         await browser.EnsureInitializedAsync();
 
         await browser.CloseAsync(timeout: TimeSpan.FromMilliseconds(150));
 
-        Assert.Equal(1, discardButton.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]
@@ -147,12 +148,13 @@ public sealed class CloseAsyncTests
 
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: false, mainWindow: mainWindow);
         var opts = FastOpts with { CloseBehavior = new DismissDialogCloseBehavior() };
-        var (browser, _) = MakeBrowser(handle, opts);
+        var (browser, _, input) = MakeBrowser(handle, opts);
         await browser.EnsureInitializedAsync();
 
         await browser.CloseAsync(timeout: TimeSpan.FromMilliseconds(150));
 
-        Assert.Equal(1, discardButton.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]
@@ -166,7 +168,7 @@ public sealed class CloseAsyncTests
 
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: true, mainWindow: mainWindow);
         var opts = FastOpts with { CloseBehavior = new DismissDialogCloseBehavior() };
-        var (browser, _) = MakeBrowser(handle, opts);
+        var (browser, _, _) = MakeBrowser(handle, opts);
         await browser.EnsureInitializedAsync();
 
         await browser.CloseAsync(timeout: TimeSpan.FromMilliseconds(200));
@@ -182,7 +184,7 @@ public sealed class CloseAsyncTests
         // WindowMessageCloseBehavior returns false when process doesn't exit —
         // browser should then force-kill.
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: false, isStoreApp: false);
-        var (browser, _) = MakeBrowser(handle);
+        var (browser, _, _) = MakeBrowser(handle);
         await browser.EnsureInitializedAsync();
 
         var result = await browser.CloseAsync(timeout: TimeSpan.FromMilliseconds(150));
@@ -195,7 +197,7 @@ public sealed class CloseAsyncTests
     public async Task CloseAsync_ProcessExitsCleanly_ReturnsTrueWithoutKill()
     {
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: true);
-        var (browser, _) = MakeBrowser(handle);
+        var (browser, _, _) = MakeBrowser(handle);
         await browser.EnsureInitializedAsync();
 
         var result = await browser.CloseAsync();
@@ -212,7 +214,7 @@ public sealed class CloseAsyncTests
         // Existing behavior: if CloseAsync was never called, DisposeAsync runs
         // the original close + 2s + kill path.
         var handle = new FakeApplicationHandle(waitResult: true, hasExited: false, isStoreApp: false);
-        var (browser, _) = MakeBrowser(handle);
+        var (browser, _, _) = MakeBrowser(handle);
         await browser.EnsureInitializedAsync();
 
         await browser.DisposeAsync();

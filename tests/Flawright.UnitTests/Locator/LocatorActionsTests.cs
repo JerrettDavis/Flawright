@@ -24,12 +24,13 @@ public sealed class LocatorActionsTests
         var root = UiaTree.Window("App")
             .WithChild(UiaTree.Button("OK"))
             .Build();
-        var locator = LocatorTestBase.CreateLocator("controltype:Button", root);
+        var input = new FakeInputBackend();
+        var locator = LocatorTestBase.CreateLocator("controltype:Button", root, input);
 
         await locator.ClickAsync();
 
-        var button = (FakeElementBackend)root.Children[0];
-        Assert.Equal(1, button.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick, not element.Click()
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]
@@ -49,12 +50,14 @@ public sealed class LocatorActionsTests
         var root = UiaTree.Window("App")
             .WithChild(UiaTree.Button("OK"))
             .Build();
-        var locator = LocatorTestBase.CreateLocator("controltype:Button", root);
+        var input = new FakeInputBackend();
+        var locator = LocatorTestBase.CreateLocator("controltype:Button", root, input);
 
         await locator.DoubleClickAsync();
 
-        var button = (FakeElementBackend)root.Children[0];
-        Assert.Equal(1, button.DoubleClickCount);
+        // RealInputMode routes double-clicks through input.MouseClick with clickCount=2
+        Assert.Single(input.MouseClicks);
+        Assert.Equal(2, input.MouseClicks[0].ClickCount);
     }
 
     [Fact]
@@ -491,24 +494,27 @@ public sealed class LocatorActionsTests
     // ── BlurAsync ─────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task BlurAsync_DoesNotThrow_WhenElementFound()
+    public async Task BlurAsync_ThrowsNotSupported_Always()
     {
         var root = UiaTree.Window("App")
             .WithChild(UiaTree.Edit("Name").WithValue(""))
             .Build();
         var locator = LocatorTestBase.CreateLocator("controltype:Edit", root);
 
-        // Blur is a stub; should complete without throwing.
-        await locator.BlurAsync();
+        // BlurAsync throws NotSupportedException immediately — no UIA equivalent
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => locator.BlurAsync());
+        Assert.Contains("no UIA equivalent", ex.Message);
     }
 
     [Fact]
-    public async Task BlurAsync_ThrowsTimeout_WhenNoElement()
+    public async Task BlurAsync_ThrowsNotSupported_WhenNoElement()
     {
         var root = UiaTree.Window("App").Build();
         var locator = LocatorTestBase.CreateLocator("controltype:Edit", root);
 
-        await Assert.ThrowsAsync<FlawrightTimeoutException>(() => locator.BlurAsync());
+        // BlurAsync throws NotSupportedException immediately, before waiting for an element
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => locator.BlurAsync());
+        Assert.Contains("no UIA equivalent", ex.Message);
     }
 
     // ── ScrollIntoViewIfNeededAsync ───────────────────────────────────────────

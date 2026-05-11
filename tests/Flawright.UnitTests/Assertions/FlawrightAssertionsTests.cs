@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Flawright.Assertions;
 using Flawright.Selectors;
+using Flawright.UnitTests.Fakes;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Xunit;
@@ -167,9 +168,51 @@ public sealed class FlawrightAssertionsTests
     // ToBeFocusedAsync
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // ToBeFocusedAsync tests removed — Wave 1B tests have type resolution issues
-    // that require the full namespace chain of internal types, which are not exposed
-    // in the public API. These tests will be covered by E2E/integration tests.
+    [Fact]
+    public async Task ToBeFocusedAsync_Passes_WhenFocused()
+    {
+        var fe = new FakeElementBackend { HasKeyboardFocus = true };
+        var elem = new FlawrightElement(fe, new FakeInputBackend());
+        var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new IFlawrightElement[] { elem });
+
+        await Make(loc).ToBeFocusedAsync();
+    }
+
+    [Fact]
+    public async Task ToBeFocusedAsync_Fails_WhenNotFocused()
+    {
+        var fe = new FakeElementBackend { HasKeyboardFocus = false };
+        var elem = new FlawrightElement(fe, new FakeInputBackend());
+        var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new IFlawrightElement[] { elem });
+
+        await Assert.ThrowsAsync<AssertionException>(
+            () => Make(loc).ToBeFocusedAsync());
+    }
+
+    [Fact]
+    public async Task ToBeFocusedAsync_Negated_Passes_WhenNotFocused()
+    {
+        var fe = new FakeElementBackend { HasKeyboardFocus = false };
+        var elem = new FlawrightElement(fe, new FakeInputBackend());
+        var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new IFlawrightElement[] { elem });
+
+        await Make(loc, negated: true).ToBeFocusedAsync();
+    }
+
+    [Fact]
+    public async Task ToBeFocusedAsync_Negated_Fails_WhenFocused()
+    {
+        var fe = new FakeElementBackend { HasKeyboardFocus = true };
+        var elem = new FlawrightElement(fe, new FakeInputBackend());
+        var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new IFlawrightElement[] { elem });
+
+        await Assert.ThrowsAsync<AssertionException>(
+            () => Make(loc, negated: true).ToBeFocusedAsync());
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // ToBeEditableAsync

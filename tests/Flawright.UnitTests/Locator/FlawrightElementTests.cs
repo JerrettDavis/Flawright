@@ -523,25 +523,27 @@ public sealed class FlawrightElementTests
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task ClickAsync_WithoutOptions_CallsBackendClickOnce()
+    public async Task ClickAsync_WithoutOptions_SendsMouseClick()
     {
         var backend = UiaTree.Button("B").Build();
-        var element = CreateElement(backend);
+        var (element, input) = CreateElementWithInput(backend);
 
         await element.ClickAsync();
 
-        Assert.Equal(1, backend.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick, not element.Click()
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]
-    public async Task ClickAsync_WithOptions_CallsBackendClickOnce()
+    public async Task ClickAsync_WithOptions_SendsMouseClick()
     {
         var backend = UiaTree.Button("B").Build();
-        var element = CreateElement(backend);
+        var (element, input) = CreateElementWithInput(backend);
 
         await element.ClickAsync(new LocatorClickOptions());
 
-        Assert.Equal(1, backend.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick, not element.Click()
+        Assert.Single(input.MouseClicks);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -549,25 +551,29 @@ public sealed class FlawrightElementTests
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task DoubleClickAsync_WithoutOptions_CallsBackendDoubleClickOnce()
+    public async Task DoubleClickAsync_WithoutOptions_SendsMouseClickWithCount2()
     {
         var backend = UiaTree.Button("B").Build();
-        var element = CreateElement(backend);
+        var (element, input) = CreateElementWithInput(backend);
 
         await element.DoubleClickAsync();
 
-        Assert.Equal(1, backend.DoubleClickCount);
+        // RealInputMode routes double-clicks through input.MouseClick with clickCount=2
+        Assert.Single(input.MouseClicks);
+        Assert.Equal(2, input.MouseClicks[0].ClickCount);
     }
 
     [Fact]
-    public async Task DoubleClickAsync_WithOptions_CallsBackendDoubleClickOnce()
+    public async Task DoubleClickAsync_WithOptions_SendsMouseClickWithCount2()
     {
         var backend = UiaTree.Button("B").Build();
-        var element = CreateElement(backend);
+        var (element, input) = CreateElementWithInput(backend);
 
         await element.DoubleClickAsync(new LocatorDoubleClickOptions());
 
-        Assert.Equal(1, backend.DoubleClickCount);
+        // RealInputMode routes double-clicks through input.MouseClick with clickCount=2
+        Assert.Single(input.MouseClicks);
+        Assert.Equal(2, input.MouseClicks[0].ClickCount);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

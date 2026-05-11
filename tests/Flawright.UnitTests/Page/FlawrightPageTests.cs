@@ -227,11 +227,13 @@ public sealed class FlawrightPageTests
     {
         var btn = new FakeElementBackend(name: "OK", controlTypeName: "Button");
         var root = new FakeElementBackend(name: "Win", children: [btn]);
-        var page = MakePage(root: root);
+        var input = new FakeInputBackend();
+        var page = MakePage(root: root, input: input);
 
         await page.ClickAsync("OK");
 
-        Assert.Equal(1, btn.ClickCount);
+        // RealInputMode routes clicks through input.MouseClick
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]
@@ -239,11 +241,14 @@ public sealed class FlawrightPageTests
     {
         var btn = new FakeElementBackend(name: "OK", controlTypeName: "Button");
         var root = new FakeElementBackend(name: "Win", children: [btn]);
-        var page = MakePage(root: root);
+        var input = new FakeInputBackend();
+        var page = MakePage(root: root, input: input);
 
         await page.DoubleClickAsync("OK");
 
-        Assert.Equal(1, btn.DoubleClickCount);
+        // RealInputMode routes double-clicks through input.MouseClick with clickCount=2
+        Assert.Single(input.MouseClicks);
+        Assert.Equal(2, input.MouseClicks[0].ClickCount);
     }
 
     [Fact]

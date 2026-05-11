@@ -23,7 +23,7 @@ public sealed class RealInputModeTests
     // ── Click ─────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void Click_CallsElementClick()
+    public void Click_CallsInputMouseClick()
     {
         var element = MakeElement();
         var input = new FakeInputBackend();
@@ -31,11 +31,11 @@ public sealed class RealInputModeTests
 
         mode.Click(element, input);
 
-        Assert.Equal(1, element.ClickCount);
+        Assert.Single(input.MouseClicks);
     }
 
     [Fact]
-    public void Click_DoesNotTouchInputBackend()
+    public void Click_DoesNotInvokeElement()
     {
         var element = MakeElement();
         var input = new FakeInputBackend();
@@ -43,14 +43,14 @@ public sealed class RealInputModeTests
 
         mode.Click(element, input);
 
-        Assert.Empty(input.MouseClicks);
-        Assert.Empty(input.MouseMoves);
+        // Click goes through input.MouseClick, not element.Click()
+        Assert.Equal(0, element.ClickCount);
     }
 
     // ── DoubleClick ───────────────────────────────────────────────────────────
 
     [Fact]
-    public void DoubleClick_CallsElementDoubleClick()
+    public void DoubleClick_CallsInputMouseClick_WithClickCount2()
     {
         var element = MakeElement();
         var input = new FakeInputBackend();
@@ -58,7 +58,8 @@ public sealed class RealInputModeTests
 
         mode.DoubleClick(element, input);
 
-        Assert.Equal(1, element.DoubleClickCount);
+        Assert.Single(input.MouseClicks);
+        Assert.Equal(2, input.MouseClicks[0].ClickCount);
     }
 
     // ── Hover ─────────────────────────────────────────────────────────────────

@@ -36,21 +36,23 @@ public sealed class InputModeIntegrationTests
     }
 
     [Fact]
-    public async Task ClickAsync_WithRealMode_CallsElementClick_NotTryInvoke()
+    public async Task ClickAsync_WithRealMode_CallsInputMouseClick_NotTryInvoke()
     {
         var root = UiaTree.Window("App")
             .WithChild(UiaTree.Button("OK"))
             .Build();
         var button = (FakeElementBackend)root.Children[0];
+        var input = new FakeInputBackend();
 
         var locator = LocatorTestBase.CreateLocator(
             "controltype:Button",
             root,
+            input: input,
             inputMode: new RealInputMode());
 
         await locator.ClickAsync();
 
-        Assert.Equal(1, button.ClickCount);    // real Click WAS called
+        Assert.Single(input.MouseClicks);      // input.MouseClick WAS called
         Assert.Equal(0, button.InvokeCount);   // TryInvoke was NOT called
     }
 

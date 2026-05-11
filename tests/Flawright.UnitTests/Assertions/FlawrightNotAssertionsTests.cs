@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Flawright.Assertions;
 using Flawright.Selectors;
+using Flawright.UnitTests.Fakes;
 using NSubstitute;
 using Xunit;
 
@@ -150,12 +151,26 @@ public sealed class FlawrightNotAssertionsTests
     // ═══════════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void Not_ToBeFocusedAsync_ThrowsNotSupportedException()
+    public async Task Not_ToBeFocusedAsync_Passes_WhenNotFocused()
     {
+        var fe = new FakeElementBackend { HasKeyboardFocus = false };
+        var elem = new FlawrightElement(fe, new FakeInputBackend());
         var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new IFlawrightElement[] { elem });
 
-        Assert.Throws<NotSupportedException>(
-            () => { _ = MakeNot(loc).ToBeFocusedAsync(); });
+        await MakeNot(loc).ToBeFocusedAsync();
+    }
+
+    [Fact]
+    public async Task Not_ToBeFocusedAsync_Fails_WhenFocused()
+    {
+        var fe = new FakeElementBackend { HasKeyboardFocus = true };
+        var elem = new FlawrightElement(fe, new FakeInputBackend());
+        var loc = Locator();
+        loc.AllAsync(null, Arg.Any<CancellationToken>()).Returns(new IFlawrightElement[] { elem });
+
+        await Assert.ThrowsAsync<AssertionException>(
+            () => MakeNot(loc).ToBeFocusedAsync());
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
