@@ -27,6 +27,9 @@ internal sealed class UiaElementBackend : IElementBackend
     /// <summary>Exposes the underlying FlaUI element for advanced scenarios.</summary>
     internal AutomationElement Element => _element;
 
+    /// <summary>Gets the native window handle (HWND) of the top-level window.</summary>
+    internal nint NativeWindowHandle => _element.Properties.NativeWindowHandle.ValueOrDefault;
+
     // ── Identity ──────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>

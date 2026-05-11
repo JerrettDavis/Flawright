@@ -84,9 +84,24 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     public async Task<IReadOnlyList<IFlawrightPage>> GetAllPagesAsync(CancellationToken ct = default)
     {
         await EnsureInitializedAsync(ct).ConfigureAwait(false);
-        return _app!.GetAllTopLevelWindows()
-            .Select(w => (IFlawrightPage)new FlawrightPage(w, _input, _opts, _translator))
-            .ToList();
+        var windows = _app!.GetAllTopLevelWindows();
+        var pages = new List<IFlawrightPage>();
+
+        foreach (var w in windows)
+        {
+            pages.Add(new FlawrightPage(w, _input, _opts, _translator));
+
+            if (_opts.EnableWindowEvents)
+            {
+                // Get window handle from the FlaUI-backed element (safe cast; production always uses UiaElementBackend)
+                var windowHandle = (w is Backends.Uia.UiaElementBackend uia) ? uia.NativeWindowHandle : 0;
+                var title = w.Name;
+                var processId = _app.ProcessId;
+                RaiseEvent(WindowDetected, new WindowDetectedEventArgs(windowHandle, title, processId));
+            }
+        }
+
+        return pages;
     }
 
     /// <inheritdoc/>
@@ -105,6 +120,16 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
             t,
             _opts.DefaultRetryInterval,
             ct).ConfigureAwait(false);
+
+        if (_opts.EnableWindowEvents)
+        {
+            // Get window handle from the FlaUI-backed element (safe cast; production always uses UiaElementBackend)
+            var windowHandle = (match is Backends.Uia.UiaElementBackend uia) ? uia.NativeWindowHandle : 0;
+            var windowTitle = match.Name;
+            var processId = _app!.ProcessId;  // _app is guaranteed non-null after EnsureInitializedAsync
+            RaiseEvent(WindowDetected, new WindowDetectedEventArgs(windowHandle, windowTitle, processId));
+        }
+
         return new FlawrightPage(match, _input, _opts, _translator);
     }
 
@@ -315,8 +340,9 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
 
         var args = lo.Arguments == null ? "" : string.Join(' ', lo.Arguments);
 
-        // Wire the OnAttachRetry and OnProcessReadyGuardWaited callbacks via a new options record
-        // for non-AUMID launches. We pass the original for AUMID to preserve test reference equality.
+        // Wire the OnAttachRetry, OnProcessReadyGuardWaited, and OnAliasResolved callbacks
+        // via a new options record for non-AUMID launches. We pass the original for AUMID to
+        // preserve test reference equality.
         if (!hasAumid)
         {
             var loWithCallback = lo with
@@ -325,7 +351,10 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
                     RaiseEvent(ProcessAttachRetried, new ProcessAttachRetriedEventArgs(
                         attemptNumber, delayMs, errorCode)),
                 OnProcessReadyGuardWaited = (args) =>
-                    RaiseEvent(ProcessReadyGuardWaited, args)
+                    RaiseEvent(ProcessReadyGuardWaited, args),
+                OnAliasResolved = (originalPath, resolvedAumid, pfn) =>
+                    RaiseEvent(AppExecutionAliasResolved, new AppExecutionAliasResolvedEventArgs(
+                        originalPath, resolvedAumid, pfn))
             };
             return await _launcher.Launch(loWithCallback, ct).ConfigureAwait(false);
         }

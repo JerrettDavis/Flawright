@@ -63,6 +63,12 @@ public sealed class WindowsAumidResolver : IAumidResolver
     private readonly Func<string, bool>? _fileExists;
     private readonly Func<string, bool>? _packageFamilyInstalled;
 
+    /// <summary>
+    /// Optional callback fired when an alias or package is successfully resolved
+    /// to an AUMID. Receives: originalPath, resolvedAumid, packageFamilyName.
+    /// </summary>
+    internal Action<string, string, string>? OnAliasResolved { get; set; }
+
     // ── Constructors ──────────────────────────────────────────────────────────
 
     /// <summary>
@@ -111,6 +117,8 @@ public sealed class WindowsAumidResolver : IAumidResolver
                 _windowsAppsDir,
                 _fileExists))
         {
+            var pfn = GetPackageFamilyName(aumid);
+            OnAliasResolved?.Invoke(applicationPath, aumid, pfn);
             return new LaunchTarget(LaunchKind.Aumid, aumid);
         }
 
@@ -127,7 +135,10 @@ public sealed class WindowsAumidResolver : IAumidResolver
                 : IsPackageFamilyInstalled(pfn);
 
             if (isInstalled)
+            {
+                OnAliasResolved?.Invoke(applicationPath, knownAumid, pfn);
                 return new LaunchTarget(LaunchKind.Aumid, knownAumid);
+            }
         }
 
         return new LaunchTarget(LaunchKind.Path, applicationPath);

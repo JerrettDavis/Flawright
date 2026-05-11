@@ -32,6 +32,13 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
         // LaunchStoreApp so FlaUI binds to the real packaged-app process
         // instead of the short-lived stub/broker PID.
         var resolver = opts.AumidResolver ?? new WindowsAumidResolver();
+
+        // Wire the OnAliasResolved callback if the resolver is a WindowsAumidResolver
+        if (resolver is WindowsAumidResolver windowsResolver && opts.OnAliasResolved != null)
+        {
+            windowsResolver.OnAliasResolved = opts.OnAliasResolved;
+        }
+
         var target = resolver.Resolve(opts.ApplicationPath!);
 
         if (target.Kind == LaunchKind.Aumid)

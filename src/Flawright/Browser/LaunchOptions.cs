@@ -129,4 +129,16 @@ public sealed record LaunchOptions
     /// <see cref="IFlawrightBrowserEvents.ProcessReadyGuardWaited"/> event.
     /// </summary>
     internal Action<ProcessReadyGuardWaitedEventArgs>? OnProcessReadyGuardWaited { get; init; }
+
+    /// <summary>
+    /// Internal callback fired when the AUMID resolver transparently redirects
+    /// an AppExecutionAlias stub or shell-launcher shim to a packaged-app AUMID.
+    /// Not intended for user code — used internally to fire the
+    /// <see cref="IFlawrightBrowserEvents.AppExecutionAliasResolved"/> event.
+    /// </summary>
+    /// <remarks>
+    /// The callback receives: originalPath (the stub path), resolvedAumid (the
+    /// packaged-app AUMID), and packageFamilyName (extracted from AUMID).
+    /// </remarks>
+    internal Action<string, string, string>? OnAliasResolved { get; init; }
 }

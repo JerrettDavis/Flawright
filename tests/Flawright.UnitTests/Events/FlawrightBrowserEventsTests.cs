@@ -1,3 +1,4 @@
+using Flawright.AumidResolver;
 using Flawright.UnitTests.Fakes;
 using Xunit;
 
@@ -191,5 +192,95 @@ public sealed class FlawrightBrowserEventsTests
         // Should not throw; exception should be swallowed and close should succeed
         var result = await browser.CloseAsync();
         Assert.True(result);
+    }
+
+    // ── WindowDetected tests ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task WindowDetected_FiresForEachWindow_WhenEnabled()
+    {
+        var optsWithWindowEvents = FastOpts with { EnableWindowEvents = true };
+        var launchOpts = new LaunchOptions { ApplicationPath = "notepad.exe" };
+        var h = new FakeApplicationHandle(waitResult: true);
+        var launcher = new FakeApplicationLauncher { Handle = h };
+        var input = new FakeInputBackend();
+        var translator = new FakeConditionTranslator();
+        var browser = new FlawrightBrowser(launcher, input, translator, launchOpts, optsWithWindowEvents);
+
+        await browser.EnsureInitializedAsync();
+
+        var firedEvents = new List<WindowDetectedEventArgs>();
+        browser.WindowDetected += (_, args) => { firedEvents.Add(args); };
+
+        await browser.GetAllPagesAsync();
+
+        // FakeApplicationHandle returns one window, so we expect one event
+        Assert.Single(firedEvents);
+        Assert.Equal(h.ProcessId, firedEvents[0].ProcessId);
+    }
+
+    [Fact]
+    public async Task WindowDetected_DoesNotFire_WhenDisabled()
+    {
+        var optsWithoutWindowEvents = FastOpts with { EnableWindowEvents = false };
+        var launchOpts = new LaunchOptions { ApplicationPath = "notepad.exe" };
+        var (browser, _) = MakeBrowser(launchOpts);
+
+        // Re-create browser with explicitly disabled window events
+        var h = new FakeApplicationHandle(waitResult: true);
+        var launcher = new FakeApplicationLauncher { Handle = h };
+        var input = new FakeInputBackend();
+        var translator = new FakeConditionTranslator();
+        var browserNoEvents = new FlawrightBrowser(launcher, input, translator, launchOpts, optsWithoutWindowEvents);
+
+        await browserNoEvents.EnsureInitializedAsync();
+
+        var eventFired = false;
+        browserNoEvents.WindowDetected += (_, _) => { eventFired = true; };
+
+        await browserNoEvents.GetAllPagesAsync();
+
+        Assert.False(eventFired);
+    }
+
+    [Fact]
+    public async Task WindowDetected_FiresInWaitForPageAsync_WhenEnabled()
+    {
+        var optsWithWindowEvents = FastOpts with { EnableWindowEvents = true };
+        var launchOpts = new LaunchOptions { ApplicationPath = "notepad.exe" };
+        var h = new FakeApplicationHandle(waitResult: true);
+        var launcher = new FakeApplicationLauncher { Handle = h };
+        var input = new FakeInputBackend();
+        var translator = new FakeConditionTranslator();
+        var browser = new FlawrightBrowser(launcher, input, translator, launchOpts, optsWithWindowEvents);
+
+        await browser.EnsureInitializedAsync();
+
+        var firedEvents = new List<WindowDetectedEventArgs>();
+        browser.WindowDetected += (_, args) => { firedEvents.Add(args); };
+
+        // Default fake window has name "FakeWindow"
+        await browser.WaitForPageAsync("FakeWindow");
+
+        Assert.Single(firedEvents);
+        Assert.Equal(h.ProcessId, firedEvents[0].ProcessId);
+    }
+}
+
+/// <summary>
+/// Test resolver that simulates alias resolution.
+/// </summary>
+internal sealed class TestAumidResolver : IAumidResolver
+{
+    public string ResolvedAumid { get; set; } = "";
+
+    public LaunchTarget Resolve(string applicationPath)
+    {
+        if (!string.IsNullOrEmpty(ResolvedAumid))
+        {
+            return new LaunchTarget(LaunchKind.Aumid, ResolvedAumid);
+        }
+
+        return new LaunchTarget(LaunchKind.Path, applicationPath);
     }
 }
