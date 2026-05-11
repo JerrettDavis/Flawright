@@ -367,6 +367,14 @@ public sealed record LocatorFilterOptions
 
     /// <summary>When set, narrows to visible (<see langword="true"/>) or hidden (<see langword="false"/>) elements only.</summary>
     public bool? Visible { get; init; }
+
+    /// <summary>
+    /// Advanced: a custom predicate that filters elements based on backend-level state
+    /// (e.g. CheckState, ExpandCollapseState, etc.). Used internally by GetByRole and
+    /// other query filters. Returns <see langword="true"/> to keep the element,
+    /// <see langword="false"/> to exclude it.
+    /// </summary>
+    internal Func<IElementBackend, bool>? BackendPredicate { get; init; }
 }
 
 // ── GetBy* options ────────────────────────────────────────────────────────────

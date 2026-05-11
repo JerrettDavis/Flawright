@@ -143,6 +143,15 @@ public interface IElementBackend
     bool TryExpand();
 
     /// <summary>
+    /// Gets the current expand/collapse state via <c>ExpandCollapsePattern</c>.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if expanded, <see langword="false"/> if collapsed,
+    /// <see langword="null"/> if <c>ExpandCollapsePattern</c> is not supported.
+    /// </returns>
+    bool? GetExpandCollapseState();
+
+    /// <summary>
     /// Finds a descendant by name or automation ID and selects it via
     /// <c>SelectionItemPattern</c>.
     /// </summary>

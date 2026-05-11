@@ -269,6 +269,26 @@ internal sealed class UiaElementBackend : IElementBackend
     }
 
     /// <inheritdoc/>
+    public bool? GetExpandCollapseState()
+    {
+#pragma warning disable CA1031 // Return null if pattern read fails
+        try
+        {
+            var ecp = _element.Patterns.ExpandCollapse;
+            if (!ecp.IsSupported)
+                return null;
+
+            var state = ecp.Pattern.ExpandCollapseState;
+            return state.Value == FlaUI.Core.Definitions.ExpandCollapseState.Expanded;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+#pragma warning restore CA1031
+    }
+
+    /// <inheritdoc/>
     public bool TrySelectItem(string nameOrId)
     {
         var descendants = _element.FindAllDescendants();

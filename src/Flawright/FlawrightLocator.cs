@@ -126,6 +126,46 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         var roleSelector = BuildRoleSelector(controlTypeName.ToString());
         var locator = CreateChild(roleSelector);
 
+        // Build backend predicate from state filters (Checked, Disabled, Expanded, Pressed, Selected)
+        Func<IElementBackend, bool>? backendPredicate = null;
+        var filterChecks = new List<Func<IElementBackend, bool>>();
+
+        if (options?.Checked.HasValue == true)
+        {
+            filterChecks.Add(be => be.GetToggleState() == options.Checked);
+        }
+
+        if (options?.Disabled.HasValue == true)
+        {
+            filterChecks.Add(be => be.IsEnabled != options.Disabled);
+        }
+
+        if (options?.Expanded.HasValue == true)
+        {
+            filterChecks.Add(be => be.GetExpandCollapseState() == options.Expanded);
+        }
+
+        if (options?.IncludeHidden == false) // Default is false, so only add filter if explicitly false
+        {
+            filterChecks.Add(be => !be.IsOffscreen);
+        }
+
+        if (options?.Pressed.HasValue == true)
+        {
+            // Pressed uses ToggleState (true = pressed) — mirrors Checked
+            filterChecks.Add(be => be.GetToggleState() == options.Pressed);
+        }
+
+        if (options?.Selected.HasValue == true)
+        {
+            filterChecks.Add(be => be.GetSelectionState() == options.Selected);
+        }
+
+        if (filterChecks.Count > 0)
+        {
+            backendPredicate = be => filterChecks.All(check => check(be));
+        }
+
         // Name filtering: prefer NameRegex over Name when both are supplied
         // (regex is the more specific contract). This mirrors Playwright's
         // {name: /regex/} taking precedence over {name: 'text'}. Both forms
@@ -133,7 +173,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         // which falls back to Value and DocumentText for Edit/Document controls.
         if (options?.NameRegex is { } nameRegex)
         {
-            var filterOptions = new LocatorFilterOptions { HasNameRegex = nameRegex };
+            var filterOptions = new LocatorFilterOptions { HasNameRegex = nameRegex, BackendPredicate = backendPredicate };
             locator = (FlawrightLocator)locator.Filter(filterOptions);
 
             // Update the selector string to reflect the name regex for diagnostics.
@@ -151,13 +191,14 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                     HasNameRegex = new Regex(
                         "^" + Regex.Escape(name) + "$",
                         RegexOptions.IgnoreCase,
-                        TimeSpan.FromSeconds(1))
+                        TimeSpan.FromSeconds(1)),
+                    BackendPredicate = backendPredicate
                 };
             }
             else
             {
                 // Partial/case-insensitive match against Name directly.
-                filterOptions = new LocatorFilterOptions { HasName = name };
+                filterOptions = new LocatorFilterOptions { HasName = name, BackendPredicate = backendPredicate };
             }
 
             locator = (FlawrightLocator)locator.Filter(filterOptions);
@@ -169,6 +210,12 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                 : $"[name*={quotedName}]";
             var combinedSelector = $"{locator.Selector} >> {namePart}";
             locator = new FlawrightLocator(locator._ctx with { Selector = combinedSelector });
+        }
+        else if (backendPredicate is not null)
+        {
+            // No name filter, but we have state filters; apply via BackendPredicate
+            var filterOptions = new LocatorFilterOptions { BackendPredicate = backendPredicate };
+            locator = (FlawrightLocator)locator.Filter(filterOptions);
         }
 
         return locator;
@@ -973,6 +1020,12 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                 }
                 result = hasNotResults;
             }
+
+            // BackendPredicate filter (custom state-based filtering)
+            if (filter.BackendPredicate is { } predicate)
+            {
+                result = result.Where(predicate).ToList();
+            }
         }
 
         return result;
@@ -1121,6 +1174,7 @@ file sealed class PointElementBackend : IElementBackend
     public string? GetSelectedText() => _inner.GetSelectedText();
     public bool TryScrollIntoView() => _inner.TryScrollIntoView();
     public bool TryExpand() => _inner.TryExpand();
+    public bool? GetExpandCollapseState() => _inner.GetExpandCollapseState();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
     public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);
     public IElementBackend? FindFirst(IElementCondition condition) => _inner.FindFirst(condition);

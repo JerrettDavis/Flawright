@@ -113,6 +113,13 @@ internal sealed class FakeElementBackend : IElementBackend
     /// <summary>Whether <see cref="TryExpand"/> was called.</summary>
     public bool WasExpanded { get; private set; }
 
+    /// <summary>
+    /// Controls the return value of <see cref="GetExpandCollapseState"/>.
+    /// <see langword="null"/> (the default) means ExpandCollapsePattern not supported.
+    /// Set to <see langword="true"/> to simulate expanded, <see langword="false"/> for collapsed.
+    /// </summary>
+    public bool? ExpandCollapseState { get; set; }
+
     // ── IElementBackend: Identity ─────────────────────────────────────────────
 
     /// <inheritdoc/>
@@ -238,6 +245,9 @@ internal sealed class FakeElementBackend : IElementBackend
         WasExpanded = true;
         return TryExpandResult;
     }
+
+    /// <inheritdoc/>
+    public bool? GetExpandCollapseState() => ExpandCollapseState;
 
     /// <inheritdoc/>
     public bool TrySelectItem(string nameOrId)

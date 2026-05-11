@@ -48,6 +48,7 @@ file sealed class SinglePointBackend : IElementBackend
     public string? GetSelectedText() => _inner.GetSelectedText();
     public bool TryScrollIntoView() => _inner.TryScrollIntoView();
     public bool TryExpand() => _inner.TryExpand();
+    public bool? GetExpandCollapseState() => _inner.GetExpandCollapseState();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
     public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);
     public IElementBackend? FindFirst(IElementCondition condition) => _inner.FindFirst(condition);
