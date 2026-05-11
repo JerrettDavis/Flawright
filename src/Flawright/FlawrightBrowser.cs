@@ -123,9 +123,9 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
         var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(5);
 
         RaiseEvent(ApplicationClosing, new ApplicationClosingEventArgs(
-            CloseBehaviorName: _opts.CloseBehavior.GetType().Name,
-            Timeout: effectiveTimeout,
-            ProcessId: _app.ProcessId));
+            closeBehaviorName: _opts.CloseBehavior.GetType().Name,
+            timeout: effectiveTimeout,
+            processId: _app.ProcessId));
 
         var context = new CloseContext(_app, this, _input, effectiveTimeout, CancellationToken.None);
 
@@ -142,11 +142,11 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
         }
 
         RaiseEvent(ApplicationClosed, new ApplicationClosedEventArgs(
-            CloseBehaviorName: _opts.CloseBehavior.GetType().Name,
-            Graceful: graceful,
-            Timeout: effectiveTimeout,
-            ProcessId: _app.ProcessId,
-            ExitedCleanly: _app.HasExited));
+            closeBehaviorName: _opts.CloseBehavior.GetType().Name,
+            graceful: graceful,
+            timeout: effectiveTimeout,
+            processId: _app.ProcessId,
+            exitedCleanly: _app.HasExited));
 
         return graceful;
     }
@@ -279,12 +279,12 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
             : await AttachAppAsync(_attachOptions!, ct).ConfigureAwait(false);
 
         RaiseEvent(ApplicationLaunched, new ApplicationLaunchedEventArgs(
-            ProcessId: _app.ProcessId,
-            ExecutablePath: _launchOptions?.ApplicationPath,
-            Aumid: _launchOptions?.Aumid,
-            WasAttached: _wasAttached,
-            IsPackagedApp: _app.IsStoreApp,
-            Timestamp: DateTimeOffset.UtcNow));
+            processId: _app.ProcessId,
+            executablePath: _launchOptions?.ApplicationPath,
+            aumid: _launchOptions?.Aumid,
+            wasAttached: _wasAttached,
+            isPackagedApp: _app.IsStoreApp,
+            timestamp: DateTimeOffset.UtcNow));
 
         var startupTimeout = _launchOptions?.StartupTimeout ?? TimeSpan.FromSeconds(30);
 
@@ -315,12 +315,14 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
 
         var args = lo.Arguments == null ? "" : string.Join(' ', lo.Arguments);
 
-        // Wire the OnAttachRetry callback to fire ProcessAttachRetried events
+        // Wire the OnAttachRetry and OnProcessReadyGuardWaited callbacks
         var loWithCallback = lo with
         {
             OnAttachRetry = (attemptNumber, delayMs, errorCode) =>
                 RaiseEvent(ProcessAttachRetried, new ProcessAttachRetriedEventArgs(
-                    attemptNumber, delayMs, errorCode))
+                    attemptNumber, delayMs, errorCode)),
+            OnProcessReadyGuardWaited = (args) =>
+                RaiseEvent(ProcessReadyGuardWaited, args)
         };
 
         return hasAumid

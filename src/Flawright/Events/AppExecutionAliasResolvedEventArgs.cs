@@ -1,5 +1,7 @@
 namespace Flawright;
 
+#pragma warning disable CA1711 // EventArgs suffix is the standard naming convention for event argument classes
+
 /// <summary>
 /// Raised when an AppExecutionAlias stub or system shell-launcher shim
 /// (e.g. calc.exe, notepad.exe on Windows 11) is transparently redirected
@@ -18,19 +20,27 @@ namespace Flawright;
 /// propagated to the caller.
 /// </para>
 /// </remarks>
-/// <param name="OriginalPath">
-/// The application path as originally specified by the caller
-/// (e.g. "calc.exe" or "notepad.exe").
-/// </param>
-/// <param name="ResolvedAumid">
-/// The Application User Model ID that the alias was resolved to
-/// (e.g. "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App").
-/// </param>
-/// <param name="PackageFamilyName">
-/// The package family name extracted from the AUMID
-/// (everything before the "!" separator).
-/// </param>
-public sealed record AppExecutionAliasResolvedEventArgs(
-    string OriginalPath,
-    string ResolvedAumid,
-    string PackageFamilyName);
+public sealed class AppExecutionAliasResolvedEventArgs : EventArgs
+{
+    /// <summary>The application path as originally specified by the caller.</summary>
+    public string OriginalPath { get; }
+
+    /// <summary>The Application User Model ID that the alias was resolved to.</summary>
+    public string ResolvedAumid { get; }
+
+    /// <summary>The package family name extracted from the AUMID.</summary>
+    public string PackageFamilyName { get; }
+
+    /// <summary>Initializes a new instance of AppExecutionAliasResolvedEventArgs.</summary>
+    public AppExecutionAliasResolvedEventArgs(
+        string originalPath,
+        string resolvedAumid,
+        string packageFamilyName)
+    {
+        OriginalPath = originalPath;
+        ResolvedAumid = resolvedAumid;
+        PackageFamilyName = packageFamilyName;
+    }
+}
+
+#pragma warning restore CA1711

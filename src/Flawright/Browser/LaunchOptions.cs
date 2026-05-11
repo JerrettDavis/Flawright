@@ -121,4 +121,12 @@ public sealed record LaunchOptions
     /// <see cref="IFlawrightBrowserEvents.ProcessAttachRetried"/> event.
     /// </summary>
     internal Action<int, int, int>? OnAttachRetry { get; init; }
+
+    /// <summary>
+    /// Internal callback fired when <see cref="Internals.ProcessReadyGuard.WaitForProcessReady"/>
+    /// detects non-trivial retries due to DLL module loading.
+    /// Not intended for user code — used internally to fire the
+    /// <see cref="IFlawrightBrowserEvents.ProcessReadyGuardWaited"/> event.
+    /// </summary>
+    internal Action<ProcessReadyGuardWaitedEventArgs>? OnProcessReadyGuardWaited { get; init; }
 }

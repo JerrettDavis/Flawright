@@ -78,5 +78,7 @@ public sealed record FlawrightOptions
     /// into window discovery; the default <see langword="false"/> avoids event-handler
     /// overhead in production code.
     /// </remarks>
+#pragma warning disable CA1805 // Do not initialize unnecessarily — explicit false clarifies the opt-in pattern
     public bool EnableWindowEvents { get; init; } = false;
+#pragma warning restore CA1805
 }

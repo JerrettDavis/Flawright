@@ -66,7 +66,16 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
         try
         {
             using var proc = Process.GetProcessById(app.ProcessId);
-            ProcessReadyGuard.WaitForProcessReady(proc, opts.LaunchReadyTimeout);
+            var readyResult = ProcessReadyGuard.WaitForProcessReady(proc, opts.LaunchReadyTimeout);
+            if (readyResult.ModulesProbeRetries > 0 || readyResult.MainModuleProbeRetries > 0)
+            {
+                opts.OnProcessReadyGuardWaited?.Invoke(
+                    new ProcessReadyGuardWaitedEventArgs(
+                        processId: app.ProcessId,
+                        elapsedMs: readyResult.ElapsedMs,
+                        modulesProbeRetries: readyResult.ModulesProbeRetries,
+                        mainModuleProbeRetries: readyResult.MainModuleProbeRetries));
+            }
         }
         catch (Exception)
         {

@@ -1,5 +1,7 @@
 namespace Flawright;
 
+#pragma warning disable CA1711 // EventArgs suffix is the standard naming convention for event argument classes
+
 /// <summary>
 /// Raised when <see cref="Internals.ProcessReadyGuard.WaitForProcessReady"/>
 /// was invoked and encountered non-trivial retries.
@@ -19,21 +21,32 @@ namespace Flawright;
 /// propagated to the caller.
 /// </para>
 /// </remarks>
-/// <param name="ProcessId">The OS process ID of the launched application.</param>
-/// <param name="ElapsedMs">
-/// Milliseconds elapsed during the guard wait (from start of
-/// <c>WaitForProcessReady</c> to readiness confirmation or timeout).
-/// </param>
-/// <param name="ModulesProbeRetries">
-/// Number of times the modules-ready probe had to be retried
-/// (retries are due to Win32 error 299 — partial read during loader activity).
-/// </param>
-/// <param name="MainModuleProbeRetries">
-/// Number of times the main-module-ready probe had to be retried
-/// (retries are due to Win32 error 299 — partial read during loader activity).
-/// </param>
-public sealed record ProcessReadyGuardWaitedEventArgs(
-    int ProcessId,
-    long ElapsedMs,
-    int ModulesProbeRetries,
-    int MainModuleProbeRetries);
+public sealed class ProcessReadyGuardWaitedEventArgs : EventArgs
+{
+    /// <summary>The OS process ID of the launched application.</summary>
+    public int ProcessId { get; }
+
+    /// <summary>Milliseconds elapsed during the guard wait.</summary>
+    public long ElapsedMs { get; }
+
+    /// <summary>Number of times the modules-ready probe had to be retried.</summary>
+    public int ModulesProbeRetries { get; }
+
+    /// <summary>Number of times the main-module-ready probe had to be retried.</summary>
+    public int MainModuleProbeRetries { get; }
+
+    /// <summary>Initializes a new instance of ProcessReadyGuardWaitedEventArgs.</summary>
+    public ProcessReadyGuardWaitedEventArgs(
+        int processId,
+        long elapsedMs,
+        int modulesProbeRetries,
+        int mainModuleProbeRetries)
+    {
+        ProcessId = processId;
+        ElapsedMs = elapsedMs;
+        ModulesProbeRetries = modulesProbeRetries;
+        MainModuleProbeRetries = mainModuleProbeRetries;
+    }
+}
+
+#pragma warning restore CA1711

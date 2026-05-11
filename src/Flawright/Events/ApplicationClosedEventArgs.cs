@@ -1,5 +1,7 @@
 namespace Flawright;
 
+#pragma warning disable CA1711 // EventArgs suffix is the standard naming convention for event argument classes
+
 /// <summary>
 /// Raised at the end of <see cref="IFlawrightBrowser.CloseAsync"/>,
 /// after the close behavior has run and the process has exited (or been killed).
@@ -17,26 +19,37 @@ namespace Flawright;
 /// propagated to the caller.
 /// </para>
 /// </remarks>
-/// <param name="CloseBehaviorName">
-/// The name of the close behavior type that was used (e.g. "WindowMessageCloseBehavior",
-/// "DismissDialogCloseBehavior", "KillCloseBehavior").
-/// </param>
-/// <param name="Graceful">
-/// <see langword="true"/> if the close behavior returned <see langword="true"/>
-/// (graceful close); <see langword="false"/> if a force-kill was required.
-/// </param>
-/// <param name="Timeout">
-/// The timeout duration that was applied.
-/// </param>
-/// <param name="ProcessId">The OS process ID that was closed.</param>
-/// <param name="ExitedCleanly">
-/// <see langword="true"/> if the process has exited (even if a force-kill
-/// was required); <see langword="false"/> if the process is still running
-/// (rare edge case when attached to external process).
-/// </param>
-public sealed record ApplicationClosedEventArgs(
-    string CloseBehaviorName,
-    bool Graceful,
-    TimeSpan Timeout,
-    int ProcessId,
-    bool ExitedCleanly);
+public sealed class ApplicationClosedEventArgs : EventArgs
+{
+    /// <summary>The name of the close behavior type that was used.</summary>
+    public string CloseBehaviorName { get; }
+
+    /// <summary>True if the close was graceful; false if a force-kill was required.</summary>
+    public bool Graceful { get; }
+
+    /// <summary>The timeout duration that was applied.</summary>
+    public TimeSpan Timeout { get; }
+
+    /// <summary>The OS process ID that was closed.</summary>
+    public int ProcessId { get; }
+
+    /// <summary>True if the process has exited (even if a force-kill was required).</summary>
+    public bool ExitedCleanly { get; }
+
+    /// <summary>Initializes a new instance of ApplicationClosedEventArgs.</summary>
+    public ApplicationClosedEventArgs(
+        string closeBehaviorName,
+        bool graceful,
+        TimeSpan timeout,
+        int processId,
+        bool exitedCleanly)
+    {
+        CloseBehaviorName = closeBehaviorName;
+        Graceful = graceful;
+        Timeout = timeout;
+        ProcessId = processId;
+        ExitedCleanly = exitedCleanly;
+    }
+}
+
+#pragma warning restore CA1711

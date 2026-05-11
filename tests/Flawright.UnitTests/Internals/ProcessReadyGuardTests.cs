@@ -32,7 +32,7 @@ public sealed class ProcessReadyGuardTests
                 timeout: TimeSpan.Zero,
                 modulesReadyProbe: _ => true);  // probe would succeed, but timeout short-circuits
 
-            Assert.False(result, "Zero timeout should return false without calling the probe.");
+            Assert.False(result.Ready, "Zero timeout should return ready=false without calling the probe.");
         }
         finally
         {
@@ -51,7 +51,7 @@ public sealed class ProcessReadyGuardTests
                 timeout: TimeSpan.FromMilliseconds(-1),
                 modulesReadyProbe: _ => true);
 
-            Assert.False(result);
+            Assert.False(result.Ready);
         }
         finally
         {
@@ -77,7 +77,7 @@ public sealed class ProcessReadyGuardTests
                     return true;
                 });
 
-            Assert.True(result);
+            Assert.True(result.Ready);
             // The probe should have been called at most once on the fallback path.
             // (WaitForInputIdle may short-circuit before the probe for real GUI processes,
             //  but for our inert cmd.exe it will throw InvalidOperationException first.)
@@ -108,7 +108,7 @@ public sealed class ProcessReadyGuardTests
                 },
                 mainModuleProbe: _ => true);  // always ready to isolate modules probe testing
 
-            Assert.True(result);
+            Assert.True(result.Ready);
             Assert.True(callCount >= 3, $"Expected ≥ 3 probe calls; got {callCount}.");
         }
         finally
@@ -134,8 +134,9 @@ public sealed class ProcessReadyGuardTests
                     return mainProbeCallCount >= 3;
                 });
 
-            Assert.True(result);
+            Assert.True(result.Ready);
             Assert.True(mainProbeCallCount >= 3);
+            Assert.Equal(2, result.MainModuleProbeRetries);  // 2 failures before success on third call
         }
         finally
         {
@@ -160,7 +161,7 @@ public sealed class ProcessReadyGuardTests
 
             sw.Stop();
 
-            Assert.False(result);
+            Assert.False(result.Ready);
             // Should have taken roughly the timeout duration (within a generous margin).
             Assert.True(sw.ElapsedMilliseconds >= 150,
                 $"Expected ≥ 150 ms elapsed; got {sw.ElapsedMilliseconds} ms.");
@@ -197,7 +198,7 @@ public sealed class ProcessReadyGuardTests
                 timeout: TimeSpan.Zero,
                 modulesReadyProbe: _ => { probeInvoked = true; return true; });
 
-            Assert.False(result, "Zero timeout must short-circuit and return false.");
+            Assert.False(result.Ready, "Zero timeout must short-circuit and return ready=false.");
             Assert.False(probeInvoked, "Probe must not be called when timeout is zero.");
         }
         finally

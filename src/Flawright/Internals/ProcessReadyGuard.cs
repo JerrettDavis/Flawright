@@ -4,6 +4,16 @@ using System.Diagnostics;
 namespace Flawright.Internals;
 
 /// <summary>
+/// Result of a <see cref="ProcessReadyGuard.WaitForProcessReady"/> operation,
+/// containing both the ready state and diagnostic metrics about retries.
+/// </summary>
+internal record ProcessReadyResult(
+    bool Ready,
+    long ElapsedMs,
+    int ModulesProbeRetries,
+    int MainModuleProbeRetries);
+
+/// <summary>
 /// Waits for a freshly-launched process to finish loading its DLL modules before
 /// FlaUI attempts <c>EnumProcessModules</c> calls that can fail with
 /// <see cref="Win32Exception"/> (error 299 — only part of a
@@ -106,12 +116,10 @@ internal static class ProcessReadyGuard
     /// <c>Process.MainModule.FileName</c> access poll.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> when the process is ready (modules enumerable);
-    /// <see langword="false"/> when the timeout elapsed before readiness was
-    /// confirmed (process still loading, or non-UI process where neither
-    /// strategy could confirm).
+    /// A <see cref="ProcessReadyResult"/> containing the ready state and diagnostic
+    /// metrics (elapsed time and retry counts).
     /// </returns>
-    internal static bool WaitForProcessReady(
+    internal static ProcessReadyResult WaitForProcessReady(
         Process process,
         TimeSpan? timeout = null,
         ModulesReadyProbe? modulesReadyProbe = null,
@@ -120,9 +128,10 @@ internal static class ProcessReadyGuard
         ArgumentNullException.ThrowIfNull(process);
 
         var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(10);
+        var sw = Stopwatch.StartNew();
 
         if (effectiveTimeout <= TimeSpan.Zero)
-            return false;
+            return new ProcessReadyResult(Ready: false, ElapsedMs: 0, ModulesProbeRetries: 0, MainModuleProbeRetries: 0);
 
         // ── Strategy 1: WaitForInputIdle ──────────────────────────────────────
         // For WPF / WinForms / Win32 GUI apps, this is the canonical way to
@@ -134,7 +143,10 @@ internal static class ProcessReadyGuard
             var ms = (int)Math.Min(effectiveTimeout.TotalMilliseconds, int.MaxValue);
             var idleResult = process.WaitForInputIdle(ms);
             if (idleResult)
-                return true;
+            {
+                sw.Stop();
+                return new ProcessReadyResult(Ready: true, ElapsedMs: sw.ElapsedMilliseconds, ModulesProbeRetries: 0, MainModuleProbeRetries: 0);
+            }
 
             // WaitForInputIdle returned false = timeout elapsed without becoming
             // idle.  Fall through to the modules-poll fallback which may still
@@ -159,19 +171,30 @@ internal static class ProcessReadyGuard
         var probe = modulesReadyProbe ?? DefaultModulesProbe;
         var mainProbe = mainModuleProbe ?? DefaultMainModuleProbe;
         var deadline = DateTime.UtcNow + effectiveTimeout;
+        var modulesProbeRetries = 0;
+        var mainModuleProbeRetries = 0;
 
         while (DateTime.UtcNow < deadline)
         {
             var modulesReady = probe(process);
+            if (!modulesReady)
+                modulesProbeRetries++;
+
             var mainModuleReady = mainProbe(process);
+            if (!mainModuleReady)
+                mainModuleProbeRetries++;
 
             if (modulesReady && mainModuleReady)
-                return true;
+            {
+                sw.Stop();
+                return new ProcessReadyResult(Ready: true, ElapsedMs: sw.ElapsedMilliseconds, ModulesProbeRetries: modulesProbeRetries, MainModuleProbeRetries: mainModuleProbeRetries);
+            }
 
             Thread.Sleep(FallbackPollInterval);
         }
 
-        return false;
+        sw.Stop();
+        return new ProcessReadyResult(Ready: false, ElapsedMs: sw.ElapsedMilliseconds, ModulesProbeRetries: modulesProbeRetries, MainModuleProbeRetries: mainModuleProbeRetries);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

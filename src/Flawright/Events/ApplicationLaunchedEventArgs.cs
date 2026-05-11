@@ -1,5 +1,7 @@
 namespace Flawright;
 
+#pragma warning disable CA1711 // EventArgs suffix is the standard naming convention for event argument classes
+
 /// <summary>
 /// Raised after an application has been launched or attached to and its
 /// process handle is available for inspection.
@@ -18,32 +20,42 @@ namespace Flawright;
 /// propagated to the caller.
 /// </para>
 /// </remarks>
-/// <param name="ProcessId">The OS process ID of the launched/attached application.</param>
-/// <param name="ExecutablePath">
-/// The path to the executable that was launched, or <see langword="null"/>
-/// if the application was launched via AUMID or attached to an existing process.
-/// </param>
-/// <param name="Aumid">
-/// The Application User Model ID if the app was launched as a store app,
-/// or <see langword="null"/> for traditional Win32 launches.
-/// </param>
-/// <param name="WasAttached">
-/// <see langword="true"/> if the application was attached to
-/// (via <see cref="Flawright.AttachAsync"/>);
-/// <see langword="false"/> if it was launched (via <see cref="Flawright.LaunchAsync"/>).
-/// </param>
-/// <param name="IsPackagedApp">
-/// <see langword="true"/> if the application is a packaged (UWP/store) app;
-/// <see langword="false"/> for traditional Win32 applications.
-/// </param>
-/// <param name="Timestamp">
-/// The UTC timestamp when the event was raised (typically immediately
-/// after <c>Application.AttachOrLaunch</c> returns).
-/// </param>
-public sealed record ApplicationLaunchedEventArgs(
-    int ProcessId,
-    string? ExecutablePath,
-    string? Aumid,
-    bool WasAttached,
-    bool IsPackagedApp,
-    DateTimeOffset Timestamp);
+public sealed class ApplicationLaunchedEventArgs : EventArgs
+{
+    /// <summary>The OS process ID of the launched/attached application.</summary>
+    public int ProcessId { get; }
+
+    /// <summary>The path to the executable that was launched, or null.</summary>
+    public string? ExecutablePath { get; }
+
+    /// <summary>The Application User Model ID if launched as a store app, or null.</summary>
+    public string? Aumid { get; }
+
+    /// <summary>True if the application was attached to; false if it was launched.</summary>
+    public bool WasAttached { get; }
+
+    /// <summary>True if the application is a packaged (UWP/store) app.</summary>
+    public bool IsPackagedApp { get; }
+
+    /// <summary>The UTC timestamp when the event was raised.</summary>
+    public DateTimeOffset Timestamp { get; }
+
+    /// <summary>Initializes a new instance of ApplicationLaunchedEventArgs.</summary>
+    public ApplicationLaunchedEventArgs(
+        int processId,
+        string? executablePath,
+        string? aumid,
+        bool wasAttached,
+        bool isPackagedApp,
+        DateTimeOffset timestamp)
+    {
+        ProcessId = processId;
+        ExecutablePath = executablePath;
+        Aumid = aumid;
+        WasAttached = wasAttached;
+        IsPackagedApp = isPackagedApp;
+        Timestamp = timestamp;
+    }
+}
+
+#pragma warning restore CA1711

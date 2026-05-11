@@ -1,5 +1,7 @@
 namespace Flawright;
 
+#pragma warning disable CA1711 // EventArgs suffix is the standard naming convention for event argument classes
+
 /// <summary>
 /// Raised when <see cref="Internals.ProcessAttachRetry"/> retries a failed
 /// attach operation due to a transient Win32 error.
@@ -27,18 +29,27 @@ namespace Flawright;
 /// propagated to the caller.
 /// </para>
 /// </remarks>
-/// <param name="AttemptNumber">
-/// The zero-based attempt number (1 for the first retry, 2 for the second, etc.).
-/// </param>
-/// <param name="DelayMs">
-/// The milliseconds waited before this retry attempt (e.g. 10 ms for the
-/// first retry, 20 ms for the second).
-/// </param>
-/// <param name="Win32ErrorCode">
-/// The Win32 error code that triggered the retry (typically 299 —
-/// ERROR_PARTIAL_COPY).
-/// </param>
-public sealed record ProcessAttachRetriedEventArgs(
-    int AttemptNumber,
-    int DelayMs,
-    int Win32ErrorCode);
+public sealed class ProcessAttachRetriedEventArgs : EventArgs
+{
+    /// <summary>The zero-based attempt number (1 for first retry, 2 for second, etc.).</summary>
+    public int AttemptNumber { get; }
+
+    /// <summary>The milliseconds waited before this retry attempt.</summary>
+    public int DelayMs { get; }
+
+    /// <summary>The Win32 error code that triggered the retry (typically 299).</summary>
+    public int Win32ErrorCode { get; }
+
+    /// <summary>Initializes a new instance of ProcessAttachRetriedEventArgs.</summary>
+    public ProcessAttachRetriedEventArgs(
+        int attemptNumber,
+        int delayMs,
+        int win32ErrorCode)
+    {
+        AttemptNumber = attemptNumber;
+        DelayMs = delayMs;
+        Win32ErrorCode = win32ErrorCode;
+    }
+}
+
+#pragma warning restore CA1711

@@ -1,5 +1,7 @@
 namespace Flawright;
 
+#pragma warning disable CA1711 // EventArgs suffix is the standard naming convention for event argument classes
+
 /// <summary>
 /// Raised when a top-level window is detected by the application.
 /// </summary>
@@ -21,15 +23,27 @@ namespace Flawright;
 /// propagated to the caller.
 /// </para>
 /// </remarks>
-/// <param name="WindowHandle">
-/// The native window handle (HWND) of the top-level window,
-/// as an <see cref="nint"/> pointer.
-/// </param>
-/// <param name="Title">
-/// The window title string, or <see langword="null"/> if the window has no title.
-/// </param>
-/// <param name="ProcessId">The OS process ID that owns the window.</param>
-public sealed record WindowDetectedEventArgs(
-    nint WindowHandle,
-    string? Title,
-    int ProcessId);
+public sealed class WindowDetectedEventArgs : EventArgs
+{
+    /// <summary>The native window handle (HWND) of the top-level window.</summary>
+    public nint WindowHandle { get; }
+
+    /// <summary>The window title string, or null if the window has no title.</summary>
+    public string? Title { get; }
+
+    /// <summary>The OS process ID that owns the window.</summary>
+    public int ProcessId { get; }
+
+    /// <summary>Initializes a new instance of WindowDetectedEventArgs.</summary>
+    public WindowDetectedEventArgs(
+        nint windowHandle,
+        string? title,
+        int processId)
+    {
+        WindowHandle = windowHandle;
+        Title = title;
+        ProcessId = processId;
+    }
+}
+
+#pragma warning restore CA1711

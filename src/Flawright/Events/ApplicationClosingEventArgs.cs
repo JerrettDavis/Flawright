@@ -1,5 +1,7 @@
 namespace Flawright;
 
+#pragma warning disable CA1711 // EventArgs suffix is the standard naming convention for event argument classes
+
 /// <summary>
 /// Raised at the start of <see cref="IFlawrightBrowser.CloseAsync"/>,
 /// before the configured close behavior is invoked.
@@ -17,16 +19,27 @@ namespace Flawright;
 /// propagated to the caller.
 /// </para>
 /// </remarks>
-/// <param name="CloseBehaviorName">
-/// The name of the close behavior type (e.g. "WindowMessageCloseBehavior",
-/// "DismissDialogCloseBehavior", "KillCloseBehavior").
-/// </param>
-/// <param name="Timeout">
-/// The timeout duration the close behavior will be allowed to run before
-/// falling back to a process kill.
-/// </param>
-/// <param name="ProcessId">The OS process ID being closed.</param>
-public sealed record ApplicationClosingEventArgs(
-    string CloseBehaviorName,
-    TimeSpan Timeout,
-    int ProcessId);
+public sealed class ApplicationClosingEventArgs : EventArgs
+{
+    /// <summary>The name of the close behavior type being used.</summary>
+    public string CloseBehaviorName { get; }
+
+    /// <summary>The timeout duration the close behavior will be allowed to run.</summary>
+    public TimeSpan Timeout { get; }
+
+    /// <summary>The OS process ID being closed.</summary>
+    public int ProcessId { get; }
+
+    /// <summary>Initializes a new instance of ApplicationClosingEventArgs.</summary>
+    public ApplicationClosingEventArgs(
+        string closeBehaviorName,
+        TimeSpan timeout,
+        int processId)
+    {
+        CloseBehaviorName = closeBehaviorName;
+        Timeout = timeout;
+        ProcessId = processId;
+    }
+}
+
+#pragma warning restore CA1711
