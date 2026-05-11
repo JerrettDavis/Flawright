@@ -235,6 +235,9 @@ public sealed class VirtualInputModeTests
         public bool TryScrollIntoView() => false;
         public bool TryExpand() => false;
         public bool TrySelectItem(string nameOrId) => false;
+        public bool? GetExpandCollapseState() => null;
+        public string? FrameworkId => null;
+        public bool HasKeyboardFocus => false;
         public System.Collections.Generic.IEnumerable<IElementBackend> FindAll(IElementCondition condition)
             => System.Linq.Enumerable.Empty<IElementBackend>();
         public IElementBackend? FindFirst(IElementCondition condition) => null;

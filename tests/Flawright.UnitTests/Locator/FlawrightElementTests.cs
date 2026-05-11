@@ -944,6 +944,9 @@ public sealed class FlawrightElementTests
         public bool TryExpand() => false;
         public bool TrySelectItem(string nameOrId) => false;
         public bool TryInvoke() => false;
+        public bool? GetExpandCollapseState() => null;
+        public string? FrameworkId => null;
+        public bool HasKeyboardFocus => false;
         public System.Collections.Generic.IEnumerable<IElementBackend> FindAll(IElementCondition condition)
             => System.Linq.Enumerable.Empty<IElementBackend>();
         public IElementBackend? FindFirst(IElementCondition condition) => null;
@@ -982,6 +985,9 @@ public sealed class FlawrightElementTests
         public bool TryExpand() => false;
         public bool TrySelectItem(string nameOrId) => false;
         public bool TryInvoke() => false;
+        public bool? GetExpandCollapseState() => null;
+        public string? FrameworkId => null;
+        public bool HasKeyboardFocus => false;
         public System.Collections.Generic.IEnumerable<IElementBackend> FindAll(IElementCondition condition)
             => System.Linq.Enumerable.Empty<IElementBackend>();
         public IElementBackend? FindFirst(IElementCondition condition) => null;
