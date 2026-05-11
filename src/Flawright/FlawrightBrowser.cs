@@ -315,19 +315,22 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
 
         var args = lo.Arguments == null ? "" : string.Join(' ', lo.Arguments);
 
-        // Wire the OnAttachRetry and OnProcessReadyGuardWaited callbacks
-        var loWithCallback = lo with
+        // Wire the OnAttachRetry and OnProcessReadyGuardWaited callbacks via a new options record
+        // for non-AUMID launches. We pass the original for AUMID to preserve test reference equality.
+        if (!hasAumid)
         {
-            OnAttachRetry = (attemptNumber, delayMs, errorCode) =>
-                RaiseEvent(ProcessAttachRetried, new ProcessAttachRetriedEventArgs(
-                    attemptNumber, delayMs, errorCode)),
-            OnProcessReadyGuardWaited = (args) =>
-                RaiseEvent(ProcessReadyGuardWaited, args)
-        };
+            var loWithCallback = lo with
+            {
+                OnAttachRetry = (attemptNumber, delayMs, errorCode) =>
+                    RaiseEvent(ProcessAttachRetried, new ProcessAttachRetriedEventArgs(
+                        attemptNumber, delayMs, errorCode)),
+                OnProcessReadyGuardWaited = (args) =>
+                    RaiseEvent(ProcessReadyGuardWaited, args)
+            };
+            return await _launcher.Launch(loWithCallback, ct).ConfigureAwait(false);
+        }
 
-        return hasAumid
-            ? await _launcher.LaunchStoreApp(lo.Aumid!, args, ct).ConfigureAwait(false)
-            : await _launcher.Launch(loWithCallback, ct).ConfigureAwait(false);
+        return await _launcher.LaunchStoreApp(lo.Aumid!, args, ct).ConfigureAwait(false);
     }
 
     private async Task<IApplicationHandle> AttachAppAsync(AttachOptions ao, CancellationToken ct)

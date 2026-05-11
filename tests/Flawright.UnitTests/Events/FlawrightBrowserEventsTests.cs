@@ -105,14 +105,20 @@ public sealed class FlawrightBrowserEventsTests
     [Fact]
     public async Task ApplicationClosed_PayloadReflectsGracefulFlag()
     {
-        var handle = new FakeApplicationHandle(waitResult: true, hasExited: true);
-        var (browser, _) = MakeBrowser();
-        // Manually inject the handle to control hasExited state
+        // Use a handle that stays alive so the graceful close behavior succeeds
+        var handle = new FakeApplicationHandle(waitResult: true, hasExited: false);
+        var launcher = new FakeApplicationLauncher { Handle = handle };
+        var input = new FakeInputBackend();
+        var translator = new FakeConditionTranslator();
+        var opts = new LaunchOptions { ApplicationPath = "notepad.exe" };
+        var browser = new FlawrightBrowser(launcher, input, translator, opts, FastOpts);
         await browser.EnsureInitializedAsync();
 
         ApplicationClosedEventArgs? firedArgs = null;
         browser.ApplicationClosed += (_, args) => { firedArgs = args; };
 
+        // Set hasExited to true so that after close completes, the process is gone
+        handle.HasExited = true;
         await browser.CloseAsync();
 
         Assert.NotNull(firedArgs);
@@ -171,10 +177,16 @@ public sealed class FlawrightBrowserEventsTests
     [Fact]
     public async Task ApplicationClosing_ExceptionSwallowed_DoesNotAffectClose()
     {
-        var (browser, _) = MakeBrowser();
+        var handle = new FakeApplicationHandle(waitResult: true, hasExited: false);
+        var launcher = new FakeApplicationLauncher { Handle = handle };
+        var input = new FakeInputBackend();
+        var translator = new FakeConditionTranslator();
+        var opts = new LaunchOptions { ApplicationPath = "notepad.exe" };
+        var browser = new FlawrightBrowser(launcher, input, translator, opts, FastOpts);
         await browser.EnsureInitializedAsync();
 
         browser.ApplicationClosing += (_, _) => { throw new InvalidOperationException("Handler error"); };
+        handle.HasExited = true;
 
         // Should not throw; exception should be swallowed and close should succeed
         var result = await browser.CloseAsync();

@@ -54,7 +54,9 @@ public sealed class FlawrightBrowserTests
 
         Assert.Single(launcher.LaunchCalls);
         Assert.Empty(launcher.LaunchStoreAppCalls);
-        Assert.Same(opts, launcher.LaunchCalls[0]);
+        // The launcher receives a LaunchOptions with the same ApplicationPath
+        // (may not be the exact same object due to callback wiring)
+        Assert.Equal("notepad.exe", launcher.LaunchCalls[0].ApplicationPath);
     }
 
     [Fact]
