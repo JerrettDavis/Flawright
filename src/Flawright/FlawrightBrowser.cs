@@ -30,6 +30,16 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     private bool _disposed;
     private bool _closeAlreadyHandled;
 
+    // ── Events ────────────────────────────────────────────────────────────────
+
+    public event EventHandler<AppExecutionAliasResolvedEventArgs>? AppExecutionAliasResolved;
+    public event EventHandler<ApplicationLaunchedEventArgs>? ApplicationLaunched;
+    public event EventHandler<ProcessReadyGuardWaitedEventArgs>? ProcessReadyGuardWaited;
+    public event EventHandler<ProcessAttachRetriedEventArgs>? ProcessAttachRetried;
+    public event EventHandler<ApplicationClosingEventArgs>? ApplicationClosing;
+    public event EventHandler<ApplicationClosedEventArgs>? ApplicationClosed;
+    public event EventHandler<WindowDetectedEventArgs>? WindowDetected;
+
     internal FlawrightBrowser(
         IApplicationLauncher launcher,
         IInputBackend input,
@@ -206,6 +216,34 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Raises an event, swallowing any exceptions thrown by handlers.
+    /// </summary>
+    /// <remarks>
+    /// Handler exceptions are swallowed so that misbehaving event handlers
+    /// cannot crash the browser or abort its operations. Exceptions are logged
+    /// to the debug output so developers can see them during troubleshooting.
+    /// </remarks>
+    private void RaiseEvent<T>(EventHandler<T>? handler, T args) where T : EventArgs
+    {
+        if (handler == null)
+            return;
+
+        foreach (var d in handler.GetInvocationList())
+        {
+            try
+            {
+                ((EventHandler<T>)d)(this, args);
+            }
+#pragma warning disable CA1031 // Handler exceptions must not crash the browser; intentionally swallowed.
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Flawright] Event handler threw: {ex}");
+            }
+#pragma warning restore CA1031
+        }
+    }
 
     /// <summary>
     /// Initialises the application handle on first use.  Idempotent — subsequent
