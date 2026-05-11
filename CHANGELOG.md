@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `SelectOptionAsync(SelectOptionValue)` index path: `TrySelectItem` was incorrectly called on the resolved child item rather than on the container element, so the child-search always came up empty and threw `InvalidOperationException`. Fix: call `backend.TrySelectItem(target.Name)` so the container's `SelectionPattern` selects the Nth child.
 - Double-click input now uses FlaUI's `Mouse.DoubleClick()` which respects the system `DoubleClickTime` — previously two separate `Mouse.Click()` calls could fall outside the double-click window on machines with a raised double-click speed setting.
+- E2E intermittent `Win32Exception` (error 299, `ERROR_PARTIAL_COPY`) during `Application.AttachOrLaunch`: FlaUI's internal `GetMainModuleFilepath` diagnostic call re-enumerates process modules immediately after launch, re-entering the same race window that `ProcessReadyGuard` was introduced to close. Fix adds (a) an extended guard probe that mirrors FlaUI's `MainModule.FileName` access before releasing, and (b) a five-attempt exponential-backoff retry (10→160 ms) around `Application.AttachOrLaunch` in `FlaUiApplicationLauncher` to catch residual cases under high CI load.
 
 ### Changed
 

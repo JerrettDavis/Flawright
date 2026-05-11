@@ -105,10 +105,37 @@ public sealed class ProcessReadyGuardTests
                 {
                     callCount++;
                     return callCount >= 3; // succeed on the third call
-                });
+                },
+                mainModuleProbe: _ => true);  // always ready to isolate modules probe testing
 
             Assert.True(result);
             Assert.True(callCount >= 3, $"Expected ≥ 3 probe calls; got {callCount}.");
+        }
+        finally
+        {
+            KillSilently(proc);
+        }
+    }
+
+    [Fact]
+    public void WaitForProcessReady_MainModuleProbeReturnsFalseThenTrue_ReturnsTrue()
+    {
+        using var proc = CreateInertProcess();
+        try
+        {
+            var mainProbeCallCount = 0;
+            var result = ProcessReadyGuard.WaitForProcessReady(
+                proc,
+                timeout: TimeSpan.FromSeconds(5),
+                modulesReadyProbe: _ => true,
+                mainModuleProbe: _ =>
+                {
+                    mainProbeCallCount++;
+                    return mainProbeCallCount >= 3;
+                });
+
+            Assert.True(result);
+            Assert.True(mainProbeCallCount >= 3);
         }
         finally
         {
