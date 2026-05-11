@@ -17,6 +17,8 @@ public sealed class FlawrightBrowserEventsTests
         DefaultRetryInterval = TimeSpan.FromMilliseconds(10),
     };
 
+    private static readonly string[] ClosingThenClosedOrder = ["Closing", "Closed"];
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static (FlawrightBrowser Browser, FakeApplicationHandle Handle)
@@ -100,7 +102,7 @@ public sealed class FlawrightBrowserEventsTests
 
         await browser.CloseAsync();
 
-        Assert.Equal(new[] { "Closing", "Closed" }, eventOrder);
+        Assert.Equal(ClosingThenClosedOrder, eventOrder);
     }
 
     [Fact]
