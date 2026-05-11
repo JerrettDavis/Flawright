@@ -71,6 +71,17 @@ internal static class ProcessReadyGuard
     /// </returns>
     internal delegate bool ModulesReadyProbe(Process p);
 
+    /// <summary>
+    /// Delegate type for the main-module-ready check so unit tests can inject a
+    /// fake without spawning real processes.
+    /// </summary>
+    /// <param name="p">The process to inspect.</param>
+    /// <returns>
+    /// <see langword="true"/> when the process main module is readable (no partial-read
+    /// error); <see langword="false"/> when the loader is still in progress.
+    /// </returns>
+    internal delegate bool MainModuleProbe(Process p);
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -89,6 +100,11 @@ internal static class ProcessReadyGuard
     /// Optional injectable probe used by unit tests.  Production code leaves
     /// this <see langword="null"/> to use the real <c>Process.Modules</c> poll.
     /// </param>
+    /// <param name="mainModuleProbe">
+    /// Optional injectable probe for the main module readiness check used by unit tests.
+    /// Production code leaves this <see langword="null"/> to use the real
+    /// <c>Process.MainModule.FileName</c> access poll.
+    /// </param>
     /// <returns>
     /// <see langword="true"/> when the process is ready (modules enumerable);
     /// <see langword="false"/> when the timeout elapsed before readiness was
@@ -98,7 +114,8 @@ internal static class ProcessReadyGuard
     internal static bool WaitForProcessReady(
         Process process,
         TimeSpan? timeout = null,
-        ModulesReadyProbe? modulesReadyProbe = null)
+        ModulesReadyProbe? modulesReadyProbe = null,
+        MainModuleProbe? mainModuleProbe = null)
     {
         ArgumentNullException.ThrowIfNull(process);
 
@@ -140,11 +157,15 @@ internal static class ProcessReadyGuard
         // Directly exercises EnumProcessModules.  A successful call confirms the
         // kernel will not return ERROR_PARTIAL_COPY to FlaUI's subsequent calls.
         var probe = modulesReadyProbe ?? DefaultModulesProbe;
+        var mainProbe = mainModuleProbe ?? DefaultMainModuleProbe;
         var deadline = DateTime.UtcNow + effectiveTimeout;
 
         while (DateTime.UtcNow < deadline)
         {
-            if (probe(process))
+            var modulesReady = probe(process);
+            var mainModuleReady = mainProbe(process);
+
+            if (modulesReady && mainModuleReady)
                 return true;
 
             Thread.Sleep(FallbackPollInterval);
@@ -182,5 +203,36 @@ internal static class ProcessReadyGuard
         }
         // All other exceptions (access denied, process not found, etc.) propagate so the
         // caller sees the real error rather than silently treating a broken process as ready.
+    }
+
+    /// <summary>
+    /// Production probe: attempts to access <see cref="Process.MainModule"/>.
+    /// Returns <see langword="true"/> when access succeeds without a
+    /// partial-read error; <see langword="false"/> when the loader is still in
+    /// progress. FlaUI's Application.Attach calls GetMainModuleFilepath internally
+    /// for debug logging, so this probe mirrors that path to ensure the guard
+    /// verifies the same code path before releasing.
+    /// </summary>
+    private static bool DefaultMainModuleProbe(Process process)
+    {
+        try
+        {
+            _ = process.MainModule?.FileName;
+            return true;
+        }
+        catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorPartialCopy)
+        {
+            // ERROR_PARTIAL_COPY (299): loader still in progress — retry.
+            return false;
+        }
+#pragma warning disable CA1031 // Catch all exceptions; process state is uncertain
+        catch (Exception)
+        {
+            // Any other exception (process exited, access denied, etc.) means we can't
+            // verify the main module is accessible. Treat as "ready" so the caller's
+            // subsequent FlaUI call will surface the real error if needed.
+            return true;
+        }
+#pragma warning restore CA1031
     }
 }
