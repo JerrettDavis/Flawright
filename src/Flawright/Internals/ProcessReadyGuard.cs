@@ -225,14 +225,13 @@ internal static class ProcessReadyGuard
             // ERROR_PARTIAL_COPY (299): loader still in progress — retry.
             return false;
         }
-#pragma warning disable CA1031 // Catch all exceptions; process state is uncertain
-        catch (Exception)
+        catch (InvalidOperationException)
         {
-            // Any other exception (process exited, access denied, etc.) means we can't
-            // verify the main module is accessible. Treat as "ready" so the caller's
-            // subsequent FlaUI call will surface the real error if needed.
+            // Process exited between our check and the MainModule access.
+            // Treat as "ready" so callers can proceed to the exit check.
             return true;
         }
-#pragma warning restore CA1031
+        // All other exceptions (access denied, process not found, etc.) propagate so the
+        // caller sees the real error rather than silently treating a broken process as ready.
     }
 }
