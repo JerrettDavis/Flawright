@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using Flawright.Backends;
 using Flawright.Backends.Uia;
@@ -13,6 +14,7 @@ namespace Flawright;
 /// position-override offset into a form that
 /// <see cref="IInputMode.Hover"/> can consume.
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "Trivial delegation; all logic lives in the wrapped backend.")]
 file sealed class SinglePointBackend : IElementBackend
 {
     private readonly IElementBackend _inner;

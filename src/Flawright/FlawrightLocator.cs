@@ -1,6 +1,7 @@
 #pragma warning disable CA1031 // intentional broad catch in IsVisible/IsHidden fast-path
 #pragma warning disable MA0009 // Regex in GetByRole uses Regex.Escape — safe from ReDoS
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Flawright.Backends;
 using Flawright.Input;
@@ -1059,6 +1060,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
 /// A trivial <see cref="IElementCondition"/> that matches all descendants.
 /// Used for index-based SelectOptionAsync when iterating children.
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "Trivial single-method predicate.")]
 file sealed class IndexBasedCondition : IElementCondition
 {
     public IEnumerable<IElementBackend> FindAllFrom(IElementBackend root)
@@ -1073,6 +1075,7 @@ file sealed class IndexBasedCondition : IElementCondition
 /// into a form that <see cref="IInputMode.DragTo"/>
 /// can understand.
 /// </summary>
+[ExcludeFromCodeCoverage(Justification = "Trivial delegation; all logic lives in the wrapped backend.")]
 file sealed class PointElementBackend : IElementBackend
 {
     private readonly IElementBackend _inner;
