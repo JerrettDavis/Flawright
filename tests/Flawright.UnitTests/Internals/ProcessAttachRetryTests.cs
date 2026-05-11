@@ -8,6 +8,8 @@ namespace Flawright.UnitTests.Internals;
 
 public class ProcessAttachRetryTests
 {
+    private static readonly int[] ExpectedTransientRetrySleeps = { 10, 20 };
+
     [Fact]
     public void Invoke_SuccessOnFirstAttempt_ReturnsValueWithoutSleeping()
     {
@@ -38,7 +40,7 @@ public class ProcessAttachRetryTests
 
         Assert.Equal("ok", result);
         Assert.Equal(3, attempts);
-        Assert.Equal(new[] { 10, 20 }, sleeps);
+        Assert.Equal(ExpectedTransientRetrySleeps, sleeps);
     }
 
     [Fact]
