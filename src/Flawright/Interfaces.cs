@@ -40,12 +40,11 @@ public interface IFlawrightBrowser : IAsyncDisposable
     Task<IReadOnlyList<IFlawrightPage>> GetAllPagesAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Polls until a top-level window whose title matches
-    /// <paramref name="titleOrPredicate"/> appears, then returns a page for it.
+    /// Polls until a top-level window whose title contains
+    /// <paramref name="title"/> appears, then returns a page for it.
     /// </summary>
-    /// <param name="titleOrPredicate">
-    /// Window title substring to match, or a predicate that receives the full
-    /// title string.
+    /// <param name="title">
+    /// Window title substring to match (case-insensitive).
     /// </param>
     /// <param name="timeout">
     /// Maximum time to wait.  <see langword="null"/> uses the default timeout.
@@ -56,7 +55,7 @@ public interface IFlawrightBrowser : IAsyncDisposable
     /// Thrown when no matching window is found within the timeout.
     /// </exception>
     Task<IFlawrightPage> WaitForPageAsync(
-        string titleOrPredicate,
+        string title,
         TimeSpan? timeout = null,
         CancellationToken ct = default);
 
@@ -707,6 +706,9 @@ public interface IFlawrightElement
     /// <param name="text">Text to fill.</param>
     /// <param name="options">Fill options. <see langword="null"/> uses defaults.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when the element does not support the ValuePattern.
+    /// </exception>
     Task FillAsync(string text, Locator.LocatorFillOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Clears the element's value.</summary>
@@ -724,11 +726,17 @@ public interface IFlawrightElement
     /// <summary>Checks the element (sets toggle state to <c>On</c>).</summary>
     /// <param name="options">Check options. <see langword="null"/> uses defaults.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when the element does not support the TogglePattern.
+    /// </exception>
     Task CheckAsync(Locator.LocatorCheckOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Unchecks the element (sets toggle state to <c>Off</c>).</summary>
     /// <param name="options">Uncheck options. <see langword="null"/> uses defaults.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when the element does not support the TogglePattern.
+    /// </exception>
     Task UncheckAsync(Locator.LocatorUncheckOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Sets the element's checked state.</summary>
@@ -743,6 +751,9 @@ public interface IFlawrightElement
     /// <param name="value">The name or AutomationId of the item to select.</param>
     /// <param name="options">Options. <see langword="null"/> uses defaults.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when the element does not support the SelectionPattern.
+    /// </exception>
     Task SelectOptionAsync(string value, Locator.LocatorSelectOptionOptions? options = null, CancellationToken ct = default);
 }
 
@@ -790,6 +801,9 @@ public interface IFlawrightAssertions
     /// <c>IElementBackend.HasKeyboardFocus</c>, planned for Wave D.
     /// This method currently throws <see cref="NotSupportedException"/>.
     /// </remarks>
+    /// <exception cref="System.NotSupportedException">
+    /// Thrown until UIA HasKeyboardFocus is wired.
+    /// </exception>
     Task ToBeFocusedAsync(Assertions.AssertionsToBeFocusedOptions? options = null, CancellationToken ct = default);
 
     /// <summary>Asserts that the element is editable (supports value input and is enabled).</summary>

@@ -8,7 +8,8 @@ namespace Flawright;
 /// <code>
 /// try
 /// {
-///     await page.Locator("#save").FirstAsync(timeout: TimeSpan.FromSeconds(2));
+///     await page.Locator("#save").First.WaitForAsync(
+///         new LocatorWaitForOptions { Timeout = 2000 });
 /// }
 /// catch (FlawrightTimeoutException ex)
 /// {

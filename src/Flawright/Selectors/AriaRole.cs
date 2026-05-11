@@ -10,13 +10,13 @@ namespace Flawright.Selectors;
 /// </summary>
 public enum AriaRole
 {
-    /// <summary>An input element that allows arbitrary-length input.</summary>
+    /// <summary>A type of live region with important, and usually time-sensitive, information.</summary>
     Alert,
 
     /// <summary>A modal alert dialog.</summary>
     Alertdialog,
 
-    /// <summary>An element used to display an alert.</summary>
+    /// <summary>A structure containing one or more focusable elements requiring user input.</summary>
     Application,
 
     /// <summary>A section of a page that provides summary information.</summary>

@@ -14,5 +14,6 @@ public interface ICloseBehavior
     /// return <see langword="false"/> to signal the caller should fall through
     /// to a force-kill.
     /// </summary>
+    /// <param name="context">Context providing access to the application's page and timing.</param>
     Task<bool> CloseAsync(ICloseContext context);
 }
