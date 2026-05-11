@@ -21,7 +21,7 @@ jobs:
   pr-checks:
     # Run on PRs and on pushes to any branch that is NOT main
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main')
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     permissions:
       contents: read
       pull-requests: write
@@ -154,14 +154,14 @@ jobs:
   e2e-tests:
     name: E2E Tests (Windows)
     # Runs on every event the workflow fires for — PRs, branch pushes, and
-    # pushes to main — so post-merge E2E coverage is visible. windows-latest
+    # pushes to main — so post-merge E2E coverage is visible. windows-2025-vs2026
     # runs as a real user (Session 1) and supports UIA + GUI apps.
     # VirtualInputMode means no focus-steal or cursor movement is needed —
     # the runner display quirks are irrelevant. No `needs:` dependency: this
     # job builds and runs independently of pr-checks/release so it works on
     # main pushes (where pr-checks is skipped) and provides parallel signal
     # when unit-test failures don't necessarily invalidate E2E results.
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     timeout-minutes: 30
     permissions:
       contents: read
@@ -274,7 +274,7 @@ jobs:
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     permissions:
       contents: write
       packages: write
