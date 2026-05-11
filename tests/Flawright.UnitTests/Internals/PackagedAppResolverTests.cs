@@ -269,4 +269,63 @@ public sealed class PackagedAppResolverTests
 
         Assert.Equal(7777, pid);
     }
+
+    // ─── WaitForPackagedAppProcessAsync ───────────────────────────────────────
+
+    [Fact]
+    public async Task WaitForPackagedAppProcessAsync_ReturnsMatchingPid_WhenFound()
+    {
+        // Mirrors the sync test: async version should find and return the matching PID.
+        const int ExpectedPid = 1234;
+        const string Pfn = "Microsoft.WindowsNotepad_8wekyb3d8bbwe";
+        var matchingPath = @"C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_8wekyb3d8bbwe_11.2501.26.0_x64__8wekyb3d8bbwe\Notepad\Notepad.exe";
+
+        IEnumerable<(int, string?)> Snapshot() =>
+        [
+            (ExpectedPid, matchingPath)
+        ];
+
+        var pid = await PackagedAppResolver.WaitForPackagedAppProcessAsync(
+            Pfn,
+            TimeSpan.FromSeconds(1),
+            processSnapshotProvider: Snapshot);
+
+        Assert.Equal(ExpectedPid, pid);
+    }
+
+    [Fact]
+    public async Task WaitForPackagedAppProcessAsync_ReturnsZero_WhenTimeout()
+    {
+        // Mirrors the sync timeout test: async version should return 0 after timeout expires.
+        const string Pfn = "Fake.Package_abc123";
+
+        IEnumerable<(int, string?)> NeverMatches() => [(9999, @"C:\Windows\System32\cmd.exe")];
+
+        var pid = await PackagedAppResolver.WaitForPackagedAppProcessAsync(
+            Pfn,
+            TimeSpan.FromMilliseconds(200),
+            pollInterval: TimeSpan.FromMilliseconds(50),
+            processSnapshotProvider: NeverMatches);
+
+        Assert.Equal(0, pid);
+    }
+
+    [Fact]
+    public async Task WaitForPackagedAppProcessAsync_ThrowsOnCancellation()
+    {
+        // Passing a pre-cancelled CancellationToken should throw OperationCanceledException.
+        const string Pfn = "Microsoft.WindowsNotepad_8wekyb3d8bbwe";
+
+        IEnumerable<(int, string?)> Snapshot() => [];
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => PackagedAppResolver.WaitForPackagedAppProcessAsync(
+                Pfn,
+                TimeSpan.FromSeconds(1),
+                processSnapshotProvider: Snapshot,
+                ct: cts.Token));
+    }
 }

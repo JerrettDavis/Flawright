@@ -398,6 +398,42 @@ public sealed class LocatorActionsTests
         Assert.Equal("Blue", list.LastSelectedItem);
     }
 
+    // ── SelectOptionAsync (SelectOptionValue with Index) ────────────────────────
+
+    [Fact]
+    public async Task SelectOptionAsync_WithIndex_SelectsNthChild()
+    {
+        // Index-based selection should find and select the Nth child item.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.List("Items")
+                .WithChild(UiaTree.ListItem("First"))
+                .WithChild(UiaTree.ListItem("Second"))
+                .WithChild(UiaTree.ListItem("Third")))
+            .Build();
+        var locator = LocatorTestBase.CreateLocator("controltype:List", root);
+
+        await locator.SelectOptionAsync(new SelectOptionValue { Index = 1 });
+
+        var list = (FakeElementBackend)root.Children[0];
+        Assert.Equal("Second", list.LastSelectedItem);
+    }
+
+    [Fact]
+    public async Task SelectOptionAsync_WithIndexOutOfRange_ThrowsInvalidOperation()
+    {
+        // Index beyond the child count should throw InvalidOperationException.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.List("Items")
+                .WithChild(UiaTree.ListItem("First"))
+                .WithChild(UiaTree.ListItem("Second"))
+                .WithChild(UiaTree.ListItem("Third")))
+            .Build();
+        var locator = LocatorTestBase.CreateLocator("controltype:List", root);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => locator.SelectOptionAsync(new SelectOptionValue { Index = 99 }));
+    }
+
     // ── HoverAsync ────────────────────────────────────────────────────────────
 
     [Fact]
@@ -530,5 +566,30 @@ public sealed class LocatorActionsTests
         var locator = LocatorTestBase.CreateLocator("controltype:Button", root);
 
         await Assert.ThrowsAsync<ArgumentNullException>(() => locator.DragToAsync(null!));
+    }
+
+    [Fact]
+    public async Task DragToAsync_WithSourcePosition_DelegatesToInputMode()
+    {
+        // When SourcePosition is specified, the drag should use the override coordinates
+        // rather than the element's center.  The mouse move should target the adjusted position.
+        var root = UiaTree.Window("App")
+            .WithChild(UiaTree.Button("Source").WithBounds(100, 100, 60, 40))
+            .WithChild(UiaTree.Button("Target").WithBounds(200, 200, 60, 40))
+            .Build();
+        var input = new FakeInputBackend();
+
+        var sourceLocator = LocatorTestBase.CreateLocator("name:Source", root, input: input);
+        var targetLocator = LocatorTestBase.CreateLocator("name:Target", root, input: input);
+
+        // Drag from offset (10, 5) within the source element, which places us at (110, 105)
+        // instead of the element center (130, 120).
+        await sourceLocator.DragToAsync(targetLocator, new LocatorDragToOptions { SourcePosition = new BoundingBox(10, 5, 0, 0) });
+
+        // First mouse move should go to the SourcePosition-adjusted coordinate (110, 105).
+        Assert.NotEmpty(input.MouseMoves);
+        var firstMove = input.MouseMoves[0];
+        Assert.Equal(110, firstMove.X);
+        Assert.Equal(105, firstMove.Y);
     }
 }
