@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.17] - 2026-05-11
+
 ### Fixed
 
 - `SelectOptionAsync(SelectOptionValue)` index path: `TrySelectItem` was incorrectly called on the resolved child item rather than on the container element, so the child-search always came up empty and threw `InvalidOperationException`. Fix: call `backend.TrySelectItem(target.Name)` so the container's `SelectionPattern` selects the Nth child.
@@ -49,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TagParser redundant guard removed; `FlawrightLocator` selector interpolation made explicit (`182adc1`).
 - `dotnet format` cleanup: line endings and naming convention fixes across the codebase (`b3b5068`).
 
+[0.5.17]: https://github.com/JerrettDavis/Flawright/compare/v0.5.1...v0.5.17
 [0.5.1]: https://github.com/JerrettDavis/Flawright/compare/v0.4.33...v0.5.1
 
 ## [0.4.0] - 2026-05-07
