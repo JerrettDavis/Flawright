@@ -9,7 +9,13 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
 
     <!-- CI / release hardening -->
-    <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
+    <!--
+      TreatWarningsAsErrors is unconditional: CA-series rules (CA1849, CA1861, etc.)
+      must surface locally in Release builds, not just in CI. Gating on $(CI) caused
+      3 separate "green local, red CI" failures because GitHub Actions injects CI=true
+      but local builds don't. All configurations get the same strictness.
+    -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <DebugType>embedded</DebugType>
