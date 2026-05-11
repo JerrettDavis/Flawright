@@ -50,6 +50,24 @@ internal sealed class UiaElementBackend : IElementBackend
     public bool IsOffscreen => _element.IsOffscreen;
 
     /// <inheritdoc/>
+    public bool HasKeyboardFocus
+    {
+        get
+        {
+#pragma warning disable CA1031 // Return false if property read fails
+            try
+            {
+                return _element.Properties.HasKeyboardFocus.TryGetValue(out var v) && v;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+#pragma warning restore CA1031
+        }
+    }
+
+    /// <inheritdoc/>
     public Rectangle BoundingRectangle
     {
         get

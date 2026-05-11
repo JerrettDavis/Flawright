@@ -34,6 +34,9 @@ public interface IElementBackend
     /// <summary>Gets whether the element is off-screen (hidden).</summary>
     bool IsOffscreen { get; }
 
+    /// <summary>Gets whether the element currently has keyboard focus.</summary>
+    bool HasKeyboardFocus { get; }
+
     /// <summary>Gets the bounding rectangle of the element in screen coordinates.</summary>
     Rectangle BoundingRectangle { get; }
 

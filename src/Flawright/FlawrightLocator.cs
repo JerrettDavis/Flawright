@@ -1158,6 +1158,7 @@ file sealed class PointElementBackend : IElementBackend
     public string ControlTypeName => _inner.ControlTypeName;
     public bool IsEnabled => _inner.IsEnabled;
     public bool IsOffscreen => _inner.IsOffscreen;
+    public bool HasKeyboardFocus => _inner.HasKeyboardFocus;
     public System.Drawing.Rectangle BoundingRectangle => _rect;
     public void Click() => _inner.Click();
     public void DoubleClick() => _inner.DoubleClick();

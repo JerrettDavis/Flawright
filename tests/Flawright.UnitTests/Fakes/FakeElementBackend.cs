@@ -120,6 +120,12 @@ internal sealed class FakeElementBackend : IElementBackend
     /// </summary>
     public bool? ExpandCollapseState { get; set; }
 
+    /// <summary>
+    /// Controls the return value of <see cref="HasKeyboardFocus"/>.
+    /// Defaults to <see langword="false"/>.
+    /// </summary>
+    public bool HasKeyboardFocus { get; set; }
+
     // ── IElementBackend: Identity ─────────────────────────────────────────────
 
     /// <inheritdoc/>

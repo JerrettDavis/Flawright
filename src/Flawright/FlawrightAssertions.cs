@@ -129,13 +129,32 @@ internal sealed partial class FlawrightAssertions : IFlawrightAssertions
             ct);
 
     /// <inheritdoc/>
-    /// <remarks>
-    /// Not yet supported by the active backend.  Full implementation requires
-    /// <c>IElementBackend.HasKeyboardFocus</c>, flagged for Wave D backend support.
-    /// </remarks>
     public Task ToBeFocusedAsync(AssertionsToBeFocusedOptions? options = null, CancellationToken ct = default)
-        => throw new NotSupportedException(
-            "ToBeFocusedAsync is not yet supported by the active backend; track Wave D backend support.");
+        => AssertAsync(
+            async tok =>
+            {
+#pragma warning disable CA1031 // Catch specific exceptions
+                try
+                {
+                    // Get the first element matching the locator and check if it has keyboard focus
+                    var results = await _locator.AllAsync(null, tok).ConfigureAwait(false);
+                    if (results.Count == 0)
+                        return false;
+
+                    // Access the element backend via the internal element (cast to FlawrightElement)
+                    var element = results[0] as FlawrightElement;
+                    return element?.InternalBackend?.HasKeyboardFocus ?? false;
+                }
+                catch (Exception)
+                {
+                    // Element not ready or locator type unsupported
+                    return false;
+                }
+#pragma warning restore CA1031
+            },
+            ResolveTimeout(options?.Timeout),
+            Pos("to be focused"),
+            ct);
 
     /// <inheritdoc/>
     public Task ToBeEditableAsync(AssertionsToBeEditableOptions? options = null, CancellationToken ct = default)
