@@ -1,6 +1,7 @@
 Feature: Notepad BDD Automation
-    Demonstrates Flawright.Reqnroll with Windows 11 Notepad.
-    Uses @launch:notepad.exe which auto-resolves to the packaged WinUI3 Notepad on Windows 11.
+    Demonstrates Flawright.Reqnroll with Windows Notepad (classic Edit control).
+    Uses @launch:notepad.exe which auto-resolves to the packaged WinUI3 Notepad on Windows 11,
+    or classic Win32 Notepad on Windows 10 / Server. Both use the classic Edit control.
 
     Background:
         Given I have the application in focus
