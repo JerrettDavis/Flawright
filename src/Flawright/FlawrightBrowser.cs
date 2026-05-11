@@ -121,6 +121,12 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
             return true;
 
         var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(5);
+
+        RaiseEvent(ApplicationClosing, new ApplicationClosingEventArgs(
+            CloseBehaviorName: _opts.CloseBehavior.GetType().Name,
+            Timeout: effectiveTimeout,
+            ProcessId: _app.ProcessId));
+
         var context = new CloseContext(_app, this, _input, effectiveTimeout, CancellationToken.None);
 
         var graceful = await _opts.CloseBehavior.CloseAsync(context).ConfigureAwait(false);
@@ -133,8 +139,14 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
             try { _app.KillProcessTree(); }
             catch (Exception) { /* process may have already exited */ }
 #pragma warning restore CA1031
-            return false;
         }
+
+        RaiseEvent(ApplicationClosed, new ApplicationClosedEventArgs(
+            CloseBehaviorName: _opts.CloseBehavior.GetType().Name,
+            Graceful: graceful,
+            Timeout: effectiveTimeout,
+            ProcessId: _app.ProcessId,
+            ExitedCleanly: _app.HasExited));
 
         return graceful;
     }
@@ -265,6 +277,14 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
         _app = _launchOptions != null
             ? await LaunchAppAsync(_launchOptions, ct).ConfigureAwait(false)
             : await AttachAppAsync(_attachOptions!, ct).ConfigureAwait(false);
+
+        RaiseEvent(ApplicationLaunched, new ApplicationLaunchedEventArgs(
+            ProcessId: _app.ProcessId,
+            ExecutablePath: _launchOptions?.ApplicationPath,
+            Aumid: _launchOptions?.Aumid,
+            WasAttached: _wasAttached,
+            IsPackagedApp: _app.IsStoreApp,
+            Timestamp: DateTimeOffset.UtcNow));
 
         var startupTimeout = _launchOptions?.StartupTimeout ?? TimeSpan.FromSeconds(30);
 
