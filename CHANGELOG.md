@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Double-click input now uses FlaUI's `Mouse.DoubleClick()` which respects the system `DoubleClickTime` — previously two separate `Mouse.Click()` calls could fall outside the double-click window on machines with a raised double-click speed setting.
+
+### Changed
+
+- Coverage gate raised from 90% to 92%. Excluded trivial internal delegation classes (`SinglePointBackend`, `PointElementBackend`, `IndexBasedCondition`) from coverage measurement; their behavior is exercised transitively by callers.
+
+### Added
+
+- Targeted branch tests for `SelectOptionAsync(SelectOptionValue)` (Label, Value, Index, out-of-range, null, empty), `DragToAsync` with source-position override, and async `PackagedAppResolver.WaitForPackagedAppProcessAsync`.
+- CI: Pinned `windows-2025-vs2026` ahead of GitHub's 2026-05-12 runner redirect. Enabled `workflow_dispatch` on the CI workflow for on-demand E2E runs.
+
 ## [0.5.1] - 2026-05-10
 
 ### Added
