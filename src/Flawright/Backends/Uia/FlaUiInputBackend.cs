@@ -26,8 +26,15 @@ internal sealed class FlaUiInputBackend : IInputBackend
         Mouse.MoveTo(x, y);
         var flaButton = ToFlaUiButton(button);
 
-        for (var i = 0; i < clickCount; i++)
-            Mouse.Click(flaButton);
+        if (clickCount == 2)
+        {
+            Mouse.DoubleClick(flaButton);
+        }
+        else
+        {
+            for (var i = 0; i < clickCount; i++)
+                Mouse.Click(flaButton);
+        }
     }
 
     /// <inheritdoc/>

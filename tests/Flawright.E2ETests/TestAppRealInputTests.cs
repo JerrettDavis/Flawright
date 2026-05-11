@@ -70,32 +70,7 @@ public class TestAppRealInputTests : IAsyncLifetime
     /// <c>MouseDoubleClick</c> is only raised by genuine consecutive mouse clicks;
     /// UIA has no generic double-click pattern equivalent.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>Known local-flake (hypothesis, unconfirmed):</b> This test has been
-    /// observed to fail on developer Win11 boxes while remaining green on CI
-    /// (<c>windows-latest</c>).
-    /// </para>
-    /// <para>
-    /// Root-cause hypothesis: FlaUI's <c>Mouse.DoubleClick()</c> uses a fixed
-    /// inter-click delay that is shorter than <c>SystemInformation.DoubleClickTime</c>
-    /// on systems where the user has raised the double-click speed threshold via
-    /// Accessibility settings (Control Panel → Ease of Access → Mouse, or the
-    /// standard Mouse Properties → Double-click speed slider).  When the inter-click
-    /// delay falls below the system threshold, Windows does not coalesce the two
-    /// <c>WM_LBUTTONDOWN</c>/<c>WM_LBUTTONUP</c> pairs into a
-    /// <c>WM_LBUTTONDBLCLK</c>, so WPF's <c>MouseDoubleClick</c> event is never
-    /// raised.  CI runners use the default (fastest) double-click speed, which
-    /// passes; a developer machine with a non-default slider does not.
-    /// </para>
-    /// <para>
-    /// Confidence: medium.  The fix would be to set
-    /// <c>FlaUI.Core.Input.Mouse.MouseEventDelay</c> to respect
-    /// <c>SystemInformation.DoubleClickTime</c> before issuing the double-click,
-    /// but this requires FlaUI internal state mutation that has not been validated
-    /// against the CI happy path.  Deferring until a local repro is available.
-    /// </para>
-    /// </remarks>
+    /// <remarks>Requires RealInputMode; uses FlaUI's Mouse.DoubleClick which respects the system DoubleClickTime.</remarks>
     [Fact]
     public async Task DoubleClick_TriggersHandler()
     {
