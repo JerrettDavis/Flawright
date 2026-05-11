@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.42] - 2026-05-11
+
 ### Added
 
 - Events on `IFlawrightBrowser` for transparency into Flawright's automatic behaviors:
@@ -62,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TagParser redundant guard removed; `FlawrightLocator` selector interpolation made explicit (`182adc1`).
 - `dotnet format` cleanup: line endings and naming convention fixes across the codebase (`b3b5068`).
 
+[unreleased]: https://github.com/JerrettDavis/Flawright/compare/v0.5.42...HEAD
+[0.5.42]: https://github.com/JerrettDavis/Flawright/compare/v0.5.17...v0.5.42
 [0.5.17]: https://github.com/JerrettDavis/Flawright/compare/v0.5.1...v0.5.17
 [0.5.1]: https://github.com/JerrettDavis/Flawright/compare/v0.4.33...v0.5.1
 
