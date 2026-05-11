@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Events on `IFlawrightBrowser` for transparency into Flawright's automatic behaviors:
+  `AppExecutionAliasResolved` (stub→AUMID redirect),
+  `ApplicationLaunched` (process info after launch/attach),
+  `ProcessReadyGuardWaited` (kernel module-table wait diagnostics),
+  `ProcessAttachRetried` (Win32 299 retry),
+  `ApplicationClosing` / `ApplicationClosed` (close lifecycle),
+  `WindowDetected` (opt-in via `FlawrightOptions.EnableWindowEvents`).
+  Events are sync; handler exceptions are swallowed. See `IFlawrightBrowserEvents`.
+
 ## [0.5.17] - 2026-05-11
 
 ### Fixed
