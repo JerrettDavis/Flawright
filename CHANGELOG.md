@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `SelectOptionAsync(SelectOptionValue)` index path: `TrySelectItem` was incorrectly called on the resolved child item rather than on the container element, so the child-search always came up empty and threw `InvalidOperationException`. Fix: call `backend.TrySelectItem(target.Name)` so the container's `SelectionPattern` selects the Nth child.
 - Double-click input now uses FlaUI's `Mouse.DoubleClick()` which respects the system `DoubleClickTime` — previously two separate `Mouse.Click()` calls could fall outside the double-click window on machines with a raised double-click speed setting.
 
 ### Changed

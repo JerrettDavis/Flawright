@@ -392,7 +392,7 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                     $"Index {value.Index.Value} is out of range. The container has {children.Count} items.");
 
             var target = children[value.Index.Value];
-            if (!target.TrySelectItem(target.Name ?? target.AutomationId ?? string.Empty))
+            if (!backend.TrySelectItem(target.Name ?? target.AutomationId ?? string.Empty))
                 throw new InvalidOperationException(
                     $"Could not select item at index {value.Index.Value}.");
         }
