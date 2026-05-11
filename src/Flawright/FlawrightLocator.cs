@@ -1154,6 +1154,7 @@ file sealed class PointElementBackend : IElementBackend
     public string? Name => _inner.Name;
     public string? ClassName => _inner.ClassName;
     public string ControlTypeName => _inner.ControlTypeName;
+    public string? FrameworkId => _inner.FrameworkId;
     public bool IsEnabled => _inner.IsEnabled;
     public bool IsOffscreen => _inner.IsOffscreen;
     public bool HasKeyboardFocus => _inner.HasKeyboardFocus;

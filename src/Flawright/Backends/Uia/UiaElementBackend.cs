@@ -41,6 +41,31 @@ internal sealed class UiaElementBackend : IElementBackend
     /// <inheritdoc/>
     public string ControlTypeName => _element.ControlType.ToString();
 
+    /// <inheritdoc/>
+    public string? FrameworkId
+    {
+        get
+        {
+#pragma warning disable CA1031 // Return null if property read fails
+            try
+            {
+                // Use reflection to access the FrameworkId property which may not be exposed directly
+                var frameworkIdProperty = typeof(AutomationElement).GetProperty("FrameworkId", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+                if (frameworkIdProperty is not null && frameworkIdProperty.CanRead)
+                {
+                    return (string?)frameworkIdProperty.GetValue(_element);
+                }
+
+                return null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+#pragma warning restore CA1031
+        }
+    }
+
     // ── State ─────────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>

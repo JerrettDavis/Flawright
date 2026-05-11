@@ -140,6 +140,9 @@ internal sealed class FakeElementBackend : IElementBackend
     /// <inheritdoc/>
     public string ControlTypeName { get; set; }
 
+    /// <inheritdoc/>
+    public string? FrameworkId { get; set; }
+
     // ── IElementBackend: State ────────────────────────────────────────────────
 
     /// <inheritdoc/>

@@ -26,6 +26,9 @@ public interface IElementBackend
     /// <summary>Gets the string name of the UIA ControlType (e.g. "Button", "Edit").</summary>
     string ControlTypeName { get; }
 
+    /// <summary>Gets the FrameworkId of the element (e.g. "WPF", "Win32"), or <see langword="null"/> if unavailable.</summary>
+    string? FrameworkId { get; }
+
     // ── State ─────────────────────────────────────────────────────────────────
 
     /// <summary>Gets whether the element is currently enabled.</summary>

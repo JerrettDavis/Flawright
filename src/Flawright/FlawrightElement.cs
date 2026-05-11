@@ -30,6 +30,7 @@ file sealed class SinglePointBackend : IElementBackend
     public string? Name => _inner.Name;
     public string? ClassName => _inner.ClassName;
     public string ControlTypeName => _inner.ControlTypeName;
+    public string? FrameworkId => _inner.FrameworkId;
     public bool IsEnabled => _inner.IsEnabled;
     public bool IsOffscreen => _inner.IsOffscreen;
     public bool HasKeyboardFocus => _inner.HasKeyboardFocus;
@@ -234,6 +235,7 @@ internal sealed class FlawrightElement : IFlawrightElement
     /// <inheritdoc/>
     public Task<string?> GetAttributeAsync(string name, CancellationToken ct = default)
     {
+#pragma warning disable CA1308 // Boolean states returned as lowercase strings per spec
         var result = (name?.ToUpperInvariant() ?? string.Empty) switch
         {
             "ID" or "AUTOMATIONID" or "DATA-TESTID"
@@ -254,8 +256,24 @@ internal sealed class FlawrightElement : IFlawrightElement
             "ENABLED"
                 => _backend.IsEnabled ? "true" : "false",
 
+            "OFFSCREEN" or "ISOFFSCREEN"
+                => _backend.IsOffscreen ? "true" : "false",
+
+            "SELECTED" or "ISSELECTED"
+                => _backend.GetSelectionState()?.ToString().ToLowerInvariant(),
+
+            "CHECKED" or "ISCHECKED"
+                => _backend.GetToggleState()?.ToString().ToLowerInvariant(),
+
+            "TOGGLESTATE"
+                => _backend.GetToggleState()?.ToString().ToLowerInvariant(),
+
+            "FRAMEWORKID" or "FRAMEWORK-ID"
+                => _backend.FrameworkId,
+
             _ => null
         };
+#pragma warning restore CA1308
 
         return Task.FromResult(result);
     }
