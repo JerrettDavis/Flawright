@@ -1,8 +1,28 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
 
 namespace Flawright.E2ETests.TestApp;
+
+/// <summary>
+/// Simple data record used to populate the <c>lvData</c> ListView and
+/// <c>grdData</c> DataGrid controls.
+/// </summary>
+public sealed class DataItem
+{
+    /// <summary>Gets or sets the item name.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets a numeric value (as a string for display).</summary>
+    public string Value { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets a status label.</summary>
+    public string Status { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the numeric identifier.</summary>
+    public int Id { get; set; }
+}
 
 /// <summary>
 /// Deterministic WPF test target for Flawright E2E tests.
@@ -27,6 +47,29 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Loaded += MainWindow_Loaded;
+    }
+
+    // ── Wave A additional controls initialisation ──────────────────────────────
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Populate lsbScrollable with 50 items.
+        for (var i = 0; i < 50; i++)
+            lsbScrollable.Items.Add($"Item {i}");
+
+        // Shared data for ListView and DataGrid.
+        var items = new ObservableCollection<DataItem>
+        {
+            new() { Id = 1, Name = "Alpha",   Value = "10", Status = "Active"   },
+            new() { Id = 2, Name = "Beta",    Value = "20", Status = "Inactive" },
+            new() { Id = 3, Name = "Gamma",   Value = "30", Status = "Active"   },
+            new() { Id = 4, Name = "Delta",   Value = "40", Status = "Pending"  },
+            new() { Id = 5, Name = "Epsilon", Value = "50", Status = "Active"   },
+        };
+
+        lvData.ItemsSource = items;
+        grdData.ItemsSource = items;
     }
 
     // ── btnClick ──────────────────────────────────────────────────────────────

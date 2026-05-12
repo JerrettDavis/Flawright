@@ -134,6 +134,9 @@ public interface IFlawrightPage : IAsyncDisposable
     /// <summary>Clicks the first element matching <paramref name="selector"/>.</summary>
     Task ClickAsync(string selector, Locator.LocatorClickOptions? options = null, CancellationToken ct = default);
 
+    /// <summary>Right-clicks the first element matching <paramref name="selector"/>.</summary>
+    Task RightClickAsync(string selector, Locator.LocatorClickOptions? options = null, CancellationToken ct = default);
+
     /// <summary>Double-clicks the first element matching <paramref name="selector"/>.</summary>
     Task DoubleClickAsync(string selector, Locator.LocatorDoubleClickOptions? options = null, CancellationToken ct = default);
 
@@ -457,6 +460,15 @@ public interface IFlawrightLocator
     /// <summary>Clicks the first matching element (auto-waited).</summary>
     Task ClickAsync(Locator.LocatorClickOptions? options = null, CancellationToken ct = default);
 
+    /// <summary>Right-clicks the first matching element (auto-waited).</summary>
+    /// <remarks>
+    /// In virtual input mode this always throws
+    /// <see cref="System.NotSupportedException"/> because UIA <c>InvokePattern</c>
+    /// has no concept of which mouse button triggered the action.
+    /// Use real input mode (the default) for right-click + context-menu scenarios.
+    /// </remarks>
+    Task RightClickAsync(Locator.LocatorClickOptions? options = null, CancellationToken ct = default);
+
     /// <summary>Double-clicks the first matching element (auto-waited).</summary>
     Task DoubleClickAsync(Locator.LocatorDoubleClickOptions? options = null, CancellationToken ct = default);
 
@@ -590,6 +602,30 @@ public interface IFlawrightLocator
 
     /// <summary>Returns the bounding box of the first matching element (auto-waited), or <see langword="null"/>.</summary>
     Task<Locator.BoundingBox?> BoundingBoxAsync(CancellationToken ct = default);
+
+    // ── Range value (Slider / Spinner) ────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the current numeric value of a range control (e.g. WPF <c>Slider</c> or
+    /// <c>NumericUpDown</c>) via <c>RangeValuePattern</c> (auto-waited).
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The current value.</returns>
+    /// <exception cref="System.NotSupportedException">
+    /// Thrown when the element does not support <c>RangeValuePattern</c>.
+    /// </exception>
+    Task<double> GetValueAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Sets the numeric value of a range control (e.g. WPF <c>Slider</c> or
+    /// <c>NumericUpDown</c>) via <c>RangeValuePattern</c> (auto-waited).
+    /// </summary>
+    /// <param name="value">The value to set.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="System.NotSupportedException">
+    /// Thrown when the element does not support <c>RangeValuePattern</c>.
+    /// </exception>
+    Task SetValueAsync(double value, CancellationToken ct = default);
 
     // ── Wait for state ────────────────────────────────────────────────────────
 

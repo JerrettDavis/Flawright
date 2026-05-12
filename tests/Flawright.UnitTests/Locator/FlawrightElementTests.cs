@@ -951,6 +951,8 @@ public sealed class FlawrightElementTests
         public bool TrySelectItem(string nameOrId) => false;
         public bool TryInvoke() => false;
         public bool? GetExpandCollapseState() => null;
+        public bool TrySetRangeValue(double value) => false;
+        public double? TryGetRangeValue() => null;
         public string? FrameworkId => null;
         public bool HasKeyboardFocus => false;
         public nint NativeWindowHandle => IntPtr.Zero;
@@ -994,6 +996,8 @@ public sealed class FlawrightElementTests
         public bool TrySelectItem(string nameOrId) => false;
         public bool TryInvoke() => false;
         public bool? GetExpandCollapseState() => null;
+        public bool TrySetRangeValue(double value) => false;
+        public double? TryGetRangeValue() => null;
         public string? FrameworkId => null;
         public bool HasKeyboardFocus => false;
         public nint NativeWindowHandle => IntPtr.Zero;

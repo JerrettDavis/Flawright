@@ -166,6 +166,20 @@ public interface IElementBackend
     bool TrySelectItem(string nameOrId);
 
     /// <summary>
+    /// Attempts to set the element's numeric value via <c>RangeValuePattern</c>.
+    /// Used for slider, spinner, and progress-bar controls.
+    /// </summary>
+    /// <param name="value">The value to set.</param>
+    /// <returns><see langword="true"/> if the value was set; <see langword="false"/> if <c>RangeValuePattern</c> is not supported.</returns>
+    bool TrySetRangeValue(double value);
+
+    /// <summary>
+    /// Attempts to retrieve the element's current numeric value via <c>RangeValuePattern</c>.
+    /// </summary>
+    /// <returns>The current value, or <see langword="null"/> if <c>RangeValuePattern</c> is not supported.</returns>
+    double? TryGetRangeValue();
+
+    /// <summary>
     /// Attempts to invoke the element's default action via UIA patterns
     /// (<c>InvokePattern</c>, falling back to <c>LegacyIAccessiblePattern.DoDefaultAction</c>).
     /// Returns <see langword="true"/> if a pattern was found and the invocation succeeded;

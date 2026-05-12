@@ -124,6 +124,36 @@ internal sealed class UiaElementBackend : IElementBackend
     // ── Pattern operations ────────────────────────────────────────────────────
 
     /// <inheritdoc/>
+    public bool TrySetRangeValue(double value)
+    {
+        var rvp = _element.Patterns.RangeValue;
+        if (!rvp.IsSupported)
+            return false;
+
+        rvp.Pattern.SetValue(value);
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public double? TryGetRangeValue()
+    {
+        var rvp = _element.Patterns.RangeValue;
+        if (!rvp.IsSupported)
+            return null;
+
+#pragma warning disable CA1031 // Return null if pattern read fails
+        try
+        {
+            return rvp.Pattern.Value.Value;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+#pragma warning restore CA1031
+    }
+
+    /// <inheritdoc/>
     public bool TryInvoke()
     {
         var ip = _element.Patterns.Invoke;

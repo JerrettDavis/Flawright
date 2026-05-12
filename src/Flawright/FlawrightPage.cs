@@ -258,6 +258,10 @@ internal sealed class FlawrightPage : IFlawrightPage
         => await Locator(selector).ClickAsync(options, ct).ConfigureAwait(false);
 
     /// <inheritdoc/>
+    public async Task RightClickAsync(string selector, LocatorClickOptions? options = null, CancellationToken ct = default)
+        => await Locator(selector).RightClickAsync(options, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
     public async Task DoubleClickAsync(string selector, LocatorDoubleClickOptions? options = null, CancellationToken ct = default)
         => await Locator(selector).DoubleClickAsync(options, ct).ConfigureAwait(false);
 

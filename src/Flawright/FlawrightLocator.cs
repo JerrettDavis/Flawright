@@ -347,6 +347,16 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     }
 
     /// <inheritdoc/>
+    public async Task RightClickAsync(LocatorClickOptions? options = null, CancellationToken ct = default)
+    {
+        // Merge caller options with Right button override.
+        var effectiveOptions = (options ?? new LocatorClickOptions()) with { Button = MouseButton.Right };
+        var backend = await ResolveSingleAsync(effectiveOptions.Timeout, ct).ConfigureAwait(false);
+        var el = new FlawrightElement(backend, _ctx.Input, _ctx.InputMode);
+        await el.ClickAsync(effectiveOptions, ct).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
     public async Task DoubleClickAsync(LocatorDoubleClickOptions? options = null, CancellationToken ct = default)
     {
         var backend = await ResolveSingleAsync(options?.Timeout, ct).ConfigureAwait(false);
@@ -533,6 +543,30 @@ internal sealed class FlawrightLocator : IFlawrightLocator
     {
         // Wave C stub: Wave D will implement visual element highlighting.
         return Task.CompletedTask;
+    }
+
+    // ── IFlawrightLocator: Range value ────────────────────────────────────────
+
+    /// <inheritdoc/>
+    public async Task<double> GetValueAsync(CancellationToken ct = default)
+    {
+        var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
+        var value = backend.TryGetRangeValue();
+        if (value == null)
+            throw new NotSupportedException(
+                $"Element '{_ctx.Selector}' does not support RangeValuePattern. " +
+                "Ensure the target is a Slider, Spinner, or other range control.");
+        return value.Value;
+    }
+
+    /// <inheritdoc/>
+    public async Task SetValueAsync(double value, CancellationToken ct = default)
+    {
+        var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
+        if (!backend.TrySetRangeValue(value))
+            throw new NotSupportedException(
+                $"Element '{_ctx.Selector}' does not support RangeValuePattern. " +
+                "Ensure the target is a Slider, Spinner, or other range control.");
     }
 
     // ── IFlawrightLocator: Read methods ───────────────────────────────────────
@@ -1176,6 +1210,8 @@ file sealed class PointElementBackend : IElementBackend
     public bool TryExpand() => _inner.TryExpand();
     public bool? GetExpandCollapseState() => _inner.GetExpandCollapseState();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
+    public bool TrySetRangeValue(double value) => _inner.TrySetRangeValue(value);
+    public double? TryGetRangeValue() => _inner.TryGetRangeValue();
     public nint NativeWindowHandle => _inner.NativeWindowHandle;
     public IReadOnlyList<IElementBackend> GetModalWindows() => _inner.GetModalWindows();
     public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);

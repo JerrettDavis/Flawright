@@ -16,6 +16,7 @@ internal sealed class FakeElementBackend : IElementBackend
     private string? _value;
     private bool? _toggleState;    // null = no toggle pattern; false = off; true = on
     private bool? _selectionState; // null = no SelectionItemPattern
+    private double? _rangeValue;   // null = no RangeValuePattern
 
     // ── Construction ──────────────────────────────────────────────────────────
 
@@ -35,6 +36,8 @@ internal sealed class FakeElementBackend : IElementBackend
     /// <param name="initialToggleState">Initial toggle state (<see langword="true"/> = on, <see langword="false"/> = off).</param>
     /// <param name="supportsSelection">Whether the element supports SelectionItemPattern.</param>
     /// <param name="initialSelectionState">Initial selection state (<see langword="true"/> = selected, <see langword="false"/> = not selected).</param>
+    /// <param name="supportsRangeValue">Whether the element supports RangeValuePattern.</param>
+    /// <param name="initialRangeValue">Initial range value. Only used when <paramref name="supportsRangeValue"/> is <see langword="true"/>.</param>
     public FakeElementBackend(
         string? name = null,
         string? automationId = null,
@@ -48,7 +51,9 @@ internal sealed class FakeElementBackend : IElementBackend
         bool supportsToggle = false,
         bool initialToggleState = false,
         bool supportsSelection = false,
-        bool initialSelectionState = false)
+        bool initialSelectionState = false,
+        bool supportsRangeValue = false,
+        double initialRangeValue = 0.0)
     {
         Name = name;
         AutomationId = automationId;
@@ -61,6 +66,7 @@ internal sealed class FakeElementBackend : IElementBackend
         _value = initialValue;
         _toggleState = supportsToggle ? initialToggleState : null;
         _selectionState = supportsSelection ? initialSelectionState : null;
+        _rangeValue = supportsRangeValue ? initialRangeValue : null;
     }
 
     // ── Interaction recording ─────────────────────────────────────────────────
@@ -240,6 +246,22 @@ internal sealed class FakeElementBackend : IElementBackend
         // Fallback: ValuePattern (editable combo).
         return _value;
     }
+
+    /// <inheritdoc/>
+    public bool TrySetRangeValue(double value)
+    {
+        if (_rangeValue == null)
+            return false;
+        _rangeValue = value;
+        LastRangeValueSet = value;
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public double? TryGetRangeValue() => _rangeValue;
+
+    /// <summary>The last value passed to <see cref="TrySetRangeValue"/>, or <see langword="null"/> if never called.</summary>
+    public double? LastRangeValueSet { get; private set; }
 
     /// <inheritdoc/>
     public bool TryScrollIntoView()

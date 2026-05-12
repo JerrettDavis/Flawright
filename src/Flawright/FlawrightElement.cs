@@ -52,6 +52,8 @@ file sealed class SinglePointBackend : IElementBackend
     public bool TryExpand() => _inner.TryExpand();
     public bool? GetExpandCollapseState() => _inner.GetExpandCollapseState();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
+    public bool TrySetRangeValue(double value) => _inner.TrySetRangeValue(value);
+    public double? TryGetRangeValue() => _inner.TryGetRangeValue();
     public nint NativeWindowHandle => _inner.NativeWindowHandle;
     public IReadOnlyList<IElementBackend> GetModalWindows() => _inner.GetModalWindows();
     public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);

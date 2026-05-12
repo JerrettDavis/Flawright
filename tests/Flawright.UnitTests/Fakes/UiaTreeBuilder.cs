@@ -31,6 +31,9 @@ internal sealed class UiaTreeBuilder
 
     private UiaTreeBuilder() { }
 
+    private bool _supportsRangeValue;
+    private double _initialRangeValue;
+
     // ── Factory shortcuts ─────────────────────────────────────────────────────
 
     /// <summary>Creates a builder for a Window element.</summary>
@@ -105,6 +108,14 @@ internal sealed class UiaTreeBuilder
         return this;
     }
 
+    /// <summary>Enables RangeValuePattern support and sets the initial value.</summary>
+    public UiaTreeBuilder WithRangeValue(double initialValue = 0.0)
+    {
+        _supportsRangeValue = true;
+        _initialRangeValue = initialValue;
+        return this;
+    }
+
     /// <summary>Adds a child element to the tree.</summary>
     public UiaTreeBuilder WithChild(UiaTreeBuilder childBuilder)
     {
@@ -133,7 +144,9 @@ internal sealed class UiaTreeBuilder
             supportsToggle: _supportsToggle,
             initialToggleState: _initialToggleState,
             supportsSelection: _supportsSelection,
-            initialSelectionState: _initialSelectionState);
+            initialSelectionState: _initialSelectionState,
+            supportsRangeValue: _supportsRangeValue,
+            initialRangeValue: _initialRangeValue);
     }
 }
 

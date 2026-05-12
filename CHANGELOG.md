@@ -7,18 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `RightClickAsync` on `IFlawrightLocator` and `IFlawrightPage` (RealInputMode; throws `NotSupportedException` in VirtualInputMode because UIA InvokePattern has no right-button concept)
+- `GetValueAsync` / `SetValueAsync` on `IFlawrightLocator` for RangeValuePattern controls (Slider, Spinner)
+- `ToBeFocusedAsync` now functional (was previously a stub) — wired via UIA `HasKeyboardFocus` property on the element backend
+
 ### Validated
-- Cross-framework window-type coverage: WPF modal/modeless/tool/nested-dialog,
-  WinForms modal/modeless, Win32 MessageBox, comdlg32 OpenFileDialog — all
-  appear in GetOwnedWindowsAsync and resolve via WaitForDialogAsync.
-- Known limitations: WinUI/UWP ContentDialog and Popup (no HWND, UIA-only —
-  out of scope for HWND-based enumeration), MDI children (embedded in parent
-  client area — no independent top-level HWND).
-- Note: `Microsoft.Win32.OpenFileDialog` on Windows 11 / Server 2025 routes
-  through a new out-of-process XAML picker host (PickerHost.exe) and does not
-  appear in `GetOwnedWindowsAsync`. Use `System.Windows.Forms.OpenFileDialog`
-  instead — it uses the legacy in-process comdlg32 path and is reliably visible
-  to HWND-based enumeration.
+- Comprehensive E2E coverage matrix (Wave B gap-closure): all six `GetBy*` factory methods, Slider/RangeValue get and set, ListView row selection, TreeView expand and child selection, multi-line TextBox newline fill, editable ComboBox custom text entry, PasswordBox documented limitation, RightClick + ContextMenu (RealInputMode), RightClick VirtualInputMode throws NotSupportedException, `Mouse.WheelAsync` scroll over ListBox, `Keyboard.DownAsync`/`UpAsync` chord (Shift+A), `Keyboard.InsertTextAsync`, `IFlawrightLocator.PressSequentiallyAsync`, RealInputMode `TypeAsync` per-keystroke, attribute-syntax selectors (`[name=]`, `[name^=]`, `[name*=]`) against UIA backend, TabControl navigation, `GetByRole` resolves TabItem, focus assertion `ToBeFocusedAsync` and `Not.ToBeFocusedAsync`.
+- Cross-framework window-type coverage: WPF modal/modeless/tool/nested-dialog, WinForms modal/modeless, Win32 MessageBox, comdlg32 OpenFileDialog — all appear in GetOwnedWindowsAsync and resolve via WaitForDialogAsync.
+
+### Known limitations
+- WinUI 3 ContentDialog, NavigationView items, and InfoBar do not map to stable UIA elements — a separate WinUI 3 sample app is required for full coverage (out of scope for v0.5.x).
+- WinForms MDI children are embedded in the MDI client area without an independent top-level HWND.
+- WebView2 and Electron/CEF content runs in Chromium and is opaque to UIA.
+- Direct3D / WebGL canvas contents are not enumerable via UIA.
+- `Microsoft.Win32.OpenFileDialog` on Windows 11 / Server 2025 routes through an out-of-process PickerHost; use `System.Windows.Forms.OpenFileDialog` instead (in-process comdlg32 path).
+- PasswordBox UIA value reads are blocked by Windows security policy; `FillAsync` may write successfully but `InputValueAsync` returns empty or throws `InvalidOperationException`.
 
 ### Added
 - Owned-window support: new `IFlawrightPage` methods `GetOwnedWindowsAsync`, `GetModalWindowsAsync`, `WaitForDialogAsync` for working with dialogs and modal popups

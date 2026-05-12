@@ -240,5 +240,202 @@
                 Height="32"
                 Click="BtnExit_Click" />
 
+        <!-- ── Wave A additional controls ────────────────────────────────────── -->
+        <TabControl x:Name="tabAdditionalControls"
+                    AutomationProperties.AutomationId="tabAdditionalControls"
+                    AutomationProperties.Name="Additional Controls"
+                    Margin="0,8,0,0"
+                    Height="320">
+
+            <!-- Tab: Inputs -->
+            <TabItem Header="Inputs"
+                     AutomationProperties.AutomationId="tabInputs"
+                     AutomationProperties.Name="Inputs">
+                <StackPanel Margin="8">
+
+                    <!-- Multi-line TextBox -->
+                    <TextBox x:Name="txtMultiline"
+                             AutomationProperties.AutomationId="txtMultiline"
+                             AutomationProperties.Name="txtMultiline"
+                             AcceptsReturn="True"
+                             AcceptsTab="True"
+                             Height="60"
+                             Margin="0,0,0,4"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" />
+
+                    <!-- PasswordBox -->
+                    <PasswordBox x:Name="pwdPassword"
+                                 AutomationProperties.AutomationId="pwdPassword"
+                                 AutomationProperties.Name="pwdPassword"
+                                 Height="24"
+                                 Margin="0,0,0,4" />
+
+                    <!-- Editable ComboBox -->
+                    <ComboBox x:Name="cboEditable"
+                              AutomationProperties.AutomationId="cboEditable"
+                              AutomationProperties.Name="cboEditable"
+                              IsEditable="True"
+                              Height="24"
+                              Margin="0,0,0,4">
+                        <ComboBoxItem Content="Alpha" AutomationProperties.Name="Alpha" />
+                        <ComboBoxItem Content="Beta"  AutomationProperties.Name="Beta"  />
+                    </ComboBox>
+
+                    <!-- TextBox with placeholder (HelpText used by GetByPlaceholder) -->
+                    <TextBox x:Name="txtPlaceholderTest"
+                             AutomationProperties.AutomationId="txtPlaceholderTest"
+                             AutomationProperties.Name="txtPlaceholderTest"
+                             AutomationProperties.HelpText="Enter your name"
+                             Height="24"
+                             Margin="0,0,0,4" />
+
+                    <!-- Label + TextBox pair for GetByLabel -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Label x:Name="lblLabeledField"
+                               AutomationProperties.AutomationId="lblLabeledField"
+                               Content="Email:"
+                               Target="{Binding ElementName=txtLabeledField}"
+                               VerticalAlignment="Center"
+                               Width="60" />
+                        <TextBox x:Name="txtLabeledField"
+                                 AutomationProperties.AutomationId="txtLabeledField"
+                                 AutomationProperties.Name="txtLabeledField"
+                                 Height="24"
+                                 Width="120" />
+                    </StackPanel>
+
+                    <!-- GetByTestId target -->
+                    <TextBox AutomationProperties.AutomationId="test-id-target"
+                             AutomationProperties.Name="test-id-target"
+                             AutomationProperties.HelpText="TestId target"
+                             Height="24" />
+
+                </StackPanel>
+            </TabItem>
+
+            <!-- Tab: Selection -->
+            <TabItem Header="Selection"
+                     AutomationProperties.AutomationId="tabSelection"
+                     AutomationProperties.Name="Selection">
+                <StackPanel Margin="8">
+
+                    <!-- Slider (RangeValuePattern) -->
+                    <Slider x:Name="sliderVolume"
+                            AutomationProperties.AutomationId="sliderVolume"
+                            AutomationProperties.Name="sliderVolume"
+                            Minimum="0"
+                            Maximum="100"
+                            Value="50"
+                            Height="24"
+                            Margin="0,0,0,4" />
+
+                    <!-- Scrollable ListBox with 50 items (populated in code-behind) -->
+                    <ListBox x:Name="lsbScrollable"
+                             AutomationProperties.AutomationId="lsbScrollable"
+                             AutomationProperties.Name="lsbScrollable"
+                             Height="80"
+                             Margin="0,0,0,4" />
+
+                    <!-- ListView with columns (populated in code-behind) -->
+                    <ListView x:Name="lvData"
+                              AutomationProperties.AutomationId="lvData"
+                              AutomationProperties.Name="lvData"
+                              Height="80"
+                              Margin="0,0,0,4">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Name"   DisplayMemberBinding="{Binding Name}"   Width="80" />
+                                <GridViewColumn Header="Value"  DisplayMemberBinding="{Binding Value}"  Width="60" />
+                                <GridViewColumn Header="Status" DisplayMemberBinding="{Binding Status}" Width="70" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                    <!-- TreeView with hierarchy -->
+                    <TreeView x:Name="tvHierarchy"
+                              AutomationProperties.AutomationId="tvHierarchy"
+                              AutomationProperties.Name="tvHierarchy"
+                              Height="80"
+                              Margin="0,0,0,4">
+                        <TreeViewItem Header="Root 1" AutomationProperties.AutomationId="tvRoot1" AutomationProperties.Name="Root 1">
+                            <TreeViewItem Header="Child 1.1" AutomationProperties.AutomationId="tvChild11" AutomationProperties.Name="Child 1.1" />
+                            <TreeViewItem Header="Child 1.2" AutomationProperties.AutomationId="tvChild12" AutomationProperties.Name="Child 1.2" />
+                        </TreeViewItem>
+                        <TreeViewItem Header="Root 2" AutomationProperties.AutomationId="tvRoot2" AutomationProperties.Name="Root 2">
+                            <TreeViewItem Header="Child 2.1" AutomationProperties.AutomationId="tvChild21" AutomationProperties.Name="Child 2.1" />
+                        </TreeViewItem>
+                        <TreeViewItem Header="Root 3" AutomationProperties.AutomationId="tvRoot3" AutomationProperties.Name="Root 3" />
+                    </TreeView>
+
+                </StackPanel>
+            </TabItem>
+
+            <!-- Tab: Menu/Actions -->
+            <TabItem Header="Menu/Actions"
+                     AutomationProperties.AutomationId="tabMenuActions"
+                     AutomationProperties.Name="Menu/Actions">
+                <StackPanel Margin="8">
+
+                    <!-- DataGrid (populated in code-behind) -->
+                    <DataGrid x:Name="grdData"
+                              AutomationProperties.AutomationId="grdData"
+                              AutomationProperties.Name="grdData"
+                              Height="80"
+                              Margin="0,0,0,4"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              CanUserAddRows="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name"   Binding="{Binding Name}"   Width="70" />
+                            <DataGridTextColumn Header="Value"  Binding="{Binding Value}"  Width="60" />
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="70" />
+                            <DataGridTextColumn Header="Id"     Binding="{Binding Id}"     Width="40" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Right-click target button with context menu -->
+                    <Button x:Name="btnRightClickTarget"
+                            AutomationProperties.AutomationId="btnRightClickTarget"
+                            AutomationProperties.Name="Right-click me"
+                            Content="Right-click me"
+                            Height="32"
+                            Margin="0,0,0,4">
+                        <Button.ContextMenu>
+                            <ContextMenu AutomationProperties.AutomationId="ctxRightClick">
+                                <MenuItem x:Name="menuEdit"
+                                          Header="Edit"
+                                          AutomationProperties.AutomationId="menuEdit"
+                                          AutomationProperties.Name="Edit" />
+                                <MenuItem x:Name="menuDelete"
+                                          Header="Delete"
+                                          AutomationProperties.AutomationId="menuDelete"
+                                          AutomationProperties.Name="Delete" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+
+                    <!-- Focus test buttons -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Button x:Name="btnFocusTarget1"
+                                AutomationProperties.AutomationId="btnFocusTarget1"
+                                AutomationProperties.Name="Focus Target 1"
+                                Content="Focus 1"
+                                Height="28"
+                                Width="80"
+                                Margin="0,0,8,0" />
+                        <Button x:Name="btnFocusTarget2"
+                                AutomationProperties.AutomationId="btnFocusTarget2"
+                                AutomationProperties.Name="Focus Target 2"
+                                Content="Focus 2"
+                                Height="28"
+                                Width="80" />
+                    </StackPanel>
+
+                </StackPanel>
+            </TabItem>
+
+        </TabControl>
+
     </StackPanel>
 </Window>
