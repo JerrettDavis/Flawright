@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Validated
+- Cross-framework window-type coverage: WPF modal/modeless/tool/nested-dialog,
+  WinForms modal/modeless, Win32 MessageBox, comdlg32 OpenFileDialog — all
+  appear in GetOwnedWindowsAsync and resolve via WaitForDialogAsync.
+- Known limitations: WinUI/UWP ContentDialog and Popup (no HWND, UIA-only —
+  out of scope for HWND-based enumeration), MDI children (embedded in parent
+  client area — no independent top-level HWND).
+
 ### Added
 - Owned-window support: new `IFlawrightPage` methods `GetOwnedWindowsAsync`, `GetModalWindowsAsync`, `WaitForDialogAsync` for working with dialogs and modal popups
 - New `IFlawrightBrowserEvents.DialogOpened` event with `DialogOpenedEventArgs`

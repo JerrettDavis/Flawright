@@ -166,6 +166,72 @@
             </GroupBox>
         </GroupBox>
 
+        <!-- ── Cross-framework window-type buttons ────────────────────────────── -->
+
+        <Button x:Name="btnShowDialogNoOwner"
+                Content="Show Dialog (No Owner)"
+                AutomationProperties.AutomationId="btnShowDialogNoOwner"
+                AutomationProperties.Name="Show Dialog (No Owner)"
+                Height="32"
+                Margin="0,0,0,2"
+                Click="BtnShowDialogNoOwner_Click" />
+
+        <Button x:Name="btnShowModelessOwned"
+                Content="Show Modeless Owned"
+                AutomationProperties.AutomationId="btnShowModelessOwned"
+                AutomationProperties.Name="Show Modeless Owned"
+                Height="32"
+                Margin="0,0,0,2"
+                Click="BtnShowModelessOwned_Click" />
+
+        <Button x:Name="btnShowToolWindow"
+                Content="Show Tool Window"
+                AutomationProperties.AutomationId="btnShowToolWindow"
+                AutomationProperties.Name="Show Tool Window"
+                Height="32"
+                Margin="0,0,0,2"
+                Click="BtnShowToolWindow_Click" />
+
+        <Button x:Name="btnShowNestedDialog"
+                Content="Show Nested Dialog"
+                AutomationProperties.AutomationId="btnShowNestedDialog"
+                AutomationProperties.Name="Show Nested Dialog"
+                Height="32"
+                Margin="0,0,0,2"
+                Click="BtnShowNestedDialog_Click" />
+
+        <Button x:Name="btnShowWinFormsModal"
+                Content="Show WinForms Modal"
+                AutomationProperties.AutomationId="btnShowWinFormsModal"
+                AutomationProperties.Name="Show WinForms Modal"
+                Height="32"
+                Margin="0,0,0,2"
+                Click="BtnShowWinFormsModal_Click" />
+
+        <Button x:Name="btnShowWinFormsModeless"
+                Content="Show WinForms Modeless"
+                AutomationProperties.AutomationId="btnShowWinFormsModeless"
+                AutomationProperties.Name="Show WinForms Modeless"
+                Height="32"
+                Margin="0,0,0,2"
+                Click="BtnShowWinFormsModeless_Click" />
+
+        <Button x:Name="btnShowMessageBox"
+                Content="Show MessageBox"
+                AutomationProperties.AutomationId="btnShowMessageBox"
+                AutomationProperties.Name="Show MessageBox"
+                Height="32"
+                Margin="0,0,0,2"
+                Click="BtnShowMessageBox_Click" />
+
+        <Button x:Name="btnShowOpenFileDialog"
+                Content="Show OpenFileDialog"
+                AutomationProperties.AutomationId="btnShowOpenFileDialog"
+                AutomationProperties.Name="Show OpenFileDialog"
+                Height="32"
+                Margin="0,0,0,2"
+                Click="BtnShowOpenFileDialog_Click" />
+
         <!-- ── Exit ──────────────────────────────────────────────────────────── -->
         <Button x:Name="btnExit"
                 Content="Exit"

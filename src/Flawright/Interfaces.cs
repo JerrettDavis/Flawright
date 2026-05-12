@@ -192,6 +192,17 @@ public interface IFlawrightPage : IAsyncDisposable
     /// by title or window properties at the call site if you need stricter scoping.
     ///
     /// May fire the DialogOpened event for newly-discovered windows (deduplicated per page instance).
+    ///
+    /// Validated against: WPF Window.ShowDialog/Show, WPF ToolWindow style, WPF
+    /// nested dialogs, WinForms Form.ShowDialog/Show, Win32 MessageBox, comdlg32
+    /// common dialogs (OpenFileDialog, SaveFileDialog).
+    ///
+    /// Known limitations:
+    /// - WinUI/UWP ContentDialog and Popup are in-process visual overlays with
+    ///   no top-level HWND; they are not returned by this method. A future
+    ///   UIA-tree-walking method may surface them separately.
+    /// - MDI children are embedded in the MDI client area and have no independent
+    ///   top-level HWND; they are not returned by this method.
     /// </remarks>
     Task<IReadOnlyList<IFlawrightPage>> GetOwnedWindowsAsync(CancellationToken ct = default);
 

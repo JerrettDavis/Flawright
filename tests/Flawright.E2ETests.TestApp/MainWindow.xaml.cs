@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Input;
 
@@ -68,10 +69,142 @@ public partial class MainWindow : Window
         window.Show();
     }
 
+    // ── btnShowDialogNoOwner ──────────────────────────────────────────────────
+
+    private void BtnShowDialogNoOwner_Click(object sender, RoutedEventArgs e)
+    {
+        var d = new SaveChangesDialog();
+        d.Title = "Ownerless Dialog";
+        d.ShowDialog();
+    }
+
+    // ── btnShowModelessOwned ──────────────────────────────────────────────────
+
+    private void BtnShowModelessOwned_Click(object sender, RoutedEventArgs e)
+    {
+        var w = new Window
+        {
+            Owner = this,
+            Title = "Modeless Owned Window",
+            Width = 300,
+            Height = 120,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new System.Windows.Controls.TextBlock
+            {
+                Text = "Modeless owned window",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+            },
+        };
+        w.Show();
+    }
+
+    // ── btnShowToolWindow ─────────────────────────────────────────────────────
+
+    private void BtnShowToolWindow_Click(object sender, RoutedEventArgs e)
+    {
+        var w = new Window
+        {
+            Owner = this,
+            Title = "Tool Window",
+            WindowStyle = WindowStyle.ToolWindow,
+            Width = 280,
+            Height = 100,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new System.Windows.Controls.TextBlock
+            {
+                Text = "Tool window",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+            },
+        };
+        w.Show();
+    }
+
+    // ── btnShowNestedDialog ───────────────────────────────────────────────────
+
+    private void BtnShowNestedDialog_Click(object sender, RoutedEventArgs e)
+    {
+        var outer = new OuterDialogWindow { Owner = this };
+        outer.ShowDialog();
+    }
+
+    // ── btnShowWinFormsModal ──────────────────────────────────────────────────
+
+#pragma warning disable CA1303 // WinForms Text properties are UI labels; localisation not required for test fixtures
+    private void BtnShowWinFormsModal_Click(object sender, RoutedEventArgs e)
+    {
+        var form = new System.Windows.Forms.Form
+        {
+            Text = "WinForms Modal",
+            Width = 300,
+            Height = 150,
+        };
+        var btn = new System.Windows.Forms.Button
+        {
+            Text = "Close",
+            Dock = System.Windows.Forms.DockStyle.Bottom,
+        };
+        btn.Click += (_, _) => form.Close();
+        form.Controls.Add(btn);
+        form.ShowDialog(new Win32WindowAdapter(this));
+    }
+#pragma warning restore CA1303
+
+    // ── btnShowWinFormsModeless ───────────────────────────────────────────────
+
+#pragma warning disable CA1303 // WinForms Text properties are UI labels; localisation not required for test fixtures
+    private void BtnShowWinFormsModeless_Click(object sender, RoutedEventArgs e)
+    {
+        var form = new System.Windows.Forms.Form
+        {
+            Text = "WinForms Modeless",
+            Width = 300,
+            Height = 150,
+        };
+        var btn = new System.Windows.Forms.Button
+        {
+            Text = "Close",
+            Dock = System.Windows.Forms.DockStyle.Bottom,
+        };
+        btn.Click += (_, _) => form.Close();
+        form.Controls.Add(btn);
+        form.Show();
+    }
+#pragma warning restore CA1303
+
+    // ── btnShowMessageBox ─────────────────────────────────────────────────────
+
+    private void BtnShowMessageBox_Click(object sender, RoutedEventArgs e)
+    {
+        System.Windows.MessageBox.Show("Test message", "Test MessageBox", MessageBoxButton.OKCancel);
+    }
+
+    // ── btnShowOpenFileDialog ─────────────────────────────────────────────────
+
+    private void BtnShowOpenFileDialog_Click(object sender, RoutedEventArgs e)
+    {
+        new Microsoft.Win32.OpenFileDialog { Title = "Pick a file" }.ShowDialog();
+    }
+
     // ── btnExit ───────────────────────────────────────────────────────────────
 
     private void BtnExit_Click(object sender, RoutedEventArgs e)
     {
-        Application.Current.Shutdown();
+        System.Windows.Application.Current.Shutdown();
     }
+}
+
+/// <summary>
+/// Adapts a WPF <see cref="Window"/> as a <see cref="System.Windows.Forms.IWin32Window"/>
+/// owner handle for WinForms dialogs shown from a WPF app.
+/// </summary>
+internal sealed class Win32WindowAdapter : System.Windows.Forms.IWin32Window
+{
+    /// <inheritdoc/>
+    public IntPtr Handle { get; }
+
+    /// <summary>Initialises the adapter from a WPF owner window.</summary>
+    public Win32WindowAdapter(Window owner)
+        => Handle = new System.Windows.Interop.WindowInteropHelper(owner).Handle;
 }

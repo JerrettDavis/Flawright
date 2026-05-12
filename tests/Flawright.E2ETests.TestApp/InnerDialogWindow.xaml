@@ -1,0 +1,23 @@
+<Window x:Class="Flawright.E2ETests.TestApp.InnerDialogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Inner Dialog"
+        AutomationProperties.AutomationId="InnerDialogWindow"
+        AutomationProperties.Name="Inner Dialog"
+        Width="260"
+        Height="120"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <StackPanel Margin="16" VerticalAlignment="Center">
+        <TextBlock Text="This is the inner dialog." Margin="0,0,0,12" />
+
+        <Button x:Name="btnCloseInner"
+                Content="Close"
+                AutomationProperties.AutomationId="btnCloseInner"
+                AutomationProperties.Name="Close"
+                Height="28"
+                Click="BtnCloseInner_Click" />
+    </StackPanel>
+</Window>
