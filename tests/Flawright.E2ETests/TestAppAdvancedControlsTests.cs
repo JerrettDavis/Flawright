@@ -89,6 +89,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
+        await page.BringToFrontAsync();
+
         // Activate Selection tab.
         await page.Locator("#tabSelection").ClickAsync();
 
@@ -121,6 +123,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
+        await page.BringToFrontAsync();
+
         // Activate Selection tab.
         await page.Locator("#tabSelection").ClickAsync();
 
@@ -146,6 +150,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     public async Task TreeView_SelectChild_ChangesSelection()
     {
         var page = await _fw!.Browser.NewPageAsync();
+
+        await page.BringToFrontAsync();
 
         // Activate Selection tab.
         await page.Locator("#tabSelection").ClickAsync();

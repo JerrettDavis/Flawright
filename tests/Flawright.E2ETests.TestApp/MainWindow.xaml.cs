@@ -22,6 +22,9 @@ public sealed class DataItem
 
     /// <summary>Gets or sets the numeric identifier.</summary>
     public int Id { get; set; }
+
+    /// <inheritdoc/>
+    public override string ToString() => Name;
 }
 
 /// <summary>

@@ -65,6 +65,8 @@ public sealed class TestAppRightClickContextMenuTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
+        await page.BringToFrontAsync();
+
         // Activate Menu/Actions tab.
         await page.Locator("#tabMenuActions").ClickAsync();
 
@@ -96,6 +98,8 @@ public sealed class TestAppRightClickContextMenuTests : IAsyncLifetime
     public async Task RightClickThenClickMenuItem_DismissesMenu()
     {
         var page = await _fw!.Browser.NewPageAsync();
+
+        await page.BringToFrontAsync();
 
         // Activate Menu/Actions tab.
         await page.Locator("#tabMenuActions").ClickAsync();
@@ -162,6 +166,8 @@ public sealed class TestAppRightClickVirtualModeTests : IAsyncLifetime
     public async Task RightClickAsync_VirtualInputMode_ThrowsNotSupported()
     {
         var page = await _fw!.Browser.NewPageAsync();
+
+        await page.BringToFrontAsync();
 
         // Activate Menu/Actions tab.
         await page.Locator("#tabMenuActions").ClickAsync();

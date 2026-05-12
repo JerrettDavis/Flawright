@@ -63,7 +63,9 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         // We represent this by wrapping in a new context with the inner pipeline and
         // restricting the root search to the parent locator's results.
         // The combined selector string reflects both levels.
-        var combinedSelector = $"{_ctx.Selector} >> {selector}";
+        var combinedSelector = string.IsNullOrEmpty(_ctx.Selector)
+            ? selector
+            : $"{_ctx.Selector} >> {selector}";
 
         // Build a composite pipeline: the outer steps + inner steps.
         var combinedSteps = _ctx.Pipeline.Steps.Concat(innerPipeline.Steps).ToList().AsReadOnly();
@@ -1106,7 +1108,9 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         // Parse the new selector and append to this locator's pipeline.
         var ast = SelectorParser.Parse(selector);
         var innerPipeline = _ctx.Translator.Translate(ast);
-        var combinedSelector = $"{_ctx.Selector} >> {selector}";
+        var combinedSelector = string.IsNullOrEmpty(_ctx.Selector)
+            ? selector
+            : $"{_ctx.Selector} >> {selector}";
         var combinedSteps = _ctx.Pipeline.Steps.Concat(innerPipeline.Steps).ToList().AsReadOnly();
         var combinedPipeline = new SelectorPipeline(combinedSteps);
 
