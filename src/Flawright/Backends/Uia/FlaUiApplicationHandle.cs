@@ -160,12 +160,10 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
             try
             {
                 var hwnd = w.NativeWindowHandle;
-                if (hwnd == IntPtr.Zero)
+                if (hwnd == IntPtr.Zero || hwnd == ownerWindowHandle)
                     continue;
 
-                // GW_OWNER = 4: returns the owner HWND of the given window.
-                var ownerHwnd = GetWindow(hwnd, 4u);
-                if (ownerHwnd == ownerWindowHandle)
+                if (IsOwnedBy(hwnd, ownerWindowHandle))
                     result.Add(w);
             }
             catch (Exception)
@@ -176,6 +174,40 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
         }
 
         return result.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if <paramref name="hwnd"/> is considered owned
+    /// by <paramref name="ownerWindowHandle"/> using a hybrid strategy:
+    /// <list type="number">
+    ///   <item>Strict Win32 owner — <c>GetWindow(GW_OWNER) == ownerWindowHandle</c>.</item>
+    ///   <item>Root-owner chain — <c>GetAncestor(GA_ROOTOWNER) == ownerWindowHandle</c>.</item>
+    ///   <item>WPF/WinUI fallback — no Win32 owner, but has popup or dialog frame style
+    ///         (catches windows whose framework does not set GWL_HWNDPARENT).</item>
+    /// </list>
+    /// </summary>
+    private static bool IsOwnedBy(nint hwnd, nint ownerWindowHandle)
+    {
+        // Bucket 1: strict Win32 GW_OWNER check.
+        var directOwner = GetWindow(hwnd, GW_OWNER);
+        if (directOwner == ownerWindowHandle)
+            return true;
+
+        // Bucket 2: walk the full owner chain to the root.
+        var rootOwner = GetAncestor(hwnd, GA_ROOTOWNER);
+        if (rootOwner == ownerWindowHandle)
+            return true;
+
+        // Bucket 3: WPF / WinUI dialogs that appear as top-level windows with no
+        // explicit Win32 owner but have a popup or dialog-frame window style.
+        if (directOwner == IntPtr.Zero)
+        {
+            var style = (uint)GetWindowLongPtr(hwnd, GWL_STYLE);
+            if ((style & WS_POPUP) != 0 || (style & WS_DLGFRAME) != 0)
+                return true;
+        }
+
+        return false;
     }
 
     /// <inheritdoc/>
@@ -323,11 +355,38 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
 
     // ── Win32 P/Invoke ────────────────────────────────────────────────────────
 
+    private const uint GW_OWNER = 4u;
+    private const uint GA_ROOTOWNER = 3u;
+    private const int  GWL_STYLE   = -16;
+    private const uint WS_POPUP    = 0x80000000u;
+    private const uint WS_DLGFRAME = 0x00400000u;
+
     /// <summary>
     /// Retrieves a handle to a window that has the specified relationship to the
-    /// given window.  GW_OWNER = 4 returns the owner of the window.
+    /// given window.  <c>GW_OWNER = 4</c> returns the Win32 owner of the window.
     /// </summary>
     [DllImport("user32.dll", SetLastError = false)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     private static extern nint GetWindow(nint hWnd, uint uCmd);
+
+    /// <summary>
+    /// Retrieves the handle to the ancestor of the specified window.
+    /// <c>GA_ROOTOWNER = 3</c> returns the root owner window by walking both the
+    /// parent and owner chains.
+    /// </summary>
+    [DllImport("user32.dll", SetLastError = false)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern nint GetAncestor(nint hwnd, uint gaFlags);
+
+    /// <summary>
+    /// Retrieves information about the specified window.  On 64-bit processes this
+    /// call is routed through the <c>GetWindowLongPtr</c> export; on 32-bit it falls
+    /// back to <c>GetWindowLong</c> automatically via the OS thunk.
+    /// <para>
+    /// <c>GWL_STYLE = -16</c> returns the window styles bit-mask.
+    /// </para>
+    /// </summary>
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = false)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern nint GetWindowLongPtr(nint hWnd, int nIndex);
 }

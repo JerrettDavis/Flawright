@@ -176,13 +176,21 @@ public interface IFlawrightPage : IAsyncDisposable
 
     /// <summary>
     /// Returns pages for all top-level windows in this process owned by this
-    /// page's window (Win32 owner relationship via <c>GetWindow(GW_OWNER)</c>).
+    /// page's window.
     /// Use this to discover dialogs, popups, and floating tool windows.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     /// <remarks>
-    /// This method may raise the <see cref="IFlawrightBrowserEvents.DialogOpened"/> event
-    /// for each newly-discovered window (once per unique dialog handle per page instance).
+    /// Detection uses a hybrid strategy. A window is considered owned if any of the following hold:
+    /// - Its Win32 owner (GW_OWNER) is this page's window (catches classic Win32 dialogs, common dialogs).
+    /// - Its root-owner chain (GA_ROOTOWNER) leads to this page's window (catches nested dialogs).
+    /// - It has no Win32 owner but is a popup or dialog-styled top-level window in the same process
+    ///   (catches WPF Window.ShowDialog, WinForms modal dialogs, and WinUI/UWP dialogs whose framework
+    ///   doesn't set GWL_HWNDPARENT).
+    ///
+    /// This is more permissive than the strict Win32 GW_OWNER filter and may return unrelated top-level
+    /// windows in processes that legitimately have multiple independent top-level windows.
+    /// May fire the DialogOpened event for newly-discovered windows (deduplicated per page instance).
     /// </remarks>
     Task<IReadOnlyList<IFlawrightPage>> GetOwnedWindowsAsync(CancellationToken ct = default);
 

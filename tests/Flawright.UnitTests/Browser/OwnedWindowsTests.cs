@@ -109,6 +109,30 @@ public sealed class OwnedWindowsTests
         Assert.Empty(result);
     }
 
+    [Fact]
+    public async Task GetOwnedWindowsAsync_FakeConfiguredWithOwnedWindow_ReturnsIt()
+    {
+        // Arrange: simulate a WPF-style popup that the production hybrid logic would
+        // return (no Win32 GW_OWNER, but popup-styled). In unit tests the fake
+        // IApplicationHandle is the source of truth — it returns whatever is
+        // configured in OwnedWindowsByHandle. This test ensures the page plumbing
+        // correctly surfaces what the fake reports.
+        var ownerHwnd = new nint(100);
+        var (_, handle, page) = MakeBrowserAndPage(pageWindowHandle: ownerHwnd);
+
+        var wpfDialog = new FakeElementBackend(name: "SaveChangesDialog", controlTypeName: "Window");
+        wpfDialog.FakeNativeWindowHandle = new nint(300);
+        handle.OwnedWindowsByHandle[ownerHwnd] = [wpfDialog];
+
+        // Act
+        var result = await page.GetOwnedWindowsAsync();
+
+        // Assert
+        Assert.Single(result);
+        var title = await result[0].TitleAsync();
+        Assert.Equal("SaveChangesDialog", title);
+    }
+
     // ── GetModalWindowsAsync ──────────────────────────────────────────────────
 
     [Fact]
