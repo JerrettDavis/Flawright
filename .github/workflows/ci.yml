@@ -193,6 +193,11 @@ jobs:
           dotnet restore tests/Flawright.E2ETests/Flawright.E2ETests.csproj
           dotnet restore samples/Flawright.Reqnroll.NotepadDemo/Flawright.Reqnroll.NotepadDemo.csproj
           dotnet restore samples/Flawright.Reqnroll.CalculatorDemo/Flawright.Reqnroll.CalculatorDemo.csproj
+          dotnet restore samples/Flawright.Reqnroll.SettingsDemo/Flawright.Reqnroll.SettingsDemo.csproj
+          dotnet restore samples/Flawright.Reqnroll.ExplorerDemo/Flawright.Reqnroll.ExplorerDemo.csproj
+          dotnet restore samples/Flawright.Reqnroll.QuickSettingsDemo/Flawright.Reqnroll.QuickSettingsDemo.csproj
+          dotnet restore samples/Flawright.Reqnroll.NotepadMenuDemo/Flawright.Reqnroll.NotepadMenuDemo.csproj
+          dotnet restore samples/Flawright.Reqnroll.PaintDrawDemo/Flawright.Reqnroll.PaintDrawDemo.csproj
 
       # Build the WPF test app explicitly so CI output makes it clear that the
       # deterministic test target was compiled successfully before the test run.
@@ -262,6 +267,109 @@ jobs:
           --configuration Release
           --no-build
           --logger "trx;LogFileName=calculator-bdd-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory ./TestResults
+        timeout-minutes: 5
+
+      # ── SettingsDemo ───────────────────────────────────────────────────────────
+      # Settings (windows.immersivecontrolpanel) is absent on Windows Server 2025 CI
+      # runners. All SettingsDemo scenarios are expected to skip on CI.
+      - name: Build Reqnroll SettingsDemo
+        run: >
+          dotnet build samples/Flawright.Reqnroll.SettingsDemo/Flawright.Reqnroll.SettingsDemo.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Run Reqnroll SettingsDemo
+        run: >
+          dotnet test samples/Flawright.Reqnroll.SettingsDemo/Flawright.Reqnroll.SettingsDemo.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=settings-bdd-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory ./TestResults
+        timeout-minutes: 5
+
+      # ── ExplorerDemo ───────────────────────────────────────────────────────────
+      # explorer.exe exists on windows-2025-vs2026 but the shell process may not be
+      # running in the CI session. ExplorerPrerequisites checks both. Scenarios that
+      # can attach to a running explorer shell will run; others will skip gracefully.
+      - name: Build Reqnroll ExplorerDemo
+        run: >
+          dotnet build samples/Flawright.Reqnroll.ExplorerDemo/Flawright.Reqnroll.ExplorerDemo.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Run Reqnroll ExplorerDemo
+        run: >
+          dotnet test samples/Flawright.Reqnroll.ExplorerDemo/Flawright.Reqnroll.ExplorerDemo.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=explorer-bdd-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory ./TestResults
+        timeout-minutes: 5
+
+      # ── QuickSettingsDemo ──────────────────────────────────────────────────────
+      # ShellExperienceHost.exe is absent on Windows Server 2025 CI runners.
+      # All QuickSettingsDemo scenarios are expected to skip on CI. This is by design
+      # — Quick Settings requires the full Windows 11 interactive shell.
+      - name: Build Reqnroll QuickSettingsDemo
+        run: >
+          dotnet build samples/Flawright.Reqnroll.QuickSettingsDemo/Flawright.Reqnroll.QuickSettingsDemo.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Run Reqnroll QuickSettingsDemo
+        run: >
+          dotnet test samples/Flawright.Reqnroll.QuickSettingsDemo/Flawright.Reqnroll.QuickSettingsDemo.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=quicksettings-bdd-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory ./TestResults
+        timeout-minutes: 5
+
+      # ── NotepadMenuDemo ────────────────────────────────────────────────────────
+      # Notepad is available on windows-2025-vs2026 CI runners (WinUI3 packaged app).
+      # NotepadMenuDemo: scenarios run when Notepad is present; skip when absent.
+      - name: Build Reqnroll NotepadMenuDemo
+        run: >
+          dotnet build samples/Flawright.Reqnroll.NotepadMenuDemo/Flawright.Reqnroll.NotepadMenuDemo.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Run Reqnroll NotepadMenuDemo
+        run: >
+          dotnet test samples/Flawright.Reqnroll.NotepadMenuDemo/Flawright.Reqnroll.NotepadMenuDemo.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=notepadmenu-bdd-results.trx"
+          --logger "console;verbosity=normal"
+          --results-directory ./TestResults
+        timeout-minutes: 5
+
+      # ── PaintDrawDemo ──────────────────────────────────────────────────────────
+      # MS Paint (Microsoft.Paint_8wekyb3d8bbwe) is absent on Windows Server 2025 CI
+      # runners. All PaintDrawDemo scenarios are expected to skip on CI. This is by
+      # design — Paint requires the full Windows 11 interactive shell and MSIX package.
+      - name: Build Reqnroll PaintDrawDemo
+        run: >
+          dotnet build samples/Flawright.Reqnroll.PaintDrawDemo/Flawright.Reqnroll.PaintDrawDemo.csproj
+          --configuration Release
+          --no-restore
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Run Reqnroll PaintDrawDemo
+        run: >
+          dotnet test samples/Flawright.Reqnroll.PaintDrawDemo/Flawright.Reqnroll.PaintDrawDemo.csproj
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=paintdraw-bdd-results.trx"
           --logger "console;verbosity=normal"
           --results-directory ./TestResults
         timeout-minutes: 5

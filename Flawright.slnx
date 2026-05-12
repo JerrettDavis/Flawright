@@ -11,5 +11,10 @@
   <Folder Name="/samples/">
     <Project Path="samples/Flawright.Reqnroll.NotepadDemo/Flawright.Reqnroll.NotepadDemo.csproj" />
     <Project Path="samples/Flawright.Reqnroll.CalculatorDemo/Flawright.Reqnroll.CalculatorDemo.csproj" />
+    <Project Path="samples/Flawright.Reqnroll.SettingsDemo/Flawright.Reqnroll.SettingsDemo.csproj" />
+    <Project Path="samples/Flawright.Reqnroll.ExplorerDemo/Flawright.Reqnroll.ExplorerDemo.csproj" />
+    <Project Path="samples/Flawright.Reqnroll.QuickSettingsDemo/Flawright.Reqnroll.QuickSettingsDemo.csproj" />
+    <Project Path="samples/Flawright.Reqnroll.NotepadMenuDemo/Flawright.Reqnroll.NotepadMenuDemo.csproj" />
+    <Project Path="samples/Flawright.Reqnroll.PaintDrawDemo/Flawright.Reqnroll.PaintDrawDemo.csproj" />
   </Folder>
 </Solution>
