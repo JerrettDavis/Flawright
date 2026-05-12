@@ -40,7 +40,7 @@ internal interface IApplicationHandle : IDisposable
     IReadOnlyList<IElementBackend> GetAllTopLevelWindows();
 
     /// <summary>
-    /// Returns all top-level windows in this process other than the window
+    /// Returns visible top-level windows in this process, excluding the window
     /// identified by <paramref name="ownerWindowHandle"/>.
     /// Used to discover dialogs, popups, and floating tool windows.
     /// </summary>
@@ -48,15 +48,16 @@ internal interface IApplicationHandle : IDisposable
     /// The HWND of the caller's own window, which is excluded from the result.
     /// </param>
     /// <remarks>
-    /// The filter is intentionally permissive: Flawright cannot reliably determine
-    /// Win32 ownership for dialogs spawned by UI frameworks that do not propagate
-    /// <c>GWL_HWNDPARENT</c> (WPF, WinForms, WinUI). In practice an automated
-    /// application opens dialogs in its own process, so "all top-levels minus self"
-    /// matches the common case.
+    /// Enumeration uses Win32 EnumWindows directly because FlaUI's
+    /// Application.GetAllTopLevelWindows does not surface owned dialogs spawned by
+    /// frameworks like WPF Window.ShowDialog.
     ///
-    /// Applications that host multiple independent top-level windows in a single
-    /// process will see all of them returned; call sites should filter by title or
-    /// window properties when stricter scoping is required.
+    /// Each returned HWND is resolved to a UIA AutomationElement via the automation's
+    /// FromHandle method. Handles that fail to resolve (e.g., the window closed between
+    /// enumeration and resolution) are silently skipped.
+    ///
+    /// Apps that legitimately host multiple independent top-level windows in one process
+    /// will see all of them returned. Filter at the call site for stricter scoping.
     /// </remarks>
     IReadOnlyList<IElementBackend> GetOwnedWindows(nint ownerWindowHandle);
 

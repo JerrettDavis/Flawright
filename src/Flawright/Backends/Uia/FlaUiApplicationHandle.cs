@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using FlaUI.Core;
 using FlaUI.Core.Definitions;
 using FlaUI.UIA3;
@@ -146,53 +147,89 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Enumerates all top-level windows in this process and returns every window
-    /// whose native handle is not <paramref name="ownerWindowHandle"/> itself.
-    /// This mirrors the enumeration used by <see cref="FindButtonByName"/>, which
-    /// reliably locates WPF <c>Window.ShowDialog</c> dialogs that the previous
-    /// Win32-owner-chain filter missed.
+    /// Returns visible top-level windows in this process, excluding <paramref name="ownerWindowHandle"/>.
     ///
-    /// The intentionally permissive filter works because WPF (and WinForms / WinUI)
-    /// do not always propagate <c>GWL_HWNDPARENT</c>, so strict <c>GW_OWNER</c> /
-    /// <c>GA_ROOTOWNER</c> / style-bit checks all fail to find these dialogs.
-    /// In practice an automated application opens dialogs in its own process, so
-    /// "all top-levels minus self" matches the common case.
+    /// Enumeration uses Win32 EnumWindows directly because FlaUI's
+    /// Application.GetAllTopLevelWindows does not surface owned dialogs spawned by
+    /// frameworks like WPF Window.ShowDialog.
     ///
-    /// Applications that host multiple independent top-level windows in a single
-    /// process will see all of them returned; call sites should filter by title or
-    /// window properties when stricter scoping is required.
+    /// Each returned HWND is resolved to a UIA AutomationElement via the automation's
+    /// FromHandle method. Handles that fail to resolve (e.g., the window closed between
+    /// enumeration and resolution) are silently skipped.
+    ///
+    /// Apps that legitimately host multiple independent top-level windows in one process
+    /// will see all of them returned. Filter at the call site for stricter scoping.
     /// </remarks>
     public IReadOnlyList<IElementBackend> GetOwnedWindows(nint ownerWindowHandle)
     {
         if (ownerWindowHandle == IntPtr.Zero)
             return Array.Empty<IElementBackend>();
 
-        var allWindows = GetAllTopLevelWindows();
-        var result = new List<IElementBackend>();
+        // Use Win32 EnumWindows directly. FlaUI's Application.GetAllTopLevelWindows
+        // only returns the main window; it does not surface owned modal dialogs
+        // (e.g. WPF Window.ShowDialog dialogs), which we need for owned-window
+        // discovery. EnumWindows + GetWindowThreadProcessId + IsWindowVisible gives
+        // us every visible top-level HWND in this process.
+        var pid = (uint)_app.ProcessId;
+        var handles = new List<IntPtr>();
 
-        foreach (var w in allWindows)
+#pragma warning disable CA1806 // GetWindowThreadProcessId return value is a thread ID — we only need the out-param windowPid
+        EnumWindows((hWnd, lParam) =>
         {
-#pragma warning disable CA1031 // Tolerate failures for individual windows
+            if (!IsWindowVisible(hWnd))
+                return true;
+
+            GetWindowThreadProcessId(hWnd, out var windowPid);
+            if (windowPid != pid)
+                return true;
+
+            if (hWnd == ownerWindowHandle)
+                return true;
+
+            handles.Add(hWnd);
+            return true;
+        }, IntPtr.Zero);
+#pragma warning restore CA1806
+
+        if (handles.Count == 0)
+            return Array.Empty<IElementBackend>();
+
+        // Resolve each HWND to a FlaUI AutomationElement, wrap in UiaElementBackend.
+        var result = new List<IElementBackend>(handles.Count);
+        foreach (var hWnd in handles)
+        {
+#pragma warning disable CA1031 // Tolerate UIA-resolution failures for individual handles
             try
             {
-                var hwnd = w.NativeWindowHandle;
-                // Skip the owner itself, but include windows with a zero handle
-                // (some UIA top-level elements for WPF/WinUI dialogs report
-                //  NativeWindowHandle == 0; we still want to surface them).
-                if (hwnd != IntPtr.Zero && hwnd == ownerWindowHandle)
-                    continue;
-
-                result.Add(w);
+                var element = _automation.FromHandle(hWnd);
+                if (element != null)
+                    result.Add(new UiaElementBackend(element));
             }
             catch (Exception)
             {
-                // Window may have been destroyed during enumeration — skip it.
+                // Handle may have died between enumeration and resolution — skip.
             }
 #pragma warning restore CA1031
         }
 
         return result.AsReadOnly();
     }
+
+    // ── Win32 P/Invoke for EnumWindows-based window discovery ─────────────────
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("user32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
 
     /// <inheritdoc/>
     public IElementBackend? FindButtonByName(string buttonName)
