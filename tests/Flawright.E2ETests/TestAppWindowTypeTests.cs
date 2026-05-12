@@ -62,8 +62,8 @@ public sealed class TestAppWindowTypeTests : IAsyncLifetime
         var dialogPage = await page.WaitForDialogAsync(titlePattern: "Ownerless Dialog");
         Assert.NotNull(dialogPage);
 
-        // Cancel button is the safe dismissal path on SaveChangesDialog.
-        await dialogPage.Locator("name:Cancel").ClickAsync();
+        // The inline Window has no buttons — dismiss via Escape (WPF honours it on ShowDialog windows).
+        await dialogPage.Keyboard.PressAsync("Escape");
     }
 
     // ── 2. WPF modeless owned window ─────────────────────────────────────────
@@ -202,14 +202,22 @@ public sealed class TestAppWindowTypeTests : IAsyncLifetime
     // ── 8. comdlg32 OpenFileDialog ────────────────────────────────────────────
 
     /// <summary>
-    /// A <see cref="Microsoft.Win32.OpenFileDialog"/> appears in
+    /// A <see cref="System.Windows.Forms.OpenFileDialog"/> appears in
     /// <see cref="IFlawrightPage.GetOwnedWindowsAsync"/>. The test dismisses it
     /// via Escape key.
     /// </summary>
     /// <remarks>
-    /// Windows' comdlg32 may override the <c>Title</c> property to "Open" on
-    /// some OS versions. This test uses the title substring "Open" to match both
-    /// the explicit <c>Title = "Pick a file"</c> and the OS-level fallback.
+    /// <para>
+    /// <see cref="System.Windows.Forms.OpenFileDialog"/> is used instead of
+    /// <see cref="Microsoft.Win32.OpenFileDialog"/> because Windows 11 / Server 2025
+    /// routes the Win32 picker through a new out-of-process XAML host (PickerHost.exe),
+    /// which does not appear in <see cref="IFlawrightPage.GetOwnedWindowsAsync"/>.
+    /// The WinForms picker uses the legacy in-process comdlg32 path.
+    /// </para>
+    /// <para>
+    /// The title "Open" is the default comdlg32 / WinForms picker title and is
+    /// used here so the test is not sensitive to OS-level title overrides.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task OpenFileDialog_AppearsInGetOwnedWindowsAsync()

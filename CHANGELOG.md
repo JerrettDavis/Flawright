@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Known limitations: WinUI/UWP ContentDialog and Popup (no HWND, UIA-only —
   out of scope for HWND-based enumeration), MDI children (embedded in parent
   client area — no independent top-level HWND).
+- Note: `Microsoft.Win32.OpenFileDialog` on Windows 11 / Server 2025 routes
+  through a new out-of-process XAML picker host (PickerHost.exe) and does not
+  appear in `GetOwnedWindowsAsync`. Use `System.Windows.Forms.OpenFileDialog`
+  instead — it uses the legacy in-process comdlg32 path and is reliably visible
+  to HWND-based enumeration.
 
 ### Added
 - Owned-window support: new `IFlawrightPage` methods `GetOwnedWindowsAsync`, `GetModalWindowsAsync`, `WaitForDialogAsync` for working with dialogs and modal popups

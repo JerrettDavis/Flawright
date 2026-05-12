@@ -73,8 +73,22 @@ public partial class MainWindow : Window
 
     private void BtnShowDialogNoOwner_Click(object sender, RoutedEventArgs e)
     {
-        var d = new SaveChangesDialog();
-        d.Title = "Ownerless Dialog";
+        // Use a plain inline Window so the Title is unambiguous — SaveChangesDialog's
+        // XAML hard-codes Title="Save changes?" and AutomationProperties.Name="Save changes?",
+        // which can shadow the programmatic Title override before the window is shown.
+        var d = new System.Windows.Window
+        {
+            Title = "Ownerless Dialog",
+            Width = 300,
+            Height = 150,
+            Content = new System.Windows.Controls.TextBlock
+            {
+                Text = "Ownerless dialog body",
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+            },
+        };
+        // Intentionally no Owner assignment — this is the test of an ownerless dialog.
         d.ShowDialog();
     }
 
@@ -181,11 +195,18 @@ public partial class MainWindow : Window
     }
 
     // ── btnShowOpenFileDialog ─────────────────────────────────────────────────
-
+    // Note: System.Windows.Forms.OpenFileDialog is used here instead of
+    // Microsoft.Win32.OpenFileDialog because Windows 11 / Server 2025 ships a
+    // new XAML-based file picker (PickerHost.exe) for the Win32 variant that
+    // runs out-of-process and therefore does not appear in GetOwnedWindowsAsync.
+    // The WinForms picker uses the legacy in-process comdlg32 path reliably.
+#pragma warning disable CA1303 // WinForms Title properties are UI labels; localisation not required for test fixtures
     private void BtnShowOpenFileDialog_Click(object sender, RoutedEventArgs e)
     {
-        new Microsoft.Win32.OpenFileDialog { Title = "Pick a file" }.ShowDialog();
+        var dlg = new System.Windows.Forms.OpenFileDialog { Title = "Open" };
+        dlg.ShowDialog(new Win32WindowAdapter(this));
     }
+#pragma warning restore CA1303
 
     // ── btnExit ───────────────────────────────────────────────────────────────
 
