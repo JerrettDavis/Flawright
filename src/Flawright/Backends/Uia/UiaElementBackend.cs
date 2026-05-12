@@ -27,8 +27,8 @@ internal sealed class UiaElementBackend : IElementBackend
     /// <summary>Exposes the underlying FlaUI element for advanced scenarios.</summary>
     internal AutomationElement Element => _element;
 
-    /// <summary>Gets the native window handle (HWND) of the top-level window.</summary>
-    internal nint NativeWindowHandle => _element.Properties.NativeWindowHandle.ValueOrDefault;
+    /// <inheritdoc/>
+    public nint NativeWindowHandle => _element.Properties.NativeWindowHandle.ValueOrDefault;
 
     // ── Identity ──────────────────────────────────────────────────────────────
 
@@ -476,6 +476,35 @@ internal sealed class UiaElementBackend : IElementBackend
 #pragma warning restore CA1031
 
         return IntPtr.Zero;
+    }
+
+    // ── Window primitives ─────────────────────────────────────────────────────
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IElementBackend> GetModalWindows()
+    {
+#pragma warning disable CA1031 // Return empty list on any UIA failure
+        try
+        {
+            var window = _element.AsWindow();
+            if (window == null)
+                return Array.Empty<IElementBackend>();
+
+            var modals = window.ModalWindows;
+            if (modals == null || modals.Length == 0)
+                return Array.Empty<IElementBackend>();
+
+            var result = new List<IElementBackend>(modals.Length);
+            foreach (var modal in modals)
+                result.Add(new UiaElementBackend(modal));
+
+            return result.AsReadOnly();
+        }
+        catch (Exception)
+        {
+            return Array.Empty<IElementBackend>();
+        }
+#pragma warning restore CA1031
     }
 
     // ── Tree traversal ────────────────────────────────────────────────────────

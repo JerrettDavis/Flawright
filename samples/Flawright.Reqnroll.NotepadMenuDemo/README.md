@@ -24,8 +24,9 @@ The feature file (`Features/NotepadMenu.feature`) demonstrates:
 - Clicking the **File menu** and asserting that menu items (`New tab`, `Open...`, `Save`) are visible
 - Dismissing the open menu with the **Escape** key and asserting items are hidden
 - Opening the **Edit menu**, clicking **Select All**, and then **Copy**
-- Typing text, sending **Ctrl+W** to trigger the unsaved-changes dialog, asserting the dialog appears,
-  and clicking the **Don't save** button to dismiss it
+- Typing text, sending **Ctrl+W** to trigger the unsaved-changes dialog, waiting for the owned
+  dialog window via `WaitForDialogAsync`, asserting it is visible, and clicking the
+  **Don't save** button inside the dialog
 
 ## Selectors
 
@@ -53,22 +54,28 @@ modern Notepad specifically.
 
 ## Custom Steps
 
-This sample adds the following steps in `NotepadMenuStepDefinitions.cs`:
+This sample adds the following step in `NotepadMenuStepDefinitions.cs`:
 
 | Step | Purpose |
 |---|---|
-| `When I trigger unsaved-changes close on Notepad` | Sends Ctrl+W and waits for the dialog |
-| `Then the unsaved-changes dialog should be visible` | Polls for the Don't save button (Win11 + Win10 casings) |
-| `When I click the "…" button in the dialog` | Clicks a named dialog button, trying Win11 then Win10 casing |
+| `When I trigger unsaved-changes close on Notepad` | Sends Ctrl+W and waits briefly for the dialog |
+
+Dialog interaction (wait, assert, click) is handled by the built-in dialog steps from
+`Flawright.Reqnroll`:
+
+| Step | Purpose |
+|---|---|
+| `When I wait for dialog "Notepad"` | Waits for an owned window whose title contains "Notepad" |
+| `Then a dialog should be visible` | Asserts the dialog was captured by the preceding wait step |
+| `When I click "name:Don't save" in dialog` | Clicks the button inside the dialog window |
 
 ## Flawright APIs Used
 
-- `IFlawrightPage.ClickAsync(selector)` — menu clicks and dialog button clicks
+- `IFlawrightPage.ClickAsync(selector)` — menu clicks
 - `IFlawrightPage.FillAsync(selector, value)` — typing text into the edit control
 - `IFlawrightPage.Keyboard.PressAsync(key)` — global key presses (Escape, Ctrl+W)
-- `IFlawrightPage.WaitForSelectorAsync(selector)` — waiting for the dialog to appear
+- `IFlawrightPage.WaitForDialogAsync(titlePattern)` — waiting for an owned dialog window
 - `IFlawrightPage.WaitForTimeoutAsync(ms)` — brief pause after triggering close
-- `IFlawrightLocator.IsVisibleAsync()` — checking dialog button visibility
 - `IFlawrightLocator.Expect().ToBeVisibleAsync()` — asserting menu items are visible
 - `IFlawrightLocator.Expect().ToBeHiddenAsync()` — asserting menu items are dismissed
 

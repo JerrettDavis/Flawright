@@ -286,6 +286,27 @@ internal sealed class FakeElementBackend : IElementBackend
     private static readonly byte[] FakeOnePxPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==");
 
+    // ── IElementBackend: Window primitives ───────────────────────────────────
+
+    /// <summary>
+    /// Configurable native window handle returned by <see cref="NativeWindowHandle"/>.
+    /// Defaults to <see cref="IntPtr.Zero"/>.
+    /// </summary>
+    public nint FakeNativeWindowHandle { get; set; } = IntPtr.Zero;
+
+    /// <inheritdoc/>
+    public nint NativeWindowHandle => FakeNativeWindowHandle;
+
+    /// <summary>
+    /// Configurable list of modal windows returned by <see cref="GetModalWindows"/>.
+    /// Defaults to an empty list.
+    /// </summary>
+    public List<FakeElementBackend> FakeModalWindows { get; } = [];
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IElementBackend> GetModalWindows()
+        => FakeModalWindows.Cast<IElementBackend>().ToList().AsReadOnly();
+
     // ── IElementBackend: Tree traversal ───────────────────────────────────────
 
     /// <inheritdoc/>

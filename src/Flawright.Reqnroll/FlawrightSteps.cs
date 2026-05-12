@@ -8,7 +8,7 @@ namespace Flawright.Reqnroll;
 /// </summary>
 /// <remarks>
 /// <para>
-/// All 25 steps are grouped by category:
+/// All steps are grouped by category:
 /// <list type="bullet">
 ///   <item><description>Window focus</description></item>
 ///   <item><description>Mouse actions (click, double-click, right-click)</description></item>
@@ -18,6 +18,7 @@ namespace Flawright.Reqnroll;
 ///   <item><description>Toggle/checkbox (check, uncheck)</description></item>
 ///   <item><description>Selection</description></item>
 ///   <item><description>Wait</description></item>
+///   <item><description>Dialog interaction</description></item>
 ///   <item><description>Drag and drop</description></item>
 ///   <item><description>Assertions</description></item>
 /// </list>
@@ -35,6 +36,11 @@ namespace Flawright.Reqnroll;
 public sealed class FlawrightSteps
 {
     private readonly IFlawrightPage _page;
+    /// <summary>
+    /// Persists the dialog page returned by "I wait for dialog" until overwritten by the next invocation.
+    /// Per-scenario (BoDi creates a new instance per scenario), so no cross-scenario leak.
+    /// </summary>
+    private IFlawrightPage? _dialogPage;
 
     /// <summary>
     /// Initialises a new instance of <see cref="FlawrightSteps"/> with the current
@@ -297,6 +303,118 @@ public sealed class FlawrightSteps
         await _page.WaitForSelectorAsync(selector).ConfigureAwait(false);
     }
 
+    // ── Dialog interaction ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Waits for a dialog window owned by the current page whose title contains
+    /// <paramref name="titlePattern"/>, then stores it in scenario state for
+    /// subsequent dialog steps.
+    /// </summary>
+    /// <param name="titlePattern">Substring to match against the dialog title (case-insensitive).</param>
+    /// <example>
+    /// <code>When I wait for dialog "Save changes?"</code>
+    /// </example>
+    [When(@"I wait for dialog ""([^""]*)""")]
+    public async Task WaitForDialogWithTitleAsync(string titlePattern)
+    {
+        _dialogPage = await _page.WaitForDialogAsync(titlePattern).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Waits for any dialog window owned by the current page and stores it in
+    /// scenario state for subsequent dialog steps.
+    /// </summary>
+    /// <example>
+    /// <code>When I wait for dialog</code>
+    /// </example>
+    [When(@"I wait for dialog")]
+    public async Task WaitForDialogAsync()
+    {
+        _dialogPage = await _page.WaitForDialogAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asserts that a dialog page was captured by the most recent
+    /// <c>I wait for dialog</c> step.
+    /// </summary>
+    /// <example>
+    /// <code>Then a dialog should be visible</code>
+    /// </example>
+    [Then(@"a dialog should be visible")]
+    public Task DialogShouldBeVisibleAsync()
+    {
+        if (_dialogPage == null)
+        {
+            throw new AssertionException(
+                "No dialog has been captured. " +
+                "Use 'When I wait for dialog' before asserting dialog visibility.");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Clicks the first element matching <paramref name="selector"/> inside the
+    /// dialog captured by the most recent <c>I wait for dialog</c> step.
+    /// </summary>
+    /// <param name="selector">Flawright selector string.</param>
+    /// <example>
+    /// <code>When I click "name:Cancel" in dialog</code>
+    /// </example>
+    [When(@"I click ""([^""]*)"" in dialog")]
+    public async Task ClickInDialogAsync(string selector)
+    {
+        EnsureDialogPage();
+        await _dialogPage!.ClickAsync(selector).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Fills the element matching <paramref name="selector"/> inside the dialog
+    /// captured by the most recent <c>I wait for dialog</c> step with <paramref name="value"/>.
+    /// </summary>
+    /// <param name="selector">Flawright selector string.</param>
+    /// <param name="value">Text to fill.</param>
+    /// <example>
+    /// <code>When I fill "name:FileName" in dialog with "report.txt"</code>
+    /// </example>
+    [When(@"I fill ""([^""]*)"" in dialog with ""([^""]*)""")]
+    public async Task FillInDialogAsync(string selector, string value)
+    {
+        EnsureDialogPage();
+        await _dialogPage!.FillAsync(selector, value).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asserts that the element matching <paramref name="selector"/> is visible
+    /// inside the dialog captured by the most recent <c>I wait for dialog</c> step.
+    /// </summary>
+    /// <param name="selector">Flawright selector string.</param>
+    /// <example>
+    /// <code>Then "name:Cancel" should be visible in dialog</code>
+    /// </example>
+    [Then(@"""([^""]*)"" should be visible in dialog")]
+    public async Task ShouldBeVisibleInDialogAsync(string selector)
+    {
+        EnsureDialogPage();
+        await _dialogPage!.Locator(selector).Expect().ToBeVisibleAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asserts that the element matching <paramref name="selector"/> inside the
+    /// dialog contains the text <paramref name="expected"/> (substring match).
+    /// </summary>
+    /// <param name="selector">Flawright selector string.</param>
+    /// <param name="expected">Expected substring.</param>
+    /// <example>
+    /// <code>Then "name:Message" should contain "unsaved" in dialog</code>
+    /// </example>
+    [Then(@"""([^""]*)"" should contain ""([^""]*)"" in dialog")]
+    public async Task ShouldContainTextInDialogAsync(string selector, string expected)
+    {
+        EnsureDialogPage();
+        await _dialogPage!.Locator(selector).Expect().ToContainTextAsync(expected).ConfigureAwait(false);
+    }
+
     // ── Drag and drop ─────────────────────────────────────────────────────────
 
     /// <summary>
@@ -487,6 +605,23 @@ public sealed class FlawrightSteps
         {
             throw new AssertionException(
                 $"Expected window title to contain \"{expected}\" but found \"{title}\".");
+        }
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Throws <see cref="AssertionException"/> when no dialog page has been captured
+    /// by a preceding <c>I wait for dialog</c> step.
+    /// </summary>
+    private void EnsureDialogPage()
+    {
+        if (_dialogPage == null)
+        {
+            throw new AssertionException(
+                "No dialog has been captured. " +
+                "Use 'When I wait for dialog' or 'When I wait for dialog \"title\"' " +
+                "before interacting with dialog elements.");
         }
     }
 }

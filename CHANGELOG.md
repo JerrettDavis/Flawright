@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Owned-window support: new `IFlawrightPage` methods `GetOwnedWindowsAsync`, `GetModalWindowsAsync`, `WaitForDialogAsync` for working with dialogs and modal popups
+- New `IFlawrightBrowserEvents.DialogOpened` event with `DialogOpenedEventArgs`
+- New `IApplicationHandle.GetOwnedWindows` and `IElementBackend.GetModalWindows` backend primitives
+- Reqnroll built-in steps for dialog interaction: `I wait for dialog`, `I wait for dialog "title"`, `a dialog should be visible`, `I click "…" in dialog`, `I fill "…" in dialog with "…"`, `"…" should be visible in dialog`, `"…" should contain "…" in dialog`
+
+### Fixed
+- NotepadMenuDemo's unsaved-changes scenario now correctly targets the owned dialog window instead of trying to find dialog buttons in the main Notepad window
+
 ## [0.5.42] - 2026-05-11
 
 ### Added

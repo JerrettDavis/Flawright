@@ -172,6 +172,57 @@ public interface IFlawrightPage : IAsyncDisposable
     /// <summary>Waits for an element matching <paramref name="selector"/> to appear and returns it.</summary>
     Task<IFlawrightElement> WaitForSelectorAsync(string selector, Locator.LocatorWaitForOptions? options = null, CancellationToken ct = default);
 
+    // ── Owned-window / dialog discovery ──────────────────────────────────────
+
+    /// <summary>
+    /// Returns pages for all top-level windows in this process owned by this
+    /// page's window (Win32 owner relationship via <c>GetWindow(GW_OWNER)</c>).
+    /// Use this to discover dialogs, popups, and floating tool windows.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <remarks>
+    /// This method may raise the <see cref="IFlawrightBrowserEvents.DialogOpened"/> event
+    /// for each newly-discovered window (once per unique dialog handle per page instance).
+    /// </remarks>
+    Task<IReadOnlyList<IFlawrightPage>> GetOwnedWindowsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns pages for modal windows currently active on this page's window,
+    /// via UIA WindowPattern. This is a subset of <see cref="GetOwnedWindowsAsync"/>
+    /// — only modal owned windows.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <remarks>
+    /// This method may raise the <see cref="IFlawrightBrowserEvents.DialogOpened"/> event
+    /// for each newly-discovered modal window (once per unique modal handle per page instance).
+    /// </remarks>
+    Task<IReadOnlyList<IFlawrightPage>> GetModalWindowsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Waits for a dialog window owned by this page to appear, returning a page
+    /// bound to it.
+    /// </summary>
+    /// <param name="titlePattern">
+    /// Optional substring to match against the dialog's window title
+    /// (case-insensitive). When <see langword="null"/>, returns the first owned
+    /// window to appear.
+    /// </param>
+    /// <param name="timeout">
+    /// Maximum time to wait. Defaults to the browser's default timeout.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="FlawrightTimeoutException">
+    /// No matching owned window appeared within timeout.
+    /// </exception>
+    /// <remarks>
+    /// This method raises the <see cref="IFlawrightBrowserEvents.DialogOpened"/> event
+    /// for the newly-detected dialog (once per unique dialog handle per page instance).
+    /// </remarks>
+    Task<IFlawrightPage> WaitForDialogAsync(
+        string? titlePattern = null,
+        TimeSpan? timeout = null,
+        CancellationToken ct = default);
+
     // ── Screenshot ────────────────────────────────────────────────────────────
 
     /// <summary>Captures a screenshot of the window.</summary>

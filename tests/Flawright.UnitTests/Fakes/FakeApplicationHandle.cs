@@ -34,6 +34,12 @@ internal sealed class FakeApplicationHandle : IApplicationHandle
         _mainWindow = mainWindow ?? new FakeElementBackend(name: "FakeWindow", controlTypeName: "Window");
     }
 
+    /// <summary>
+    /// Configurable list of owned windows returned by <see cref="GetOwnedWindows"/>.
+    /// Map keyed by owner HWND — add entries to simulate owned windows.
+    /// </summary>
+    public Dictionary<nint, List<FakeElementBackend>> OwnedWindowsByHandle { get; } = new();
+
     // ── Configurable state ────────────────────────────────────────────────────
 
     /// <inheritdoc/>
@@ -84,6 +90,14 @@ internal sealed class FakeApplicationHandle : IApplicationHandle
     /// <inheritdoc/>
     public IReadOnlyList<IElementBackend> GetAllTopLevelWindows()
         => (IReadOnlyList<IElementBackend>)(new List<IElementBackend> { _mainWindow }.AsReadOnly());
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IElementBackend> GetOwnedWindows(nint ownerWindowHandle)
+    {
+        if (OwnedWindowsByHandle.TryGetValue(ownerWindowHandle, out var list))
+            return list.Cast<IElementBackend>().ToList().AsReadOnly();
+        return Array.Empty<IElementBackend>();
+    }
 
     /// <inheritdoc/>
     public IElementBackend? FindButtonByName(string buttonName)

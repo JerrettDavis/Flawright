@@ -173,6 +173,21 @@ public interface IElementBackend
     /// </summary>
     bool TryInvoke();
 
+    // ── Window primitives ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Gets the native Win32 window handle (HWND) for this element, or
+    /// <see cref="IntPtr.Zero"/> when the element has no associated window
+    /// (e.g. a non-root UIA element).
+    /// </summary>
+    nint NativeWindowHandle { get; }
+
+    /// <summary>
+    /// Returns the modal windows currently displayed by this window, via UIA WindowPattern.
+    /// Returns an empty list if this element is not a window or has no modal children.
+    /// </summary>
+    IReadOnlyList<IElementBackend> GetModalWindows();
+
     // ── Tree traversal ────────────────────────────────────────────────────────
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using FlaUI.Core;
 using FlaUI.Core.Definitions;
 using FlaUI.UIA3;
@@ -145,6 +146,39 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
     }
 
     /// <inheritdoc/>
+    public IReadOnlyList<IElementBackend> GetOwnedWindows(nint ownerWindowHandle)
+    {
+        if (ownerWindowHandle == IntPtr.Zero)
+            return Array.Empty<IElementBackend>();
+
+        var allWindows = GetAllTopLevelWindows();
+        var result = new List<IElementBackend>();
+
+        foreach (var w in allWindows)
+        {
+#pragma warning disable CA1031 // Tolerate failures for individual windows
+            try
+            {
+                var hwnd = w.NativeWindowHandle;
+                if (hwnd == IntPtr.Zero)
+                    continue;
+
+                // GW_OWNER = 4: returns the owner HWND of the given window.
+                var ownerHwnd = GetWindow(hwnd, 4u);
+                if (ownerHwnd == ownerWindowHandle)
+                    result.Add(w);
+            }
+            catch (Exception)
+            {
+                // Window may have been destroyed during enumeration — skip it.
+            }
+#pragma warning restore CA1031
+        }
+
+        return result.AsReadOnly();
+    }
+
+    /// <inheritdoc/>
     public IElementBackend? FindButtonByName(string buttonName)
     {
         var cf = _automation.ConditionFactory;
@@ -286,4 +320,14 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
 
         return _app.GetAllTopLevelWindows(_automation);
     }
+
+    // ── Win32 P/Invoke ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Retrieves a handle to a window that has the specified relationship to the
+    /// given window.  GW_OWNER = 4 returns the owner of the window.
+    /// </summary>
+    [DllImport("user32.dll", SetLastError = false)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern nint GetWindow(nint hWnd, uint uCmd);
 }

@@ -31,16 +31,28 @@ internal sealed class FlawrightPage : IFlawrightPage
     private readonly Lazy<IFlawrightMouse> _mouse;
     private readonly Lazy<IFlawrightKeyboard> _keyboard;
 
+    // Browser reference is optional: present when this page was created by
+    // FlawrightBrowser, null when constructed directly in tests.
+    private readonly FlawrightBrowser? _browser;
+    private readonly IApplicationHandle? _app;
+
+    // Deduplicates DialogOpened events across repeated calls to GetOwnedWindowsAsync, GetModalWindowsAsync, and WaitForDialogAsync.
+    private readonly HashSet<nint> _raisedDialogHandles = new();
+
     internal FlawrightPage(
         IElementBackend windowBackend,
         IInputBackend input,
         FlawrightOptions options,
-        IConditionTranslator translator)
+        IConditionTranslator translator,
+        FlawrightBrowser? browser = null,
+        IApplicationHandle? app = null)
     {
         _windowBackend = windowBackend;
         _input = input;
         Options = options;
         _translator = translator;
+        _browser = browser;
+        _app = app;
         _mouse = new Lazy<IFlawrightMouse>(() => new FlawrightMouse(input));
         _keyboard = new Lazy<IFlawrightKeyboard>(() => new FlawrightKeyboard(input));
     }
@@ -65,6 +77,118 @@ internal sealed class FlawrightPage : IFlawrightPage
     /// <inheritdoc/>
     public Task WaitForTimeoutAsync(double milliseconds, CancellationToken ct = default)
         => Task.Delay(TimeSpan.FromMilliseconds(milliseconds), ct);
+
+    // ── IFlawrightPage: Owned-window / dialog discovery ──────────────────────
+
+    /// <inheritdoc/>
+    public Task<IReadOnlyList<IFlawrightPage>> GetOwnedWindowsAsync(CancellationToken ct = default)
+    {
+        if (_app == null)
+            return Task.FromResult<IReadOnlyList<IFlawrightPage>>(Array.Empty<IFlawrightPage>());
+
+        var ownerHwnd = _windowBackend.NativeWindowHandle;
+        var ownedWindows = _app.GetOwnedWindows(ownerHwnd);
+        var pages = new List<IFlawrightPage>(ownedWindows.Count);
+        var seenHandles = new HashSet<nint>();
+
+        foreach (var backend in ownedWindows)
+        {
+            var dialogHwnd = backend.NativeWindowHandle;
+            if (!seenHandles.Add(dialogHwnd))
+                continue;
+
+            pages.Add(new FlawrightPage(backend, _input, Options, _translator, _browser, _app));
+
+            // Always raise DialogOpened for each new dialog discovered, regardless of EnableWindowEvents.
+            // EnableWindowEvents gates only the noisy WindowDetected firehose, not this focused event.
+            if (_browser != null && _raisedDialogHandles.Add(dialogHwnd))
+            {
+                _browser.RaiseDialogOpened(new DialogOpenedEventArgs(
+                    parentProcessId: _app.ProcessId,
+                    parentWindowHandle: ownerHwnd,
+                    dialogWindowHandle: dialogHwnd,
+                    dialogTitle: backend.Name,
+                    isModal: false));
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<IFlawrightPage>>(pages.AsReadOnly());
+    }
+
+    /// <inheritdoc/>
+    public Task<IReadOnlyList<IFlawrightPage>> GetModalWindowsAsync(CancellationToken ct = default)
+    {
+        var modals = _windowBackend.GetModalWindows();
+        if (modals.Count == 0)
+            return Task.FromResult<IReadOnlyList<IFlawrightPage>>(Array.Empty<IFlawrightPage>());
+
+        var pages = new List<IFlawrightPage>(modals.Count);
+        var ownerHwnd = _windowBackend.NativeWindowHandle;
+
+        foreach (var modal in modals)
+        {
+            pages.Add(new FlawrightPage(modal, _input, Options, _translator, _browser, _app));
+
+            // Raise DialogOpened for each modal window, with IsModal = true.
+            if (_browser != null && _app != null)
+            {
+                var modalHwnd = modal.NativeWindowHandle;
+                if (_raisedDialogHandles.Add(modalHwnd))
+                {
+                    _browser.RaiseDialogOpened(new DialogOpenedEventArgs(
+                        parentProcessId: _app.ProcessId,
+                        parentWindowHandle: ownerHwnd,
+                        dialogWindowHandle: modalHwnd,
+                        dialogTitle: modal.Name,
+                        isModal: true));
+                }
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<IFlawrightPage>>(pages.AsReadOnly());
+    }
+
+    /// <inheritdoc/>
+    public async Task<IFlawrightPage> WaitForDialogAsync(
+        string? titlePattern = null,
+        TimeSpan? timeout = null,
+        CancellationToken ct = default)
+    {
+        if (_app == null)
+            throw new FlawrightTimeoutException(
+                $"dialog (titlePattern='{titlePattern ?? "*"}')",
+                timeout ?? Options.DefaultTimeout);
+
+        var ownerHwnd = _windowBackend.NativeWindowHandle;
+        var effectiveTimeout = timeout ?? Options.DefaultTimeout;
+
+        var matchedBackend = await Internals.AutoWait.UntilAsync(
+            _ =>
+            {
+                var ownedWindows = _app.GetOwnedWindows(ownerHwnd);
+                var match = ownedWindows.FirstOrDefault(w =>
+                    titlePattern == null ||
+                    w.Name?.Contains(titlePattern, StringComparison.OrdinalIgnoreCase) == true);
+                return Task.FromResult<IElementBackend?>(match);
+            },
+            $"dialog (titlePattern='{titlePattern ?? "*"}')",
+            effectiveTimeout,
+            Options.DefaultRetryInterval,
+            ct).ConfigureAwait(false);
+
+        var dialogHwnd = matchedBackend.NativeWindowHandle;
+        if (_browser != null && _raisedDialogHandles.Add(dialogHwnd))
+        {
+            _browser.RaiseDialogOpened(new DialogOpenedEventArgs(
+                parentProcessId: _app.ProcessId,
+                parentWindowHandle: ownerHwnd,
+                dialogWindowHandle: dialogHwnd,
+                dialogTitle: matchedBackend.Name,
+                isModal: false));
+        }
+
+        return new FlawrightPage(matchedBackend, _input, Options, _translator, _browser, _app);
+    }
 
     // ── IFlawrightPage: Sub-APIs ──────────────────────────────────────────────
 

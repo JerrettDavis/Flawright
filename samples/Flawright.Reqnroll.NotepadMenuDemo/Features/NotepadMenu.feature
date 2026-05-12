@@ -32,5 +32,6 @@ Feature: Notepad Menu Navigation
     Scenario: Type then trigger unsaved-changes dialog
         When I fill "class:Edit" with "Unsaved content for dialog test"
         And  I trigger unsaved-changes close on Notepad
-        Then the unsaved-changes dialog should be visible
-        When I click the "Don't save" button in the dialog
+        And  I wait for dialog "Notepad"
+        Then a dialog should be visible
+        When I click "name:Don't save" in dialog

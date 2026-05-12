@@ -238,6 +238,8 @@ public sealed class VirtualInputModeTests
         public bool? GetExpandCollapseState() => null;
         public string? FrameworkId => null;
         public bool HasKeyboardFocus => false;
+        public nint NativeWindowHandle => IntPtr.Zero;
+        public IReadOnlyList<IElementBackend> GetModalWindows() => Array.Empty<IElementBackend>();
         public System.Collections.Generic.IEnumerable<IElementBackend> FindAll(IElementCondition condition)
             => System.Linq.Enumerable.Empty<IElementBackend>();
         public IElementBackend? FindFirst(IElementCondition condition) => null;

@@ -40,6 +40,14 @@ internal interface IApplicationHandle : IDisposable
     IReadOnlyList<IElementBackend> GetAllTopLevelWindows();
 
     /// <summary>
+    /// Returns all visible top-level windows in the process whose Win32 owner is
+    /// <paramref name="ownerWindowHandle"/>.
+    /// Used to discover owned dialogs (e.g. Notepad's unsaved-changes dialog).
+    /// </summary>
+    /// <param name="ownerWindowHandle">The HWND of the owner window to filter by.</param>
+    IReadOnlyList<IElementBackend> GetOwnedWindows(nint ownerWindowHandle);
+
+    /// <summary>
     /// Searches all current top-level windows for a button descendant whose UIA Name
     /// exactly matches <paramref name="buttonName"/>.  Returns the first match, or
     /// <see langword="null"/> if no such button exists.

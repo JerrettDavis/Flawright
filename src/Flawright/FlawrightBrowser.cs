@@ -39,6 +39,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     public event EventHandler<ApplicationClosingEventArgs>? ApplicationClosing;
     public event EventHandler<ApplicationClosedEventArgs>? ApplicationClosed;
     public event EventHandler<WindowDetectedEventArgs>? WindowDetected;
+    public event EventHandler<DialogOpenedEventArgs>? DialogOpened;
 
     internal FlawrightBrowser(
         IApplicationLauncher launcher,
@@ -77,7 +78,7 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     {
         await EnsureInitializedAsync(ct).ConfigureAwait(false);
         var windowBackend = _app!.GetMainWindow();
-        return new FlawrightPage(windowBackend, _input, _opts, _translator);
+        return new FlawrightPage(windowBackend, _input, _opts, _translator, this, _app);
     }
 
     /// <inheritdoc/>
@@ -89,12 +90,11 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
 
         foreach (var w in windows)
         {
-            pages.Add(new FlawrightPage(w, _input, _opts, _translator));
+            pages.Add(new FlawrightPage(w, _input, _opts, _translator, this, _app));
 
             if (_opts.EnableWindowEvents)
             {
-                // Get window handle from the FlaUI-backed element (safe cast; production always uses UiaElementBackend)
-                var windowHandle = (w is Backends.Uia.UiaElementBackend uia) ? uia.NativeWindowHandle : 0;
+                var windowHandle = w.NativeWindowHandle;
                 var title = w.Name;
                 var processId = _app.ProcessId;
                 RaiseEvent(WindowDetected, new WindowDetectedEventArgs(windowHandle, title, processId));
@@ -123,14 +123,13 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
 
         if (_opts.EnableWindowEvents)
         {
-            // Get window handle from the FlaUI-backed element (safe cast; production always uses UiaElementBackend)
-            var windowHandle = (match is Backends.Uia.UiaElementBackend uia) ? uia.NativeWindowHandle : 0;
+            var windowHandle = match.NativeWindowHandle;
             var windowTitle = match.Name;
             var processId = _app!.ProcessId;  // _app is guaranteed non-null after EnsureInitializedAsync
             RaiseEvent(WindowDetected, new WindowDetectedEventArgs(windowHandle, windowTitle, processId));
         }
 
-        return new FlawrightPage(match, _input, _opts, _translator);
+        return new FlawrightPage(match, _input, _opts, _translator, this, _app);
     }
 
     /// <inheritdoc/>
@@ -253,6 +252,13 @@ internal sealed class FlawrightBrowser : IFlawrightBrowser, IAsyncDisposable
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Raises the <see cref="DialogOpened"/> event for a newly-discovered dialog.
+    /// Called from <see cref="FlawrightPage"/> when owned windows are detected.
+    /// </summary>
+    internal void RaiseDialogOpened(DialogOpenedEventArgs args)
+        => RaiseEvent(DialogOpened, args);
 
     /// <summary>
     /// Raises an event, swallowing any exceptions thrown by handlers.

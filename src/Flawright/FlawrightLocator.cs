@@ -1176,6 +1176,8 @@ file sealed class PointElementBackend : IElementBackend
     public bool TryExpand() => _inner.TryExpand();
     public bool? GetExpandCollapseState() => _inner.GetExpandCollapseState();
     public bool TrySelectItem(string nameOrId) => _inner.TrySelectItem(nameOrId);
+    public nint NativeWindowHandle => _inner.NativeWindowHandle;
+    public IReadOnlyList<IElementBackend> GetModalWindows() => _inner.GetModalWindows();
     public IEnumerable<IElementBackend> FindAll(IElementCondition condition) => _inner.FindAll(condition);
     public IElementBackend? FindFirst(IElementCondition condition) => _inner.FindFirst(condition);
     public byte[] CaptureScreenshot() => _inner.CaptureScreenshot();

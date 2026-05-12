@@ -57,4 +57,20 @@ public interface IFlawrightBrowserEvents
     /// <see langword="true"/>.
     /// </summary>
     event EventHandler<WindowDetectedEventArgs>? WindowDetected;
+
+    /// <summary>
+    /// Raised when a dialog window owned by a page's window is first detected.
+    /// Fires from <see cref="IFlawrightPage.WaitForDialogAsync"/>,
+    /// <see cref="IFlawrightPage.GetOwnedWindowsAsync"/>, and
+    /// <see cref="IFlawrightPage.GetModalWindowsAsync"/> for newly-discovered windows.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="WindowDetected"/>, this event does NOT require
+    /// <see cref="FlawrightOptions.EnableWindowEvents"/> to be <see langword="true"/>.
+    /// The <c>EnableWindowEvents</c> flag gates only the noisy <see cref="WindowDetected"/>
+    /// firehose; <see cref="DialogOpened"/> is a focused, opt-in-by-subscription event that
+    /// fires whenever a new dialog is detected.
+    /// Each unique dialog handle fires at most once per <see cref="IFlawrightPage"/> instance.
+    /// </remarks>
+    event EventHandler<DialogOpenedEventArgs>? DialogOpened;
 }
