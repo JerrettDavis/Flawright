@@ -40,11 +40,24 @@ internal interface IApplicationHandle : IDisposable
     IReadOnlyList<IElementBackend> GetAllTopLevelWindows();
 
     /// <summary>
-    /// Returns all visible top-level windows in the process whose Win32 owner is
-    /// <paramref name="ownerWindowHandle"/>.
-    /// Used to discover owned dialogs (e.g. Notepad's unsaved-changes dialog).
+    /// Returns all top-level windows in this process other than the window
+    /// identified by <paramref name="ownerWindowHandle"/>.
+    /// Used to discover dialogs, popups, and floating tool windows.
     /// </summary>
-    /// <param name="ownerWindowHandle">The HWND of the owner window to filter by.</param>
+    /// <param name="ownerWindowHandle">
+    /// The HWND of the caller's own window, which is excluded from the result.
+    /// </param>
+    /// <remarks>
+    /// The filter is intentionally permissive: Flawright cannot reliably determine
+    /// Win32 ownership for dialogs spawned by UI frameworks that do not propagate
+    /// <c>GWL_HWNDPARENT</c> (WPF, WinForms, WinUI). In practice an automated
+    /// application opens dialogs in its own process, so "all top-levels minus self"
+    /// matches the common case.
+    ///
+    /// Applications that host multiple independent top-level windows in a single
+    /// process will see all of them returned; call sites should filter by title or
+    /// window properties when stricter scoping is required.
+    /// </remarks>
     IReadOnlyList<IElementBackend> GetOwnedWindows(nint ownerWindowHandle);
 
     /// <summary>

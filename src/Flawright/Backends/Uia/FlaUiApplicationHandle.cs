@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using FlaUI.Core;
 using FlaUI.Core.Definitions;
 using FlaUI.UIA3;
@@ -146,6 +145,23 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Enumerates all top-level windows in this process and returns every window
+    /// whose native handle is not <paramref name="ownerWindowHandle"/> itself.
+    /// This mirrors the enumeration used by <see cref="FindButtonByName"/>, which
+    /// reliably locates WPF <c>Window.ShowDialog</c> dialogs that the previous
+    /// Win32-owner-chain filter missed.
+    ///
+    /// The intentionally permissive filter works because WPF (and WinForms / WinUI)
+    /// do not always propagate <c>GWL_HWNDPARENT</c>, so strict <c>GW_OWNER</c> /
+    /// <c>GA_ROOTOWNER</c> / style-bit checks all fail to find these dialogs.
+    /// In practice an automated application opens dialogs in its own process, so
+    /// "all top-levels minus self" matches the common case.
+    ///
+    /// Applications that host multiple independent top-level windows in a single
+    /// process will see all of them returned; call sites should filter by title or
+    /// window properties when stricter scoping is required.
+    /// </remarks>
     public IReadOnlyList<IElementBackend> GetOwnedWindows(nint ownerWindowHandle)
     {
         if (ownerWindowHandle == IntPtr.Zero)
@@ -163,8 +179,7 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
                 if (hwnd == IntPtr.Zero || hwnd == ownerWindowHandle)
                     continue;
 
-                if (IsOwnedBy(hwnd, ownerWindowHandle))
-                    result.Add(w);
+                result.Add(w);
             }
             catch (Exception)
             {
@@ -174,40 +189,6 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
         }
 
         return result.AsReadOnly();
-    }
-
-    /// <summary>
-    /// Returns <see langword="true"/> if <paramref name="hwnd"/> is considered owned
-    /// by <paramref name="ownerWindowHandle"/> using a hybrid strategy:
-    /// <list type="number">
-    ///   <item>Strict Win32 owner — <c>GetWindow(GW_OWNER) == ownerWindowHandle</c>.</item>
-    ///   <item>Root-owner chain — <c>GetAncestor(GA_ROOTOWNER) == ownerWindowHandle</c>.</item>
-    ///   <item>WPF/WinUI fallback — no Win32 owner, but has popup or dialog frame style
-    ///         (catches windows whose framework does not set GWL_HWNDPARENT).</item>
-    /// </list>
-    /// </summary>
-    private static bool IsOwnedBy(nint hwnd, nint ownerWindowHandle)
-    {
-        // Bucket 1: strict Win32 GW_OWNER check.
-        var directOwner = GetWindow(hwnd, GW_OWNER);
-        if (directOwner == ownerWindowHandle)
-            return true;
-
-        // Bucket 2: walk the full owner chain to the root.
-        var rootOwner = GetAncestor(hwnd, GA_ROOTOWNER);
-        if (rootOwner == ownerWindowHandle)
-            return true;
-
-        // Bucket 3: WPF / WinUI dialogs that appear as top-level windows with no
-        // explicit Win32 owner but have a popup or dialog-frame window style.
-        if (directOwner == IntPtr.Zero)
-        {
-            var style = (uint)GetWindowLongPtr(hwnd, GWL_STYLE);
-            if ((style & WS_POPUP) != 0 || (style & WS_DLGFRAME) != 0)
-                return true;
-        }
-
-        return false;
     }
 
     /// <inheritdoc/>
@@ -353,40 +334,4 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
         return _app.GetAllTopLevelWindows(_automation);
     }
 
-    // ── Win32 P/Invoke ────────────────────────────────────────────────────────
-
-    private const uint GW_OWNER = 4u;
-    private const uint GA_ROOTOWNER = 3u;
-    private const int  GWL_STYLE   = -16;
-    private const uint WS_POPUP    = 0x80000000u;
-    private const uint WS_DLGFRAME = 0x00400000u;
-
-    /// <summary>
-    /// Retrieves a handle to a window that has the specified relationship to the
-    /// given window.  <c>GW_OWNER = 4</c> returns the Win32 owner of the window.
-    /// </summary>
-    [DllImport("user32.dll", SetLastError = false)]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern nint GetWindow(nint hWnd, uint uCmd);
-
-    /// <summary>
-    /// Retrieves the handle to the ancestor of the specified window.
-    /// <c>GA_ROOTOWNER = 3</c> returns the root owner window by walking both the
-    /// parent and owner chains.
-    /// </summary>
-    [DllImport("user32.dll", SetLastError = false)]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern nint GetAncestor(nint hwnd, uint gaFlags);
-
-    /// <summary>
-    /// Retrieves information about the specified window.  On 64-bit processes this
-    /// call is routed through the <c>GetWindowLongPtr</c> export; on 32-bit it falls
-    /// back to <c>GetWindowLong</c> automatically via the OS thunk.
-    /// <para>
-    /// <c>GWL_STYLE = -16</c> returns the window styles bit-mask.
-    /// </para>
-    /// </summary>
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = false)]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern nint GetWindowLongPtr(nint hWnd, int nIndex);
 }

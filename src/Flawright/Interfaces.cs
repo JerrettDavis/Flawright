@@ -175,21 +175,22 @@ public interface IFlawrightPage : IAsyncDisposable
     // ── Owned-window / dialog discovery ──────────────────────────────────────
 
     /// <summary>
-    /// Returns pages for all top-level windows in this process owned by this
-    /// page's window.
+    /// Returns pages for all top-level windows in this process other than this
+    /// page's own window.
     /// Use this to discover dialogs, popups, and floating tool windows.
     /// </summary>
     /// <param name="ct">Cancellation token.</param>
     /// <remarks>
-    /// Detection uses a hybrid strategy. A window is considered owned if any of the following hold:
-    /// - Its Win32 owner (GW_OWNER) is this page's window (catches classic Win32 dialogs, common dialogs).
-    /// - Its root-owner chain (GA_ROOTOWNER) leads to this page's window (catches nested dialogs).
-    /// - It has no Win32 owner but is a popup or dialog-styled top-level window in the same process
-    ///   (catches WPF Window.ShowDialog, WinForms modal dialogs, and WinUI/UWP dialogs whose framework
-    ///   doesn't set GWL_HWNDPARENT).
+    /// Returns all visible top-level windows in this process other than this page's own window.
+    /// This is intentionally permissive — Flawright cannot reliably determine Win32 ownership
+    /// for dialogs spawned by UI frameworks that don't propagate GWL_HWNDPARENT (WPF, WinForms,
+    /// WinUI). In practice, an automated application opens dialogs and popups in its own
+    /// process, so "all top-levels minus self" matches the common case.
     ///
-    /// This is more permissive than the strict Win32 GW_OWNER filter and may return unrelated top-level
-    /// windows in processes that legitimately have multiple independent top-level windows.
+    /// Apps that legitimately host multiple independent top-level windows in one process
+    /// (e.g. an app + a separate splash screen) will see all of them returned here. Filter
+    /// by title or window properties at the call site if you need stricter scoping.
+    ///
     /// May fire the DialogOpened event for newly-discovered windows (deduplicated per page instance).
     /// </remarks>
     Task<IReadOnlyList<IFlawrightPage>> GetOwnedWindowsAsync(CancellationToken ct = default);
