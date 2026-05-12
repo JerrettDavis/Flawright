@@ -1,5 +1,6 @@
 using Flawright;
 using Flawright.InputModes;
+using Flawright.Locator;
 using Xunit;
 
 namespace Flawright.E2ETests;
@@ -53,6 +54,12 @@ public sealed class TestAppRightClickContextMenuTests : IAsyncLifetime
     /// Right-clicking <c>btnRightClickTarget</c> opens the WPF context menu,
     /// making the <c>menuEdit</c> and <c>menuDelete</c> menu items visible.
     /// </summary>
+    /// <remarks>
+    /// WPF <c>ContextMenu</c> items are surfaced in the main window's UIA tree
+    /// even when the menu is displayed in a popup HWND.  The test uses
+    /// <c>WaitForAsync(Visible)</c> (auto-waited) instead of a fixed delay so
+    /// that it tolerates variable context-menu animation timing on CI.
+    /// </remarks>
     [Fact]
     public async Task RightClickAsync_OpensContextMenu()
     {
@@ -64,9 +71,10 @@ public sealed class TestAppRightClickContextMenuTests : IAsyncLifetime
         // Right-click the target button.
         await page.Locator("#btnRightClickTarget").RightClickAsync();
 
-        // After right-click, the Edit menu item should be visible.
-        // Allow a brief settle time for the context menu to appear.
-        await page.WaitForTimeoutAsync(300);
+        // Wait (with auto-retry) until the Edit menu item appears in the UIA tree.
+        // A fixed 300 ms delay is insufficient on slower CI agents.
+        await page.Locator("#menuEdit").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForState.Visible });
 
         var editVisible = await page.Locator("#menuEdit").IsVisibleAsync();
         Assert.True(editVisible, "menuEdit should be visible after right-click.");
@@ -79,6 +87,11 @@ public sealed class TestAppRightClickContextMenuTests : IAsyncLifetime
     /// After right-clicking and opening the context menu, clicking the Edit
     /// menu item dismisses the menu.
     /// </summary>
+    /// <remarks>
+    /// Uses <c>WaitForAsync(Visible)</c> for opening and <c>WaitForAsync(Hidden)</c>
+    /// for dismissal so that variable context-menu animation timing on CI does not
+    /// cause spurious failures.
+    /// </remarks>
     [Fact]
     public async Task RightClickThenClickMenuItem_DismissesMenu()
     {
@@ -90,15 +103,16 @@ public sealed class TestAppRightClickContextMenuTests : IAsyncLifetime
         // Right-click the target button to open the context menu.
         await page.Locator("#btnRightClickTarget").RightClickAsync();
 
-        // Wait for the context menu to appear.
-        await page.WaitForTimeoutAsync(300);
+        // Wait for the Edit menu item to appear before clicking it.
+        await page.Locator("#menuEdit").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForState.Visible });
 
         // Click the Edit menu item.
         await page.Locator("#menuEdit").ClickAsync();
 
-        // After clicking a menu item the context menu should close.
-        // Allow a brief settle time.
-        await page.WaitForTimeoutAsync(200);
+        // Wait for the context menu to close (auto-retry until hidden or timeout).
+        await page.Locator("#menuEdit").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForState.Hidden });
 
         var editVisible = await page.Locator("#menuEdit").IsVisibleAsync();
         Assert.False(editVisible, "menuEdit should no longer be visible after clicking it.");

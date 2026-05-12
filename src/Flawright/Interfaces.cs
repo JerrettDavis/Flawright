@@ -603,6 +603,19 @@ public interface IFlawrightLocator
     /// <summary>Returns the bounding box of the first matching element (auto-waited), or <see langword="null"/>.</summary>
     Task<Locator.BoundingBox?> BoundingBoxAsync(CancellationToken ct = default);
 
+    // ── Expand / Collapse ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Expands the first matching element via <c>ExpandCollapsePattern.Expand()</c>
+    /// (auto-waited).  Use this for WPF <c>TreeViewItem</c>, <c>Expander</c>, and
+    /// any other control that exposes <c>ExpandCollapsePattern</c>.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="System.NotSupportedException">
+    /// Thrown when the element does not support <c>ExpandCollapsePattern</c>.
+    /// </exception>
+    Task ExpandAsync(CancellationToken ct = default);
+
     // ── Range value (Slider / Spinner) ────────────────────────────────────────
 
     /// <summary>

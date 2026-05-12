@@ -1,5 +1,6 @@
 using Flawright;
 using Flawright.InputModes;
+using Flawright.Locator;
 using Xunit;
 
 namespace Flawright.E2ETests;
@@ -104,9 +105,17 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     // ── TreeView ──────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Clicking a TreeView root node with children expands it, making its
-    /// child nodes visible in the UIA tree.
+    /// Expanding a TreeView root node via <c>ExpandCollapsePattern.Expand()</c>
+    /// makes its child nodes visible in the UIA tree.
     /// </summary>
+    /// <remarks>
+    /// WPF <c>TreeViewItem</c> uses <c>ExpandCollapsePattern</c> for toggling
+    /// visibility of children.  UIA <c>InvokePattern.Invoke()</c> (which backs
+    /// <c>ClickAsync</c> in <see cref="VirtualInputMode"/>) only selects the
+    /// item — it does not expand it.  The test therefore calls
+    /// <c>ExpandAsync()</c> which delegates to
+    /// <c>IElementBackend.TryExpand()</c> / <c>ExpandCollapsePattern.Expand()</c>.
+    /// </remarks>
     [Fact]
     public async Task TreeView_Expand_ShowsChildren()
     {
@@ -115,11 +124,13 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
         // Activate Selection tab.
         await page.Locator("#tabSelection").ClickAsync();
 
-        // Click Root 1 to expand it.
-        await page.Locator("#tvRoot1").ClickAsync();
+        // Expand Root 1 via ExpandCollapsePattern (not Click, which only selects).
+        await page.Locator("#tvRoot1").ExpandAsync();
 
-        // After expansion, Child 1.1 should be visible.
+        // After expansion, Child 1.1 should appear in the UIA tree.
+        // WaitForAsync retries until the child is no longer off-screen.
         var child = page.Locator("#tvChild11");
+        await child.WaitForAsync(new LocatorWaitForOptions { State = WaitForState.Visible });
         var isVisible = await child.IsVisibleAsync();
         Assert.True(isVisible, "Child 1.1 should be visible after expanding Root 1.");
     }
@@ -127,6 +138,10 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     /// <summary>
     /// After expanding Root 1, clicking Child 1.2 selects it.
     /// </summary>
+    /// <remarks>
+    /// Expansion must be done via <c>ExpandAsync()</c> (ExpandCollapsePattern),
+    /// not <c>ClickAsync()</c>, which only selects in <see cref="VirtualInputMode"/>.
+    /// </remarks>
     [Fact]
     public async Task TreeView_SelectChild_ChangesSelection()
     {
@@ -135,14 +150,15 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
         // Activate Selection tab.
         await page.Locator("#tabSelection").ClickAsync();
 
-        // Expand Root 1 by clicking it.
-        await page.Locator("#tvRoot1").ClickAsync();
+        // Expand Root 1 via ExpandCollapsePattern.
+        await page.Locator("#tvRoot1").ExpandAsync();
 
-        // Click Child 1.2 to select it.
-        await page.Locator("#tvChild12").ClickAsync();
-
-        // The child should be visible (was visible after parent expansion).
+        // Wait for Child 1.2 to become visible, then click it to select.
         var child = page.Locator("#tvChild12");
+        await child.WaitForAsync(new LocatorWaitForOptions { State = WaitForState.Visible });
+        await child.ClickAsync();
+
+        // Verify child is still visible (selected, not collapsed away).
         var isVisible = await child.IsVisibleAsync();
         Assert.True(isVisible, "Child 1.2 should be visible and selectable.");
     }

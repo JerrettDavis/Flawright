@@ -381,12 +381,44 @@ internal sealed class UiaElementBackend : IElementBackend
         if (target == null)
             return false;
 
+        // If the found element directly supports SelectionItemPattern, use it.
         var sip = target.Patterns.SelectionItem;
-        if (!sip.IsSupported)
-            return false;
+        if (sip.IsSupported)
+        {
+            sip.Pattern.Select();
+            return true;
+        }
 
-        sip.Pattern.Select();
-        return true;
+        // The element itself may be a text cell inside a row container (e.g. a TextBlock
+        // inside a WPF ListView row).  Walk up the ancestor chain within this container
+        // looking for a parent that supports SelectionItemPattern (the row container).
+#pragma warning disable CA1031 // Ancestor walk may fail if the element is destroyed; return false on any error
+        try
+        {
+            var current = target.Parent;
+            for (var depth = 0; depth < 10 && current != null; depth++)
+            {
+                // Stop if we reach the container root.
+                if (string.Equals(current.AutomationId, _element.AutomationId, StringComparison.Ordinal))
+                    break;
+
+                var parentSip = current.Patterns.SelectionItem;
+                if (parentSip.IsSupported)
+                {
+                    parentSip.Pattern.Select();
+                    return true;
+                }
+
+                current = current.Parent;
+            }
+        }
+        catch (Exception)
+        {
+            // Ancestor walk failed (e.g. element was destroyed) — fall through and return false.
+        }
+#pragma warning restore CA1031
+
+        return false;
     }
 
     // ── Screenshot ────────────────────────────────────────────────────────────

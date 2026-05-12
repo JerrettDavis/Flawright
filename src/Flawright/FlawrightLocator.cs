@@ -545,6 +545,18 @@ internal sealed class FlawrightLocator : IFlawrightLocator
         return Task.CompletedTask;
     }
 
+    // ── IFlawrightLocator: Expand / Collapse ──────────────────────────────────
+
+    /// <inheritdoc/>
+    public async Task ExpandAsync(CancellationToken ct = default)
+    {
+        var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
+        if (!backend.TryExpand())
+            throw new NotSupportedException(
+                $"Element '{_ctx.Selector}' does not support ExpandCollapsePattern. " +
+                "Ensure the target is a TreeViewItem, Expander, or other expandable control.");
+    }
+
     // ── IFlawrightLocator: Range value ────────────────────────────────────────
 
     /// <inheritdoc/>

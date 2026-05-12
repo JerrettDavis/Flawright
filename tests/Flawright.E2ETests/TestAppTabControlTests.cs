@@ -103,6 +103,11 @@ public sealed class TestAppTabControlTests : IAsyncLifetime
     /// <see cref="IFlawrightPage.GetByRole"/> with <c>AriaRole.Tab</c> and the
     /// name "Inputs" resolves the Inputs <c>TabItem</c>.
     /// </summary>
+    /// <remarks>
+    /// Uses <c>Expect().ToBeVisibleAsync()</c> (auto-waited) rather than the
+    /// instant <c>IsVisibleAsync()</c> probe so that transient UIA tree
+    /// initialization delays on CI do not cause a spurious failure.
+    /// </remarks>
     [Fact]
     public async Task TabControl_GetByRole_ResolvesTabItem()
     {
@@ -111,14 +116,19 @@ public sealed class TestAppTabControlTests : IAsyncLifetime
         // Tab items are visible without needing to activate any specific tab first.
         var inputsTab = page.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "Inputs" });
 
-        var isVisible = await inputsTab.IsVisibleAsync();
-        Assert.True(isVisible, "Inputs TabItem should be resolvable via GetByRole(Tab, {Name='Inputs'}).");
+        // Use auto-waited assertion to tolerate brief UIA settle time after launch.
+        await inputsTab.Expect().ToBeVisibleAsync();
     }
 
     /// <summary>
     /// Clicking the "Selection" tab via <c>GetByRole</c> activates it, making
     /// the slider visible.
     /// </summary>
+    /// <remarks>
+    /// Uses <c>Expect().ToBeVisibleAsync()</c> (auto-waited) rather than the
+    /// instant <c>IsVisibleAsync()</c> probe so that WPF tab-content rendering
+    /// latency on CI does not cause a spurious failure.
+    /// </remarks>
     [Fact]
     public async Task TabControl_GetByRole_ClickActivatesTab()
     {
@@ -127,7 +137,7 @@ public sealed class TestAppTabControlTests : IAsyncLifetime
         var selectionTab = page.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "Selection" });
         await selectionTab.ClickAsync();
 
-        var sliderVisible = await page.Locator("#sliderVolume").IsVisibleAsync();
-        Assert.True(sliderVisible, "sliderVolume should be visible after activating Selection tab via GetByRole.");
+        // Auto-waited assertion: retries until the slider is visible or the default timeout elapses.
+        await page.Locator("#sliderVolume").Expect().ToBeVisibleAsync();
     }
 }
