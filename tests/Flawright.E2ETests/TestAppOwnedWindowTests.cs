@@ -1,7 +1,6 @@
 using Flawright;
 using Flawright.InputModes;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Flawright.E2ETests;
 
@@ -23,9 +22,6 @@ public sealed class TestAppOwnedWindowTests : IAsyncLifetime
         Path.Combine(AppContext.BaseDirectory, "TestApp", "Flawright.E2ETests.TestApp.exe");
 
     private IFlawright? _fw;
-    private readonly ITestOutputHelper _output;
-
-    public TestAppOwnedWindowTests(ITestOutputHelper output) => _output = output;
 
     /// <inheritdoc/>
     public async Task InitializeAsync()
@@ -139,21 +135,22 @@ public sealed class TestAppOwnedWindowTests : IAsyncLifetime
     /// No assertions — the test always passes. Read the xUnit output in CI logs.
     /// </summary>
     [Fact]
+#pragma warning disable CA1303 // Diagnostic-only test logging; literals are intentional
     public async Task Diagnostic_DialogDiscovery_PrintsTopLevelWindowsOverTime()
     {
         var page = await _fw!.Browser.NewPageAsync();
         var pageHwnd = GetPageHandle(page);
-        _output.WriteLine($"Page (main window) HWND = 0x{pageHwnd:X}");
+        Console.WriteLine($"Page (main window) HWND = 0x{pageHwnd:X}");
 
         // BEFORE click: enumerate top-levels
         var before = await page.GetOwnedWindowsAsync();
-        _output.WriteLine($"BEFORE click: GetOwnedWindowsAsync count = {before.Count}");
+        Console.WriteLine($"BEFORE click: GetOwnedWindowsAsync count = {before.Count}");
         foreach (var w in before)
-            _output.WriteLine($"  - hwnd=0x{GetPageHandle(w):X} title='{await TryGetTitleAsync(w)}'");
+            Console.WriteLine($"  - hwnd=0x{GetPageHandle(w):X} title='{await TryGetTitleAsync(w)}'");
 
         // Click the dialog-opening button
         await page.Locator("#btnShowDialog").ClickAsync();
-        _output.WriteLine("Click dispatched.");
+        Console.WriteLine("Click dispatched.");
 
         // Poll every 200 ms for 12 s, logging each snapshot
         for (var i = 0; i < 60; i++)
@@ -162,9 +159,9 @@ public sealed class TestAppOwnedWindowTests : IAsyncLifetime
             var snapshot = await page.GetOwnedWindowsAsync();
             if (snapshot.Count > 0 || i % 5 == 0)
             {
-                _output.WriteLine($"t+{(i + 1) * 200}ms: count = {snapshot.Count}");
+                Console.WriteLine($"t+{(i + 1) * 200}ms: count = {snapshot.Count}");
                 foreach (var w in snapshot)
-                    _output.WriteLine($"  - hwnd=0x{GetPageHandle(w):X} title='{await TryGetTitleAsync(w)}'");
+                    Console.WriteLine($"  - hwnd=0x{GetPageHandle(w):X} title='{await TryGetTitleAsync(w)}'");
             }
 
             if (snapshot.Count > 0 && i > 5)
@@ -173,6 +170,7 @@ public sealed class TestAppOwnedWindowTests : IAsyncLifetime
 
         // Diagnostic only — no assertions
     }
+#pragma warning restore CA1303
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
