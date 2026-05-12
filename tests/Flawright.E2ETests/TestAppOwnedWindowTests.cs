@@ -73,9 +73,25 @@ public sealed class TestAppOwnedWindowTests : IAsyncLifetime
         // Click Cancel — dismisses the dialog.
         await dialogPage.Locator("name:Cancel").ClickAsync();
 
-        // After Cancel the dialog should be gone; owned windows list must be empty.
-        var ownedAfter = await page.GetOwnedWindowsAsync();
-        Assert.Empty(ownedAfter);
+        // After Cancel the "Save changes?" dialog must no longer be among the owned
+        // windows. (EnumWindows can transiently include hidden helper top-levels
+        // created by WPF/WinForms — we only assert our specific dialog is gone.)
+        await Internals.AutoWait.UntilTrueAsync(
+            async ct =>
+            {
+                var owned = await page.GetOwnedWindowsAsync(ct);
+                foreach (var w in owned)
+                {
+                    var t = await w.TitleAsync(ct);
+                    if (string.Equals(t, "Save changes?", StringComparison.Ordinal))
+                        return false;
+                }
+                return true;
+            },
+            "Save changes? dialog should be gone after Cancel",
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromMilliseconds(100),
+            CancellationToken.None);
     }
 
     // ── Title-filter happy path ───────────────────────────────────────────────
@@ -126,99 +142,4 @@ public sealed class TestAppOwnedWindowTests : IAsyncLifetime
         });
     }
 
-    // ── Diagnostic ────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Diagnostic-only test: prints CI-visible output showing whether
-    /// <see cref="IFlawrightPage.GetOwnedWindowsAsync"/> ever detects the
-    /// SaveChangesDialog and, if so, what HWND and title it reports.
-    /// No assertions — the test always passes. Read the xUnit output in CI logs.
-    /// </summary>
-    [Fact]
-#pragma warning disable CA1303 // Diagnostic-only test logging; literals are intentional
-    public async Task Diagnostic_DialogDiscovery_PrintsTopLevelWindowsOverTime()
-    {
-        var page = await _fw!.Browser.NewPageAsync();
-        var pageHwnd = GetPageHandle(page);
-        Console.WriteLine($"Page (main window) HWND = 0x{pageHwnd:X}");
-
-        // BEFORE click: enumerate top-levels
-        var before = await page.GetOwnedWindowsAsync();
-        Console.WriteLine($"BEFORE click: GetOwnedWindowsAsync count = {before.Count}");
-        foreach (var w in before)
-            Console.WriteLine($"  - hwnd=0x{GetPageHandle(w):X} title='{await TryGetTitleAsync(w)}'");
-
-        // Click the dialog-opening button
-        await page.Locator("#btnShowDialog").ClickAsync();
-        Console.WriteLine("Click dispatched.");
-
-        // Poll every 200 ms for 12 s, logging each snapshot
-        for (var i = 0; i < 60; i++)
-        {
-            await Task.Delay(200);
-            var snapshot = await page.GetOwnedWindowsAsync();
-            if (snapshot.Count > 0 || i % 5 == 0)
-            {
-                Console.WriteLine($"t+{(i + 1) * 200}ms: count = {snapshot.Count}");
-                foreach (var w in snapshot)
-                    Console.WriteLine($"  - hwnd=0x{GetPageHandle(w):X} title='{await TryGetTitleAsync(w)}'");
-            }
-
-            if (snapshot.Count > 0 && i > 5)
-                break;
-        }
-
-        // Diagnostic only — no assertions
-    }
-#pragma warning restore CA1303
-
-    // ── Private helpers ───────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Returns the native window handle for <paramref name="page"/> by reflecting
-    /// into the internal <c>_windowBackend</c> field and reading its
-    /// <c>NativeWindowHandle</c> property. Returns <see cref="IntPtr.Zero"/> on
-    /// any failure so the diagnostic test degrades gracefully.
-    /// </summary>
-    private static nint GetPageHandle(IFlawrightPage page)
-    {
-        try
-        {
-            var field = page.GetType()
-                .GetField("_windowBackend", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (field == null)
-                return IntPtr.Zero;
-
-            var backend = field.GetValue(page);
-            if (backend == null)
-                return IntPtr.Zero;
-
-            var prop = backend.GetType()
-                .GetProperty("NativeWindowHandle", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-            if (prop == null)
-                return IntPtr.Zero;
-
-            return (nint)(prop.GetValue(backend) ?? IntPtr.Zero);
-        }
-        catch
-        {
-            return IntPtr.Zero;
-        }
-    }
-
-    /// <summary>
-    /// Returns the title of <paramref name="page"/>, or a placeholder string if
-    /// <see cref="IFlawrightPage.TitleAsync"/> throws.
-    /// </summary>
-    private static async Task<string> TryGetTitleAsync(IFlawrightPage page)
-    {
-        try
-        {
-            return await page.TitleAsync();
-        }
-        catch (Exception ex)
-        {
-            return $"<title-error: {ex.GetType().Name}>";
-        }
-    }
 }
