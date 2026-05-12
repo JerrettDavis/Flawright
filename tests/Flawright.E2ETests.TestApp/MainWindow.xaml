@@ -353,9 +353,15 @@
                     </ListView>
 
                     <!-- TreeView with hierarchy -->
+                    <!-- VirtualizingPanel.IsVirtualizing="False" ensures all TreeViewItem nodes
+                         materialize in the UIA tree immediately, regardless of whether the
+                         parent node is expanded. Without this, child nodes are deferred until
+                         the parent is expanded AND the WPF virtualization engine realizes them —
+                         which does not happen reliably in headless CI where no compositor runs. -->
                     <TreeView x:Name="tvHierarchy"
                               AutomationProperties.AutomationId="tvHierarchy"
                               AutomationProperties.Name="tvHierarchy"
+                              VirtualizingPanel.IsVirtualizing="False"
                               Height="80"
                               Margin="0,0,0,4">
                         <TreeViewItem Header="Root 1" AutomationProperties.AutomationId="tvRoot1" AutomationProperties.Name="Root 1">
