@@ -559,6 +559,18 @@ internal sealed class FlawrightLocator : IFlawrightLocator
                 "Ensure the target is a TreeViewItem, Expander, or other expandable control.");
     }
 
+    // ── IFlawrightLocator: Selection (SelectionItemPattern) ───────────────────
+
+    /// <inheritdoc/>
+    public async Task SelectAsync(CancellationToken ct = default)
+    {
+        var backend = await ResolveSingleAsync(null, ct).ConfigureAwait(false);
+        if (!backend.TrySelect())
+            throw new NotSupportedException(
+                $"Element '{_ctx.Selector}' does not support SelectionItemPattern. " +
+                "Ensure the target is a TabItem, ListViewItem, RadioButton, or other selection-item control.");
+    }
+
     // ── IFlawrightLocator: Range value ────────────────────────────────────────
 
     /// <inheritdoc/>

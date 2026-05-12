@@ -56,15 +56,15 @@ public sealed class TestAppTabControlTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Switch to Selection tab.
-        await page.Locator("#tabSelection").ClickAsync();
+        // Switch to Selection tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabSelection").SelectAsync();
 
         // A Selection-tab control (the slider) should now be visible.
         var sliderVisible = await page.Locator("#sliderVolume").IsVisibleAsync();
         Assert.True(sliderVisible, "sliderVolume should be visible after switching to Selection tab.");
 
-        // Switch to Inputs tab.
-        await page.Locator("#tabInputs").ClickAsync();
+        // Switch to Inputs tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabInputs").SelectAsync();
 
         // An Inputs-tab control (the multi-line TextBox) should now be visible.
         var multilineVisible = await page.Locator("#txtMultiline").IsVisibleAsync();
@@ -84,14 +84,14 @@ public sealed class TestAppTabControlTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Switch to Menu/Actions.
-        await page.Locator("#tabMenuActions").ClickAsync();
+        // Switch to Menu/Actions via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabMenuActions").SelectAsync();
 
         var dataGridVisible = await page.Locator("#grdData").IsVisibleAsync();
         Assert.True(dataGridVisible, "grdData should be visible on Menu/Actions tab.");
 
-        // Switch back to Inputs.
-        await page.Locator("#tabInputs").ClickAsync();
+        // Switch back to Inputs via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabInputs").SelectAsync();
 
         var txtMultilineVisible = await page.Locator("#txtMultiline").IsVisibleAsync();
         Assert.True(txtMultilineVisible, "txtMultiline should be visible on Inputs tab.");
@@ -135,7 +135,8 @@ public sealed class TestAppTabControlTests : IAsyncLifetime
         var page = await _fw!.Browser.NewPageAsync();
 
         var selectionTab = page.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "Selection" });
-        await selectionTab.ClickAsync();
+        // Use SelectAsync (SelectionItemPattern) — no focus/SendInput dependency.
+        await selectionTab.SelectAsync();
 
         // Auto-waited assertion: retries until the slider is visible or the default timeout elapses.
         await page.Locator("#sliderVolume").Expect().ToBeVisibleAsync();

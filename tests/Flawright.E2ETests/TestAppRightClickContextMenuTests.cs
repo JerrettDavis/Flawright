@@ -67,8 +67,8 @@ public sealed class TestAppRightClickContextMenuTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Menu/Actions tab.
-        await page.Locator("#tabMenuActions").ClickAsync();
+        // Activate Menu/Actions tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabMenuActions").SelectAsync();
 
         // Right-click the target button.
         await page.Locator("#btnRightClickTarget").RightClickAsync();
@@ -101,8 +101,8 @@ public sealed class TestAppRightClickContextMenuTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Menu/Actions tab.
-        await page.Locator("#tabMenuActions").ClickAsync();
+        // Activate Menu/Actions tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabMenuActions").SelectAsync();
 
         // Right-click the target button to open the context menu.
         await page.Locator("#btnRightClickTarget").RightClickAsync();
@@ -169,8 +169,8 @@ public sealed class TestAppRightClickVirtualModeTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Menu/Actions tab.
-        await page.Locator("#tabMenuActions").ClickAsync();
+        // Activate Menu/Actions tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabMenuActions").SelectAsync();
 
         await Assert.ThrowsAsync<NotSupportedException>(async () =>
         {

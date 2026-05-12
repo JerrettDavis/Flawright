@@ -64,8 +64,8 @@ public sealed class TestAppMouseWheelTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Selection tab so lsbScrollable is visible.
-        await page.Locator("#tabSelection").ClickAsync();
+        // Activate Selection tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabSelection").SelectAsync();
 
         var listBox = page.Locator("#lsbScrollable");
         var bbox = await listBox.BoundingBoxAsync();
@@ -139,8 +139,8 @@ public sealed class TestAppKeyboardTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Inputs tab.
-        await page.Locator("#tabInputs").ClickAsync();
+        // Activate Inputs tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabInputs").SelectAsync();
 
         // Focus the labeled TextBox.
         await page.Locator("#txtLabeledField").FocusAsync();
@@ -169,8 +169,8 @@ public sealed class TestAppKeyboardTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Inputs tab.
-        await page.Locator("#tabInputs").ClickAsync();
+        // Activate Inputs tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabInputs").SelectAsync();
 
         // Focus the placeholder TextBox.
         await page.Locator("#txtPlaceholderTest").FocusAsync();
@@ -196,8 +196,8 @@ public sealed class TestAppKeyboardTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Inputs tab.
-        await page.Locator("#tabInputs").ClickAsync();
+        // Activate Inputs tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabInputs").SelectAsync();
 
         var textBox = page.Locator("#txtMultiline");
         await textBox.FocusAsync();

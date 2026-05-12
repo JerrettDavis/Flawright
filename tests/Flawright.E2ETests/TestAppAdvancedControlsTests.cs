@@ -50,8 +50,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Activate Selection tab.
-        await page.Locator("#tabSelection").ClickAsync();
+        // Activate Selection tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabSelection").SelectAsync();
 
         var slider = page.Locator("#sliderVolume");
         var value = await slider.GetValueAsync();
@@ -68,8 +68,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Activate Selection tab.
-        await page.Locator("#tabSelection").ClickAsync();
+        // Activate Selection tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabSelection").SelectAsync();
 
         var slider = page.Locator("#sliderVolume");
         await slider.SetValueAsync(75);
@@ -91,8 +91,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Selection tab.
-        await page.Locator("#tabSelection").ClickAsync();
+        // Activate Selection tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabSelection").SelectAsync();
 
         var listView = page.Locator("#lvData");
 
@@ -125,8 +125,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Selection tab.
-        await page.Locator("#tabSelection").ClickAsync();
+        // Activate Selection tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabSelection").SelectAsync();
 
         // Expand Root 1 via ExpandCollapsePattern (not Click, which only selects).
         await page.Locator("#tvRoot1").ExpandAsync();
@@ -153,8 +153,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
 
         await page.BringToFrontAsync();
 
-        // Activate Selection tab.
-        await page.Locator("#tabSelection").ClickAsync();
+        // Activate Selection tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabSelection").SelectAsync();
 
         // Expand Root 1 via ExpandCollapsePattern.
         await page.Locator("#tvRoot1").ExpandAsync();
@@ -186,8 +186,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Activate Menu/Actions tab.
-        await page.Locator("#tabMenuActions").ClickAsync();
+        // Activate Menu/Actions tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabMenuActions").SelectAsync();
 
         var dataGrid = page.Locator("#grdData");
 
@@ -220,8 +220,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Activate Inputs tab.
-        await page.Locator("#tabInputs").ClickAsync();
+        // Activate Inputs tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabInputs").SelectAsync();
 
         var textBox = page.Locator("#txtMultiline");
         await textBox.FillAsync("Line 1\nLine 2\nLine 3");
@@ -244,8 +244,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Activate Inputs tab.
-        await page.Locator("#tabInputs").ClickAsync();
+        // Activate Inputs tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabInputs").SelectAsync();
 
         var combo = page.Locator("#cboEditable");
         await combo.FillAsync("Custom Value");
@@ -279,8 +279,8 @@ public sealed class TestAppAdvancedControlsTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Activate Inputs tab.
-        await page.Locator("#tabInputs").ClickAsync();
+        // Activate Inputs tab via SelectionItemPattern (no focus dependency).
+        await page.Locator("#tabInputs").SelectAsync();
 
         var pwd = page.Locator("#pwdPassword");
 

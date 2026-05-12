@@ -616,6 +616,20 @@ public interface IFlawrightLocator
     /// </exception>
     Task ExpandAsync(CancellationToken ct = default);
 
+    // ── Selection (SelectionItemPattern) ──────────────────────────────────────
+
+    /// <summary>
+    /// Selects this element via UIA <c>SelectionItemPattern.Select()</c> (auto-waited).
+    /// Use for <c>TabItem</c>, <c>ListViewItem</c>, <c>RadioButton</c>, and other
+    /// selection-item elements.
+    /// Does not depend on window focus or physical input — works on headless CI.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="System.NotSupportedException">
+    /// Thrown when the element does not implement <c>SelectionItemPattern</c>.
+    /// </exception>
+    Task SelectAsync(CancellationToken ct = default);
+
     // ── Range value (Slider / Spinner) ────────────────────────────────────────
 
     /// <summary>
