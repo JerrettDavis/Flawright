@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using FlaUI.Core.Conditions;
 using FlaUI.UIA3;
 using Flawright.Backends;
@@ -26,6 +27,28 @@ namespace Flawright;
 /// </example>
 public sealed class Flawright : IFlawright
 {
+    // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4 (handle-value sentinel).
+    // Setting this once per AppDomain before any UIA call ensures that
+    // UIA returns real physical-pixel coordinates for the target window's
+    // monitor, so SendInput absolute coords are in the same space.
+    // The try/catch silently ignores older OS builds that lack the API.
+    [DllImport("user32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
+
+    [ExcludeFromCodeCoverage]
+    static Flawright()
+    {
+        try
+        {
+            SetThreadDpiAwarenessContext(new IntPtr(-4));
+        }
+        catch (EntryPointNotFoundException)
+        {
+            // Pre-Creators-Update Windows 10 — DPI awareness API not present.
+        }
+    }
+
     private readonly FlawrightBrowser _browser;
 
     private Flawright(FlawrightBrowser browser)
