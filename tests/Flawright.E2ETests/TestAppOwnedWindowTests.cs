@@ -58,11 +58,9 @@ public sealed class TestAppOwnedWindowTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Open the SaveChangesDialog.  ShowDialog() blocks the WPF UI thread until
-        // the dialog is dismissed, so ClickAsync would not return until after the
-        // dialog closed — defeating WaitForDialogAsync.  Fire-and-forget the click
-        // on a thread-pool thread so the UI thread is free to pump the dialog.
-        _ = Task.Run(() => page.Locator("#btnShowDialog").ClickAsync());
+        // Open the SaveChangesDialog.  UIA's InvokePattern.Invoke is non-blocking, so
+        // ClickAsync returns immediately even for ShowDialog calls — plain await is correct.
+        await page.Locator("#btnShowDialog").ClickAsync();
 
         // WaitForDialogAsync (no title filter) should return the owned dialog.
         var dialogPage = await page.WaitForDialogAsync();
@@ -91,9 +89,9 @@ public sealed class TestAppOwnedWindowTests : IAsyncLifetime
     {
         var page = await _fw!.Browser.NewPageAsync();
 
-        // Same fire-and-forget pattern as WaitForDialog_NoFilter: ShowDialog() blocks
-        // the WPF UI thread, so the click must not be awaited before WaitForDialogAsync.
-        _ = Task.Run(() => page.Locator("#btnShowDialog").ClickAsync());
+        // UIA's InvokePattern.Invoke is non-blocking, so ClickAsync returns immediately
+        // even for ShowDialog calls — plain await is correct.
+        await page.Locator("#btnShowDialog").ClickAsync();
 
         // WaitForDialogAsync with the "Save" substring should match "Save changes?".
         var dialogPage = await page.WaitForDialogAsync(titlePattern: "Save");

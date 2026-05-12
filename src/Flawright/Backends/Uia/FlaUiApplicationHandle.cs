@@ -176,7 +176,10 @@ internal sealed class FlaUiApplicationHandle : IApplicationHandle
             try
             {
                 var hwnd = w.NativeWindowHandle;
-                if (hwnd == IntPtr.Zero || hwnd == ownerWindowHandle)
+                // Skip the owner itself, but include windows with a zero handle
+                // (some UIA top-level elements for WPF/WinUI dialogs report
+                //  NativeWindowHandle == 0; we still want to surface them).
+                if (hwnd != IntPtr.Zero && hwnd == ownerWindowHandle)
                     continue;
 
                 result.Add(w);

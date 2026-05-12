@@ -94,14 +94,19 @@ internal sealed class FlawrightPage : IFlawrightPage
         foreach (var backend in ownedWindows)
         {
             var dialogHwnd = backend.NativeWindowHandle;
-            if (!seenHandles.Add(dialogHwnd))
+            // Skip dedup for zero-handle dialogs: WPF/WinUI UIA elements may report
+            // NativeWindowHandle == 0 (no real HWND), and collapsing all of them to a
+            // single HashSet entry would silently drop the second and subsequent dialogs.
+            // Each zero-handle element is treated as unique.
+            if (dialogHwnd != IntPtr.Zero && !seenHandles.Add(dialogHwnd))
                 continue;
 
             pages.Add(new FlawrightPage(backend, _input, Options, _translator, _browser, _app));
 
             // Always raise DialogOpened for each new dialog discovered, regardless of EnableWindowEvents.
             // EnableWindowEvents gates only the noisy WindowDetected firehose, not this focused event.
-            if (_browser != null && _raisedDialogHandles.Add(dialogHwnd))
+            // Only deduplicate events for windows with a real HWND; zero-handle dialogs always fire.
+            if (_browser != null && (dialogHwnd == IntPtr.Zero || _raisedDialogHandles.Add(dialogHwnd)))
             {
                 _browser.RaiseDialogOpened(new DialogOpenedEventArgs(
                     parentProcessId: _app.ProcessId,
@@ -177,7 +182,10 @@ internal sealed class FlawrightPage : IFlawrightPage
             ct).ConfigureAwait(false);
 
         var dialogHwnd = matchedBackend.NativeWindowHandle;
-        if (_browser != null && _raisedDialogHandles.Add(dialogHwnd))
+        // For zero-handle dialogs (WPF/WinUI UIA elements with no real HWND), always raise
+        // the event; dedup only applies to real HWNDs to avoid suppressing distinct dialogs
+        // that happen to share a zero handle.
+        if (_browser != null && (dialogHwnd == IntPtr.Zero || _raisedDialogHandles.Add(dialogHwnd)))
         {
             _browser.RaiseDialogOpened(new DialogOpenedEventArgs(
                 parentProcessId: _app.ProcessId,
