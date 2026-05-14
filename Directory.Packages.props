@@ -32,7 +32,7 @@
   <!-- ─── Reqnroll (BDD/Gherkin) ─── -->
   <ItemGroup>
     <PackageVersion Include="Reqnroll" Version="3.3.4" />
-    <PackageVersion Include="Reqnroll.xUnit" Version="3.3.3" />
+    <PackageVersion Include="Reqnroll.xUnit" Version="3.3.4" />
     <PackageVersion Include="Reqnroll.NUnit" Version="3.3.4" />
     <PackageVersion Include="Reqnroll.MsTest" Version="3.3.4" />
     <PackageVersion Include="Reqnroll.Tools.MsBuild.Generation" Version="3.3.4" />
