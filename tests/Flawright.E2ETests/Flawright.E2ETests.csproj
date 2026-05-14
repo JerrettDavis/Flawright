@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Flawright\Flawright.csproj" />
+    <ProjectReference Include="..\Flawright.UnitTests\Flawright.UnitTests.csproj" />
   </ItemGroup>
 
   <!--

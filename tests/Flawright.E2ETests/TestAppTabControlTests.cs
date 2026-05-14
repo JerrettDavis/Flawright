@@ -2,6 +2,7 @@ using Flawright;
 using Flawright.Backends.Uia;
 using Flawright.InputModes;
 using Flawright.Locator;
+using Flawright.Selectors;
 using Flawright.UnitTests.Fakes;
 using Xunit;
 
