@@ -1,7 +1,7 @@
+using FlaUI.Core.WindowsAPI;
 using Flawright.Backends;
 using Flawright.Input;
 using Flawright.Locator;
-using FlaUI.Core.WindowsAPI;
 
 namespace Flawright.InputModes;
 

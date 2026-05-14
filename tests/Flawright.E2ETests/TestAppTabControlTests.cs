@@ -1,7 +1,8 @@
 using Flawright;
+using Flawright.Backends.Uia;
 using Flawright.InputModes;
-using Flawright.Selectors;
 using Flawright.Locator;
+using Flawright.UnitTests.Fakes;
 using Xunit;
 
 namespace Flawright.E2ETests;

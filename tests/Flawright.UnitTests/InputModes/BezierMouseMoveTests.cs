@@ -61,15 +61,15 @@ public sealed class BezierMouseMoveTests
     [Fact]
     public void MouseMove_FinalPosition_IsExactTarget()
     {
-        const int targetX = 357;
-        const int targetY = 812;
+        const int TargetX = 357;
+        const int TargetY = 812;
         var (backend, cursor) = Build(50, 50);
 
-        backend.MouseMove(targetX, targetY, steps: 0);
+        backend.MouseMove(TargetX, TargetY, steps: 0);
 
         var last = cursor.Positions[^1];
-        Assert.Equal(targetX, last.X);
-        Assert.Equal(targetY, last.Y);
+        Assert.Equal(TargetX, last.X);
+        Assert.Equal(TargetY, last.Y);
     }
 
     // ── Path is curved (not a straight line) ─────────────────────────────────
@@ -116,28 +116,28 @@ public sealed class BezierMouseMoveTests
     [Fact]
     public void MouseMove_PathStartsNearSource_EndsAtTarget()
     {
-        const int startX = 50;
-        const int startY = 50;
-        const int targetX = 250;
-        const int targetY = 350;
-        var (backend, cursor) = Build(startX, startY);
+        const int StartX = 50;
+        const int StartY = 50;
+        const int TargetX = 250;
+        const int TargetY = 350;
+        var (backend, cursor) = Build(StartX, StartY);
 
-        backend.MouseMove(targetX, targetY, steps: 0);
+        backend.MouseMove(TargetX, TargetY, steps: 0);
 
         var positions = cursor.Positions;
         Assert.NotEmpty(positions);
 
         // First intermediate should be closer to start than to target.
         var first = positions[0];
-        var distToStart = Math.Sqrt(Math.Pow(first.X - startX, 2) + Math.Pow(first.Y - startY, 2));
-        var distToTarget = Math.Sqrt(Math.Pow(first.X - targetX, 2) + Math.Pow(first.Y - targetY, 2));
+        var distToStart = Math.Sqrt(Math.Pow(first.X - StartX, 2) + Math.Pow(first.Y - StartY, 2));
+        var distToTarget = Math.Sqrt(Math.Pow(first.X - TargetX, 2) + Math.Pow(first.Y - TargetY, 2));
         Assert.True(distToStart < distToTarget,
             $"First intermediate ({first.X},{first.Y}) should be closer to start than target.");
 
         // Last position is exactly the target.
         var last = positions[^1];
-        Assert.Equal(targetX, last.X);
-        Assert.Equal(targetY, last.Y);
+        Assert.Equal(TargetX, last.X);
+        Assert.Equal(TargetY, last.Y);
     }
 
     // ── Minimum step clamp ───────────────────────────────────────────────────
