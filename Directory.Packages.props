@@ -6,7 +6,7 @@
 
   <!-- ─── Build infrastructure (applied via Directory.Build.props) ─── -->
   <ItemGroup>
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.102" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.104" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
     <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50" />
   </ItemGroup>
@@ -16,7 +16,7 @@
     <PackageVersion Include="FlaUI.Core" Version="5.0.0" />
     <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
     <!-- Explicit transitive override to avoid vulnerable System.Drawing.Common 5.0.2 from FlaUI -->
-    <PackageVersion Include="System.Drawing.Common" Version="10.0.8" />
+    <PackageVersion Include="System.Drawing.Common" Version="10.0.9" />
   </ItemGroup>
 
   <!-- ─── Testing ─── -->
