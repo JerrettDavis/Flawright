@@ -41,7 +41,7 @@ namespace Flawright.AumidResolver;
 /// <para>
 /// If neither tier matches, <see cref="Resolve"/> returns a
 /// <see cref="LaunchKind.Path"/> target so the caller falls through to the
-/// standard <c>Application.AttachOrLaunch</c> path.
+/// standard <c>Application.Launch</c> path.
 /// </para>
 /// </remarks>
 public sealed class WindowsAumidResolver : IAumidResolver

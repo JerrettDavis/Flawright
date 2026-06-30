@@ -7,7 +7,7 @@ namespace Flawright.Internals;
 /// <c>%LOCALAPPDATA%\Microsoft\WindowsApps\</c>) and resolves them to their
 /// Application User Model ID (AUMID) so that FlaUI can use
 /// <c>Application.LaunchStoreApp</c> instead of the broken
-/// <c>Application.AttachOrLaunch</c> path.
+/// <c>Application.Launch</c> path (which tracks the stub process and sees it exit immediately).
 /// </summary>
 /// <remarks>
 /// On Windows 11, several inbox apps (Notepad, Calculator, Paint) are packaged

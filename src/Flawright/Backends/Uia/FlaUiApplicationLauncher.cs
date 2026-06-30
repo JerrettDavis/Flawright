@@ -57,7 +57,7 @@ internal sealed class FlaUiApplicationLauncher : IApplicationLauncher
 
         var sw = Stopwatch.StartNew();
         var app = ProcessAttachRetry.Invoke(
-            () => Application.AttachOrLaunch(psi),
+            () => Application.Launch(psi),
             onRetry: opts.OnAttachRetry);
 
         // Wait for the process to finish loading its DLL modules before handing

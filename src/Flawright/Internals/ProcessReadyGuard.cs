@@ -22,7 +22,7 @@ internal record ProcessReadyResult(
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Root cause:</b> <c>Process.Start</c> / <c>Application.AttachOrLaunch</c> returns
+/// <b>Root cause:</b> <c>Process.Start</c> / <c>Application.Launch</c> returns
 /// as soon as the OS creates the process record.  The Win32 loader then maps DLL modules
 /// asynchronously.  FlaUI's <c>EnumProcessModules</c> calls (used inside
 /// <c>WaitWhileMainHandleIsMissing</c> and similar paths) can race against the loader on

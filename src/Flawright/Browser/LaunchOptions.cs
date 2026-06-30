@@ -80,7 +80,7 @@ public sealed record LaunchOptions
     /// </summary>
     /// <remarks>
     /// <para>
-    /// After <c>Process.Start</c> / <c>Application.AttachOrLaunch</c> returns,
+    /// After <c>Process.Start</c> / <c>Application.Launch</c> returns,
     /// the Win32 loader maps DLL modules asynchronously.  On a loaded runner,
     /// FlaUI's internal <c>EnumProcessModules</c> calls (used during
     /// <c>WaitWhileMainHandleIsMissing</c> and window discovery) can race against
