@@ -164,6 +164,16 @@ public sealed class TestAppWindowTypeTests : IAsyncLifetime
     /// A <see cref="System.Windows.Forms.Form"/> shown via <c>Show()</c>
     /// (modeless) appears in <see cref="IFlawrightPage.GetOwnedWindowsAsync"/>.
     /// </summary>
+    /// <remarks>
+    /// Uses an extended <see cref="IFlawrightPage.WaitForDialogAsync"/> timeout
+    /// (30s vs. the suite's 10s default). Under loaded, parallel CI runs on the
+    /// hosted Windows runner, the WinForms modeless <c>Form</c> can take longer
+    /// than 10s for its window/title to materialize in UIA's owned-window
+    /// enumeration, causing an intermittent <see cref="FlawrightTimeoutException"/>
+    /// even though the dialog reliably appears — just later than the default
+    /// window. This does not weaken the assertion, it only tolerates slower
+    /// CI-only window materialization.
+    /// </remarks>
     [Fact]
     public async Task WinFormsModeless_AppearsInGetOwnedWindowsAsync()
     {
@@ -171,7 +181,9 @@ public sealed class TestAppWindowTypeTests : IAsyncLifetime
 
         await page.Locator("#btnShowWinFormsModeless").ClickAsync();
 
-        var dialogPage = await page.WaitForDialogAsync(titlePattern: "WinForms Modeless");
+        var dialogPage = await page.WaitForDialogAsync(
+            titlePattern: "WinForms Modeless",
+            timeout: TimeSpan.FromSeconds(30));
         Assert.NotNull(dialogPage);
 
         await dialogPage.Locator("name:Close").ClickAsync();
