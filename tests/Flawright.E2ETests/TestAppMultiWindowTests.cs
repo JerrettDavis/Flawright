@@ -118,8 +118,8 @@ public class TestAppMultiWindowTests : IAsyncLifetime
         }
 
         var seenTitles = await Task.WhenAll(pages.Select(p => p.TitleAsync()));
-        Assert.Contains("Flawright Test App", seenTitles);
-        Assert.Contains(SpawnedWindowTitle, seenTitles);
+        Assert.Contains("Flawright Test App", seenTitles, StringComparer.Ordinal);
+        Assert.Contains(SpawnedWindowTitle, seenTitles, StringComparer.Ordinal);
     }
 
     // ── WaitForPageAsync ──────────────────────────────────────────────────────

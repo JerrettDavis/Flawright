@@ -98,8 +98,8 @@ public sealed class FlawrightLocatorTests
         var texts = await locator.AllInnerTextsAsync();
 
         Assert.Equal(2, texts.Count);
-        Assert.Contains("Alpha", texts);
-        Assert.Contains("Beta", texts);
+        Assert.Contains("Alpha", texts, StringComparer.Ordinal);
+        Assert.Contains("Beta", texts, StringComparer.Ordinal);
     }
 
     [Fact]

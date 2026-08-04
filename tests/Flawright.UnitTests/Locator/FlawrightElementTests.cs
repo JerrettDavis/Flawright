@@ -614,7 +614,7 @@ public sealed class FlawrightElementTests
         await element.ClearAsync();
 
         Assert.Equal(string.Empty, backend.TryGetValue());
-        Assert.Contains(string.Empty, backend.Inputs);
+        Assert.Contains(string.Empty, backend.Inputs, StringComparer.Ordinal);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
