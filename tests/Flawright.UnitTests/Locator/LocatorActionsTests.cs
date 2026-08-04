@@ -82,7 +82,7 @@ public sealed class LocatorActionsTests
         await locator.FillAsync("Hello World");
 
         var edit = (FakeElementBackend)root.Children[0];
-        Assert.Contains("Hello World", edit.Inputs);
+        Assert.Contains("Hello World", edit.Inputs, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed class LocatorActionsTests
         await locator.ClearAsync();
 
         var edit = (FakeElementBackend)root.Children[0];
-        Assert.Contains(string.Empty, edit.Inputs);
+        Assert.Contains(string.Empty, edit.Inputs, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public sealed class LocatorActionsTests
 
         var edit = (FakeElementBackend)root.Children[0];
         Assert.Equal(1, edit.FocusCount);
-        Assert.Contains("Hello", input.TypedTexts);
+        Assert.Contains("Hello", input.TypedTexts, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed class LocatorActionsTests
 
         var edit = (FakeElementBackend)root.Children[0];
         Assert.Equal(1, edit.FocusCount);
-        Assert.Contains("ABC", input.TypedTexts);
+        Assert.Contains("ABC", input.TypedTexts, StringComparer.Ordinal);
     }
 
     // ── PressAsync ────────────────────────────────────────────────────────────

@@ -208,7 +208,7 @@ public sealed class FlawrightKeyboardTests
     {
         var (kb, input) = Make();
         await kb.TypeAsync("hello");
-        Assert.Contains("hello", input.TypedTexts);
+        Assert.Contains("hello", input.TypedTexts, StringComparer.Ordinal);
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public sealed class FlawrightKeyboardTests
     {
         var (kb, input) = Make();
         await kb.InsertTextAsync("quick text");
-        Assert.Contains("quick text", input.TypedTexts);
+        Assert.Contains("quick text", input.TypedTexts, StringComparer.Ordinal);
     }
 
     [Fact]

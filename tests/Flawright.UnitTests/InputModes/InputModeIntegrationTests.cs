@@ -73,7 +73,7 @@ public sealed class InputModeIntegrationTests
 
         await locator.TypeAsync("hello");
 
-        Assert.Contains("hello", edit.Inputs);   // ValuePattern.SetValue was called
+        Assert.Contains("hello", edit.Inputs, StringComparer.Ordinal);   // ValuePattern.SetValue was called
         Assert.Empty(input.TypedTexts);           // KeyboardType was NOT called
     }
 
@@ -94,8 +94,8 @@ public sealed class InputModeIntegrationTests
 
         await locator.TypeAsync("hello");
 
-        Assert.Contains("hello", input.TypedTexts);  // KeyboardType WAS called
-        Assert.DoesNotContain("hello", edit.Inputs); // SetValue was NOT called (focus() is recorded separately)
+        Assert.Contains("hello", input.TypedTexts, StringComparer.Ordinal);  // KeyboardType WAS called
+        Assert.DoesNotContain("hello", edit.Inputs, StringComparer.Ordinal); // SetValue was NOT called (focus() is recorded separately)
     }
 
     [Fact]

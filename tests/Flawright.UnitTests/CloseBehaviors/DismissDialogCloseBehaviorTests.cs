@@ -14,8 +14,8 @@ public sealed class DismissDialogCloseBehaviorTests
     [Fact]
     public void DefaultDiscardButtonNames_ContainsBothCasingVariants()
     {
-        Assert.Contains("Don't Save", DismissDialogCloseBehavior.DefaultDiscardButtonNames);
-        Assert.Contains("Don't save", DismissDialogCloseBehavior.DefaultDiscardButtonNames);
+        Assert.Contains("Don't Save", DismissDialogCloseBehavior.DefaultDiscardButtonNames, StringComparer.Ordinal);
+        Assert.Contains("Don't save", DismissDialogCloseBehavior.DefaultDiscardButtonNames, StringComparer.Ordinal);
     }
 
     // ── Constructor / button name configuration ───────────────────────────────
@@ -173,7 +173,7 @@ public sealed class DismissDialogCloseBehaviorTests
         await behavior.CloseAsync(ctx);
 
         // Both default names should have been polled at least once each
-        Assert.Contains("Don't Save", ctx.FindButtonCalls);
-        Assert.Contains("Don't save", ctx.FindButtonCalls);
+        Assert.Contains("Don't Save", ctx.FindButtonCalls, StringComparer.Ordinal);
+        Assert.Contains("Don't save", ctx.FindButtonCalls, StringComparer.Ordinal);
     }
 }

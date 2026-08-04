@@ -102,7 +102,7 @@ public sealed class FlawrightBrowserEventsTests
 
         await browser.CloseAsync();
 
-        Assert.Equal(ClosingThenClosedOrder, eventOrder);
+        Assert.Equal(ClosingThenClosedOrder, eventOrder, StringComparer.Ordinal);
     }
 
     [Fact]

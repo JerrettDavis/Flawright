@@ -151,7 +151,7 @@ public sealed class VirtualInputModeTests
 
         mode.Type(element, "hello world", new FakeInputBackend());
 
-        Assert.Contains("hello world", element.Inputs);
+        Assert.Contains("hello world", element.Inputs, StringComparer.Ordinal);
     }
 
     [Fact]

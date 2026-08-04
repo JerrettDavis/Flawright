@@ -273,7 +273,7 @@ public sealed class FlawrightPageTests
 
         await page.TypeAsync("Input", "world");
 
-        Assert.Contains("world", input.TypedTexts);
+        Assert.Contains("world", input.TypedTexts, StringComparer.Ordinal);
     }
 
     [Fact]

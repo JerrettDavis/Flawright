@@ -122,7 +122,7 @@ public sealed class RealInputModeTests
         mode.Type(element, "hello", input);
 
         Assert.Equal(1, element.FocusCount);
-        Assert.Contains("hello", input.TypedTexts);
+        Assert.Contains("hello", input.TypedTexts, StringComparer.Ordinal);
     }
 
     [Fact]
