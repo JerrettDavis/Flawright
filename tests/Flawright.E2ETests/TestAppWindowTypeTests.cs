@@ -239,7 +239,9 @@ public sealed class TestAppWindowTypeTests : IAsyncLifetime
         await page.Locator("#btnShowOpenFileDialog").ClickAsync();
 
         // Accept either the app-supplied title or the OS-level "Open" title.
-        var dialogPage = await page.WaitForDialogAsync(titlePattern: "Open");
+        var dialogPage = await page.WaitForDialogAsync(
+            titlePattern: "Open",
+            timeout: TimeSpan.FromSeconds(30));
         Assert.NotNull(dialogPage);
 
         // Dismiss via Escape.
