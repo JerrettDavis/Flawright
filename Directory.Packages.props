@@ -6,8 +6,8 @@
 
   <!-- ─── Build infrastructure (applied via Directory.Build.props) ─── -->
   <ItemGroup>
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.140" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.301" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.156" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.400" />
     <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.91" />
   </ItemGroup>
 
@@ -16,17 +16,17 @@
     <PackageVersion Include="FlaUI.Core" Version="5.0.0" />
     <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
     <!-- Explicit transitive override to avoid vulnerable System.Drawing.Common 5.0.2 from FlaUI -->
-    <PackageVersion Include="System.Drawing.Common" Version="10.0.10" />
+    <PackageVersion Include="System.Drawing.Common" Version="10.0.11" />
   </ItemGroup>
 
   <!-- ─── Testing ─── -->
   <ItemGroup>
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="FluentAssertions" Version="7.2.2" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
-    <PackageVersion Include="NSubstitute" Version="6.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
   </ItemGroup>
 
   <!-- ─── Reqnroll (BDD/Gherkin) ─── -->
