@@ -6,7 +6,7 @@
 
   <!-- ─── Build infrastructure (applied via Directory.Build.props) ─── -->
   <ItemGroup>
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.253" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.262" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
     <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.94" />
   </ItemGroup>
@@ -23,7 +23,7 @@
   <ItemGroup>
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="FluentAssertions" Version="7.2.2" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
