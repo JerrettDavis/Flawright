@@ -73,7 +73,7 @@ jobs:
           --results-directory ./TestResults
 
       - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action/windows@v2.24.0
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2.25.0
         if: always()
         with:
           files: |
