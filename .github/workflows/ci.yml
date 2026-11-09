@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@v6.1.0
         with:
           dotnet-version: 10.0.x
 
@@ -175,7 +175,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@v6.1.0
         with:
           dotnet-version: 10.0.x
 
@@ -412,7 +412,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6.0.0
+        uses: actions/setup-dotnet@v6.1.0
         with:
           dotnet-version: 10.0.x
 
@@ -427,7 +427,7 @@ jobs:
 
       - name: Determine version (NBGV)
         id: nbgv
-        uses: dotnet/nbgv@f70c0005d0e042bc476eb83fd3f88e7842e4f0c6  # v0.4.x — pinned for supply-chain integrity
+        uses: dotnet/nbgv@cb642a3cbb55cd3b711988a60360c590dbf4f909  # v0.4.x — pinned for supply-chain integrity
         with:
           setAllVars: true
 
