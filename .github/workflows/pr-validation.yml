@@ -46,7 +46,7 @@ jobs:
 
       - name: Determine version (NBGV)
         id: nbgv
-        uses: dotnet/nbgv@cb642a3cbb55cd3b711988a60360c590dbf4f909  # v0.4.x — pinned for supply-chain integrity
+        uses: dotnet/nbgv@c9afdf919a1cdb512bd5d64569ef77a3ac4c3c85  # v0.4.x — pinned for supply-chain integrity
         with:
           setAllVars: true
 
